@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS= -Wall -g
-CLIBS = -lcommons -pthread
+CLIBS = -lcommons -pthread -lrt
 
 PATHS = $(shell find src/ test/ -type d -printf "%p ")
 
