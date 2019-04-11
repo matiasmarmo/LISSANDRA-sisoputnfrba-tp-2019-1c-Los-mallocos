@@ -18,7 +18,7 @@ KERNEL_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(KERNEL_S))
 MEMORY_S = $(shell find src/memoria/ -name "*.c" -type f -printf "%f ")
 MEMORY_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(MEMORY_S))
 
-LSF_S = $(shell find src/lsf/ -type f -name "*.c" -printf "%f ")
+LSF_S = $(shell find src/lfs/ -type f -name "*.c" -printf "%f ")
 LSF_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(LSF_S))
 
 TEST_S = $(shell find test/ -name "*.c" -type f -printf "%f ")
@@ -34,7 +34,7 @@ LSF_TEST_O = $(filter-out %main.o,$(LSF_O))
 -include $(TEST_O:.o=.d)
 
 .PHONY: all
-all: kernel memoria lsf test
+all: kernel memoria lfs test
 
 kernel: $(COMMON_O) $(KERNEL_O)
 	$(CC) $(CFLAGS) $^ -o $(BUILD_DIR)/$@.out $(CLIBS)
@@ -42,7 +42,7 @@ kernel: $(COMMON_O) $(KERNEL_O)
 memoria: $(COMMON_O) $(MEMORY_O)
 	$(CC) $(CFLAGS) $^ -o $(BUILD_DIR)/$@.out $(CLIBS)
 
-lsf: $(COMMON_O) $(LSF_O)
+lfs: $(COMMON_O) $(LSF_O)
 	$(CC) $(CFLAGS) $^ -o $(BUILD_DIR)/$@.out $(CLIBS)
 
 test: $(TEST_O) $(COMMON_O) $(KERNEL_TEST_O) $(MEMORY_TEST_O) $(LSF_TEST_O)

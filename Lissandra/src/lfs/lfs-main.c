@@ -1,5 +1,5 @@
 #include <stdio.h>
 
 int main() {
-	printf("Lsf main!\n");
+	printf("Lfs main!\n");
 }
