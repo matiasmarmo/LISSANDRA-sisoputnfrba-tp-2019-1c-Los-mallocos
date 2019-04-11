@@ -324,15 +324,17 @@ struct gossip_response {
 	
 	uint8_t ips_memorias_len; 
 	uint32_t* ips_memorias;
-	uint16_t puertos_memorias;
+	
+	uint8_t puertos_memorias_len; 
+	uint16_t* puertos_memorias;
 };
 
 int decode_gossip_response(void*, void*, int);
 int encode_gossip_response(void*, uint8_t*, int);
-int init_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint16_t puertos_memorias, struct gossip_response*);
+int init_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, struct gossip_response*);
 void destroy_gossip_response(void*);
-int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint16_t puertos_memorias, uint8_t *, int);
-int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint16_t puertos_memorias, int);
+int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, uint8_t *, int);
+int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, int);
 
 int decode(void*, void*, int);
 int destroy(void*);

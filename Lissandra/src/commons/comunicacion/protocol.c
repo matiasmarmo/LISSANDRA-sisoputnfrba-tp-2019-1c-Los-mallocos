@@ -2777,7 +2777,13 @@ int encoded_gossip_response_size(void* data) {
 	encoded_size += 2;
 	encoded_size += msg->ips_memorias_len * sizeof(uint32_t);
 
-	encoded_size += sizeof(uint16_t);
+
+	if(msg->puertos_memorias == NULL) {
+		return BAD_DATA;
+	}
+	encoded_size += 2;
+	encoded_size += msg->puertos_memorias_len * sizeof(uint16_t);
+
 	if(encoded_size > MAX_ENCODED_SIZE) {
 		return MESSAGE_TOO_BIG;
 	}
@@ -2805,13 +2811,23 @@ int decode_gossip_response (void *recv_data, void* decoded_data, int max_decoded
 	memcpy(msg.ips_memorias, byte_data + current, msg.ips_memorias_len * sizeof(uint32_t));
 	current += msg.ips_memorias_len * sizeof(uint32_t);
 
-	msg.puertos_memorias = *((uint16_t*) (byte_data + current));
-	current += sizeof(uint16_t);
+	msg.puertos_memorias_len = ntohs(*((uint16_t*)(byte_data + current)));
+	current += 2;
+	msg.puertos_memorias = malloc(msg.puertos_memorias_len * sizeof(uint16_t));
+	if(msg.puertos_memorias == NULL) {
+		free(msg.ips_memorias);
+		return ALLOC_ERROR;
+	}
+	memcpy(msg.puertos_memorias, byte_data + current, msg.puertos_memorias_len * sizeof(uint16_t));
+	current += msg.puertos_memorias_len * sizeof(uint16_t);
+
 	
 	for(int i = 0; i < msg.ips_memorias_len; i++) {
 		msg.ips_memorias[i] = ntohl(msg.ips_memorias[i]);
 	}
-	msg.puertos_memorias = ntohs(msg.puertos_memorias);
+	for(int i = 0; i < msg.puertos_memorias_len; i++) {
+		msg.puertos_memorias[i] = ntohs(msg.puertos_memorias[i]);
+	}
 	memcpy(decoded_data, &msg, sizeof(struct gossip_response));
 	return 0;
 }
@@ -2832,7 +2848,9 @@ int encode_gossip_response(void* msg_buffer, uint8_t* buff, int max_size) {
 	for(int i = 0; i < msg.ips_memorias_len; i++) {
 		msg.ips_memorias[i] = htonl(msg.ips_memorias[i]);
 	}
-	msg.puertos_memorias = htons(msg.puertos_memorias);
+	for(int i = 0; i < msg.puertos_memorias_len; i++) {
+		msg.puertos_memorias[i] = htons(msg.puertos_memorias[i]);
+	}
 
 	int current = 0;
 	buff[current++] = msg.id;
@@ -2845,17 +2863,24 @@ int encode_gossip_response(void* msg_buffer, uint8_t* buff, int max_size) {
 	memcpy(buff + current, msg.ips_memorias, msg.ips_memorias_len * sizeof(uint32_t));
 	current += msg.ips_memorias_len * sizeof(uint32_t);
 
-	*((uint16_t*)(buff + current)) = msg.puertos_memorias;
-	current += sizeof(uint16_t);
+	if(msg.puertos_memorias_len > MAX_PTR_COUNT) {
+		return PTR_FIELD_TOO_LONG;
+	}
+	*((uint16_t*)(buff + current)) = htons(msg.puertos_memorias_len);
+	current += 2;
+	memcpy(buff + current, msg.puertos_memorias, msg.puertos_memorias_len * sizeof(uint16_t));
+	current += msg.puertos_memorias_len * sizeof(uint16_t);
 	
 	for(int i = 0; i < msg.ips_memorias_len; i++) {
 		msg.ips_memorias[i] = ntohl(msg.ips_memorias[i]);
 	}
-	msg.puertos_memorias = ntohs(msg.puertos_memorias);
+	for(int i = 0; i < msg.puertos_memorias_len; i++) {
+		msg.puertos_memorias[i] = ntohs(msg.puertos_memorias[i]);
+	}
 	return encoded_size;
 }
 
-int init_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint16_t puertos_memorias, struct gossip_response* msg) {
+int init_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, struct gossip_response* msg) {
 	msg->id = GOSSIP_RESPONSE_ID;
 	
 	if(ips_memorias == NULL) {
@@ -2869,7 +2894,20 @@ int init_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint1
 		return BAD_DATA;
 	}
 	memcpy(msg->ips_memorias, ips_memorias, ips_memorias_len * sizeof(uint32_t));
-	msg->puertos_memorias = puertos_memorias;
+
+	if(puertos_memorias == NULL) {
+		free(msg->ips_memorias);
+	msg->ips_memorias = NULL;
+		return BAD_DATA;
+	}
+	msg->puertos_memorias_len = puertos_memorias_len;
+	msg->puertos_memorias = malloc(puertos_memorias_len * sizeof(uint16_t));
+	if(msg->puertos_memorias == NULL) {
+		free(msg->ips_memorias);
+	msg->ips_memorias = NULL;
+		return BAD_DATA;
+	}
+	memcpy(msg->puertos_memorias, puertos_memorias, puertos_memorias_len * sizeof(uint16_t));
 	return 0;
 }
 
@@ -2877,13 +2915,15 @@ void destroy_gossip_response(void* buffer) {
 	struct gossip_response* msg = (struct gossip_response*) buffer;
 	free(msg->ips_memorias);
 	msg->ips_memorias = NULL;
+	free(msg->puertos_memorias);
+	msg->puertos_memorias = NULL;
 }
 
-int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint16_t puertos_memorias, uint8_t *buff, int max_size) {
+int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, uint8_t *buff, int max_size) {
 	uint8_t local_buffer[max_size - 2];
 	struct gossip_response msg;
 	int error, encoded_size;
-	if((error = init_gossip_response(ips_memorias_len, ips_memorias, puertos_memorias, &msg)) < 0) {
+	if((error = init_gossip_response(ips_memorias_len, ips_memorias, puertos_memorias_len, puertos_memorias, &msg)) < 0) {
 		return error;
 	}
 	if((encoded_size = encode_gossip_response(&msg, local_buffer, max_size - 1)) < 0) {
@@ -2894,7 +2934,7 @@ int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint1
 	return pack_msg(encoded_size, local_buffer, buff);
 }
 
-int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint16_t puertos_memorias, int socket_fd) {
+int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, int socket_fd) {
 
 	int bytes_to_send, ret;
 	int current_buffer_size = sizeof(struct gossip_response);
@@ -2903,7 +2943,7 @@ int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint1
 		return ALLOC_ERROR;
 	}
 
-	while((bytes_to_send = pack_gossip_response(ips_memorias_len, ips_memorias, puertos_memorias, local_buffer, current_buffer_size)) == BUFFER_TOO_SMALL) {
+	while((bytes_to_send = pack_gossip_response(ips_memorias_len, ips_memorias, puertos_memorias_len, puertos_memorias, local_buffer, current_buffer_size)) == BUFFER_TOO_SMALL) {
 		current_buffer_size *= 2;
 		local_buffer = realloc(local_buffer, current_buffer_size);
 		if(local_buffer == NULL) {
