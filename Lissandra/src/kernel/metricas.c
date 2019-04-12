@@ -2,10 +2,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <time.h>
 #include <commons/collections/list.h>
+#include <commons/string.h>
 
 #include "metricas.h"
 
@@ -230,10 +232,14 @@ uint32_t promedio_latency(t_list *lista) {
 	return latency_total / tamanio_lista;
 }
 
-int concat(char **destino, char *fuente, int *tamanio_actual_destino) {
+int concat(char **destino, int *tamanio_actual_destino, char *formato, ...) {
 	// Usamos +2 en vez de +1 para asegurarnos de que, en caso de que se
 	// haya llamado a concat_con_nueva_linea, entre en \n
-	int tamanio_necesario = strlen(fuente) + strlen(*destino) + 2;
+	va_list arguments;
+	va_start(arguments, formato);
+	char *string_a_concatenar = string_from_vformat(formato, arguments);
+	va_end(arguments);
+	int tamanio_necesario = strlen(string_a_concatenar) + strlen(*destino) + 2;
 	if (tamanio_necesario > *tamanio_actual_destino) {
 		char* nuevo_destino;
 		// Usamos tamanio_necesario por 2 para dejar lugar a futuras
@@ -241,34 +247,22 @@ int concat(char **destino, char *fuente, int *tamanio_actual_destino) {
 		int tamanio_agrandado = tamanio_necesario * 2;
 		if ((nuevo_destino = realloc(*destino, tamanio_agrandado)) == NULL) {
 			free(*destino);
+			free(string_a_concatenar);
 			*destino = NULL;
 			return -1;
 		}
 		*destino = nuevo_destino;
 		*tamanio_actual_destino = tamanio_agrandado;
 	}
-	strcat(*destino, fuente);
-	return 0;
-}
-
-int concat_con_nueva_linea(char **destino, char *fuente,
-		int *tamanio_actual_destino) {
-	if (concat(destino, fuente, tamanio_actual_destino) < 0) {
-		return -1;
-	}
-	concat(destino, "\n", tamanio_actual_destino);
+	strcat(*destino, string_a_concatenar);
+	free(string_a_concatenar);
 	return 0;
 }
 
 int latency_string(t_list *lista, char *titulo, char **destino,
 		int *tamanio_actual_destino) {
-	char buffer_conversiones[15] = { 0 };
-	if (concat(destino, titulo, tamanio_actual_destino) < 0) {
-		return -1;
-	}
-	sprintf(buffer_conversiones, "%d", promedio_latency(lista));
-	if (concat_con_nueva_linea(destino, buffer_conversiones,
-			tamanio_actual_destino) < 0) {
+	if (concat(destino, tamanio_actual_destino, "%s%d\n", titulo,
+			promedio_latency(lista)) < 0) {
 		return -1;
 	}
 	return 0;
@@ -294,13 +288,8 @@ int write_latency_string(metrica_criterio_t metrica, char **destino,
 
 int reads_totales_string(metrica_criterio_t metrica, char **destino,
 		int *tamanio_actual_destino) {
-	char buffer_conversiones[15] = { 0 };
-	if (concat(destino, "Reads / 30s: ", tamanio_actual_destino) < 0) {
-		return -1;
-	}
-	sprintf(buffer_conversiones, "%d", list_size(metrica.reads));
-	if (concat_con_nueva_linea(destino, buffer_conversiones,
-			tamanio_actual_destino) < 0) {
+	if (concat(destino, tamanio_actual_destino, "Reads / 30s: %d\n",
+			list_size(metrica.reads)) < 0) {
 		return -1;
 	}
 	return 0;
@@ -308,13 +297,8 @@ int reads_totales_string(metrica_criterio_t metrica, char **destino,
 
 int writes_totales_string(metrica_criterio_t metrica, char **destino,
 		int *tamanio_actual_destino) {
-	char buffer_conversiones[15] = { 0 };
-	if (concat(destino, "Writes / 30s: ", tamanio_actual_destino) < 0) {
-		return -1;
-	}
-	sprintf(buffer_conversiones, "%d", list_size(metrica.writes));
-	if (concat_con_nueva_linea(destino, buffer_conversiones,
-			tamanio_actual_destino) < 0) {
+	if (concat(destino, tamanio_actual_destino, "Writes / 30s: %d\n",
+			list_size(metrica.writes)) < 0) {
 		return -1;
 	}
 	return 0;
@@ -322,15 +306,11 @@ int writes_totales_string(metrica_criterio_t metrica, char **destino,
 
 int metricas_memorias_string(metrica_criterio_t metrica, char **destino,
 		int *tamanio_actual_destino) {
-	if (concat_con_nueva_linea(destino, "Memory Loads", tamanio_actual_destino)
-			< 0) {
+	if (concat(destino, tamanio_actual_destino, "Memory Loads\n") < 0) {
 		return -1;
 	}
 
 	void _concatenar_memory_load(void *elemento) {
-		char id_memoria_string[10] = { 0 };
-		char select_load_string[10] = { 0 };
-		char insert_load_string[10] = { 0 };
 		load_memoria_t *load = (load_memoria_t*) elemento;
 
 		if (*destino == NULL) {
@@ -338,38 +318,17 @@ int metricas_memorias_string(metrica_criterio_t metrica, char **destino,
 		}
 
 		int id_memoria = load->id_memoria;
-		sprintf(id_memoria_string, "%d", id_memoria);
-		double select_load =
-				metrica.reads_totales == 0 ?
-						0 :
-						(double) load->reads_realizadas / metrica.reads_totales;
-		double insert_load =
-				metrica.writes_totales == 0 ?
-						0 :
-						(double) load->writes_realizadas
-								/ metrica.writes_totales;
-		sprintf(select_load_string, "%.3f", select_load);
-		sprintf(insert_load_string, "%.3f", insert_load);
+		double select_load = metrica.reads_totales == 0 ? 0 :
+			(double) load->reads_realizadas / metrica.reads_totales;
+		double insert_load = metrica.writes_totales == 0 ? 0 :
+			(double) load->writes_realizadas / metrica.writes_totales;
 
-		if (concat(destino, "  Memoria ", tamanio_actual_destino) < 0) {
+		char *formato = "  Memoria %d\n\tRead load: %.3f\n\tWrite load: %.3f\n";
+		if (concat(destino, tamanio_actual_destino, formato, id_memoria,
+				select_load, insert_load) < 0) {
 			return;
 		}
-		if (concat(destino, id_memoria_string, tamanio_actual_destino) < 0) {
-			return;
-		}
-		if (concat(destino, ":\n\tRead load: ", tamanio_actual_destino) < 0) {
-			return;
-		}
-		if (concat(destino, select_load_string, tamanio_actual_destino) < 0) {
-			return;
-		}
-		if (concat(destino, "\n\tWrite load: ", tamanio_actual_destino) < 0) {
-			return;
-		}
-		if (concat_con_nueva_linea(destino, insert_load_string,
-				tamanio_actual_destino) < 0) {
-			return;
-		}
+
 	}
 
 	list_iterate(metrica.loads, &_concatenar_memory_load);
@@ -378,7 +337,7 @@ int metricas_memorias_string(metrica_criterio_t metrica, char **destino,
 
 int generar_metricas_de_un_criterio(metrica_criterio_t metrica, char *titulo,
 		char **destino, int *tamanio_actual_destino) {
-	if (concat_con_nueva_linea(destino, titulo, tamanio_actual_destino) < 0) {
+	if (concat(destino, tamanio_actual_destino, "%s\n", titulo) < 0) {
 		return -1;
 	}
 	if (read_latency_string(metrica, destino, tamanio_actual_destino) < 0) {
@@ -393,8 +352,7 @@ int generar_metricas_de_un_criterio(metrica_criterio_t metrica, char *titulo,
 	if (writes_totales_string(metrica, destino, tamanio_actual_destino) < 0) {
 		return -1;
 	}
-	if (metricas_memorias_string(metrica, destino, tamanio_actual_destino)
-			< 0) {
+	if (metricas_memorias_string(metrica, destino, tamanio_actual_destino) < 0) {
 		return -1;
 	}
 	return 0;
