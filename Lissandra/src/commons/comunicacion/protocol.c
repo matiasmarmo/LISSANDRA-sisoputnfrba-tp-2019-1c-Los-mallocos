@@ -13,8 +13,8 @@
 int _send_full_msg(int, uint8_t*, int);
 int get_max_msg_size();
 
-int encoded_select_request_size(void* data) {
-	struct select_request* msg = (struct select_request*) data;
+int encoded_select_request_size(void* buffer) {
+	struct select_request* msg = (struct select_request*) buffer;
 	int encoded_size = 1;
 	
 	if(msg->tabla == NULL) {
@@ -124,7 +124,7 @@ int pack_select_request(char* tabla, uint16_t key, uint8_t *buff, int max_size) 
 	if((error = init_select_request(tabla, key, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_select_request(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_select_request(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_select_request(&msg);
 		return encoded_size;
 	}
@@ -158,8 +158,8 @@ int send_select_request(char* tabla, uint16_t key, int socket_fd) {
 	return ret;
 }
 
-int encoded_select_response_size(void* data) {
-	struct select_response* msg = (struct select_response*) data;
+int encoded_select_response_size(void* buffer) {
+	struct select_response* msg = (struct select_response*) buffer;
 	int encoded_size = 1;
 		encoded_size += sizeof(uint8_t);
 
@@ -328,7 +328,7 @@ int pack_select_response(uint8_t fallo, char* tabla, uint16_t key, char* valor, 
 	if((error = init_select_response(fallo, tabla, key, valor, timestamp, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_select_response(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_select_response(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_select_response(&msg);
 		return encoded_size;
 	}
@@ -362,8 +362,8 @@ int send_select_response(uint8_t fallo, char* tabla, uint16_t key, char* valor, 
 	return ret;
 }
 
-int encoded_insert_request_size(void* data) {
-	struct insert_request* msg = (struct insert_request*) data;
+int encoded_insert_request_size(void* buffer) {
+	struct insert_request* msg = (struct insert_request*) buffer;
 	int encoded_size = 1;
 	
 	if(msg->tabla == NULL) {
@@ -525,7 +525,7 @@ int pack_insert_request(char* tabla, uint16_t key, char* valor, uint64_t timesta
 	if((error = init_insert_request(tabla, key, valor, timestamp, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_insert_request(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_insert_request(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_insert_request(&msg);
 		return encoded_size;
 	}
@@ -559,8 +559,8 @@ int send_insert_request(char* tabla, uint16_t key, char* valor, uint64_t timesta
 	return ret;
 }
 
-int encoded_insert_response_size(void* data) {
-	struct insert_response* msg = (struct insert_response*) data;
+int encoded_insert_response_size(void* buffer) {
+	struct insert_response* msg = (struct insert_response*) buffer;
 	int encoded_size = 1;
 		encoded_size += sizeof(uint8_t);
 
@@ -729,7 +729,7 @@ int pack_insert_response(uint8_t fallo, char* tabla, uint16_t key, char* valor, 
 	if((error = init_insert_response(fallo, tabla, key, valor, timestamp, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_insert_response(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_insert_response(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_insert_response(&msg);
 		return encoded_size;
 	}
@@ -763,8 +763,8 @@ int send_insert_response(uint8_t fallo, char* tabla, uint16_t key, char* valor, 
 	return ret;
 }
 
-int encoded_create_request_size(void* data) {
-	struct create_request* msg = (struct create_request*) data;
+int encoded_create_request_size(void* buffer) {
+	struct create_request* msg = (struct create_request*) buffer;
 	int encoded_size = 1;
 	
 	if(msg->tabla == NULL) {
@@ -888,7 +888,7 @@ int pack_create_request(char* tabla, uint8_t consistencia, uint8_t n_particiones
 	if((error = init_create_request(tabla, consistencia, n_particiones, t_compactaciones, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_create_request(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_create_request(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_create_request(&msg);
 		return encoded_size;
 	}
@@ -922,8 +922,8 @@ int send_create_request(char* tabla, uint8_t consistencia, uint8_t n_particiones
 	return ret;
 }
 
-int encoded_create_response_size(void* data) {
-	struct create_response* msg = (struct create_response*) data;
+int encoded_create_response_size(void* buffer) {
+	struct create_response* msg = (struct create_response*) buffer;
 	int encoded_size = 1;
 		encoded_size += sizeof(uint8_t);
 
@@ -1054,7 +1054,7 @@ int pack_create_response(uint8_t fallo, char* tabla, uint8_t consistencia, uint8
 	if((error = init_create_response(fallo, tabla, consistencia, n_particiones, t_compactaciones, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_create_response(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_create_response(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_create_response(&msg);
 		return encoded_size;
 	}
@@ -1088,8 +1088,8 @@ int send_create_response(uint8_t fallo, char* tabla, uint8_t consistencia, uint8
 	return ret;
 }
 
-int encoded_describe_request_size(void* data) {
-	struct describe_request* msg = (struct describe_request*) data;
+int encoded_describe_request_size(void* buffer) {
+	struct describe_request* msg = (struct describe_request*) buffer;
 	int encoded_size = 1;
 		encoded_size += sizeof(uint8_t);
 
@@ -1196,7 +1196,7 @@ int pack_describe_request(uint8_t todas, char* tabla, uint8_t *buff, int max_siz
 	if((error = init_describe_request(todas, tabla, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_describe_request(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_describe_request(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_describe_request(&msg);
 		return encoded_size;
 	}
@@ -1230,8 +1230,8 @@ int send_describe_request(uint8_t todas, char* tabla, int socket_fd) {
 	return ret;
 }
 
-int encoded_single_describe_response_size(void* data) {
-	struct single_describe_response* msg = (struct single_describe_response*) data;
+int encoded_single_describe_response_size(void* buffer) {
+	struct single_describe_response* msg = (struct single_describe_response*) buffer;
 	int encoded_size = 1;
 		encoded_size += sizeof(uint8_t);
 
@@ -1362,7 +1362,7 @@ int pack_single_describe_response(uint8_t fallo, char* tabla, uint8_t consistenc
 	if((error = init_single_describe_response(fallo, tabla, consistencia, n_particiones, t_compactacion, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_single_describe_response(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_single_describe_response(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_single_describe_response(&msg);
 		return encoded_size;
 	}
@@ -1396,8 +1396,8 @@ int send_single_describe_response(uint8_t fallo, char* tabla, uint8_t consistenc
 	return ret;
 }
 
-int encoded_global_describe_response_size(void* data) {
-	struct global_describe_response* msg = (struct global_describe_response*) data;
+int encoded_global_describe_response_size(void* buffer) {
+	struct global_describe_response* msg = (struct global_describe_response*) buffer;
 	int encoded_size = 1;
 		encoded_size += sizeof(uint8_t);
 
@@ -1651,7 +1651,7 @@ int pack_global_describe_response(uint8_t fallo, char* tablas, uint8_t consisten
 	if((error = init_global_describe_response(fallo, tablas, consistencias_len, consistencias, numeros_particiones_len, numeros_particiones, tiempos_compactaciones_len, tiempos_compactaciones, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_global_describe_response(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_global_describe_response(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_global_describe_response(&msg);
 		return encoded_size;
 	}
@@ -1685,8 +1685,8 @@ int send_global_describe_response(uint8_t fallo, char* tablas, uint8_t consisten
 	return ret;
 }
 
-int encoded_drop_request_size(void* data) {
-	struct drop_request* msg = (struct drop_request*) data;
+int encoded_drop_request_size(void* buffer) {
+	struct drop_request* msg = (struct drop_request*) buffer;
 	int encoded_size = 1;
 	
 	if(msg->tabla == NULL) {
@@ -1786,7 +1786,7 @@ int pack_drop_request(char* tabla, uint8_t *buff, int max_size) {
 	if((error = init_drop_request(tabla, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_drop_request(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_drop_request(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_drop_request(&msg);
 		return encoded_size;
 	}
@@ -1820,8 +1820,8 @@ int send_drop_request(char* tabla, int socket_fd) {
 	return ret;
 }
 
-int encoded_drop_response_size(void* data) {
-	struct drop_response* msg = (struct drop_response*) data;
+int encoded_drop_response_size(void* buffer) {
+	struct drop_response* msg = (struct drop_response*) buffer;
 	int encoded_size = 1;
 		encoded_size += sizeof(uint8_t);
 
@@ -1928,7 +1928,7 @@ int pack_drop_response(uint8_t fallo, char* tabla, uint8_t *buff, int max_size) 
 	if((error = init_drop_response(fallo, tabla, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_drop_response(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_drop_response(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_drop_response(&msg);
 		return encoded_size;
 	}
@@ -1962,8 +1962,8 @@ int send_drop_response(uint8_t fallo, char* tabla, int socket_fd) {
 	return ret;
 }
 
-int encoded_journal_request_size(void* data) {
-	struct journal_request* msg = (struct journal_request*) data;
+int encoded_journal_request_size(void* buffer) {
+	
 	int encoded_size = 1;
 	
 	if(encoded_size > MAX_ENCODED_SIZE) {
@@ -2016,7 +2016,7 @@ int init_journal_request( struct journal_request* msg) {
 }
 
 void destroy_journal_request(void* buffer) {
-	struct journal_request* msg = (struct journal_request*) buffer;
+	
 	
 }
 
@@ -2027,7 +2027,7 @@ int pack_journal_request( uint8_t *buff, int max_size) {
 	if((error = init_journal_request( &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_journal_request(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_journal_request(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_journal_request(&msg);
 		return encoded_size;
 	}
@@ -2061,8 +2061,8 @@ int send_journal_request( int socket_fd) {
 	return ret;
 }
 
-int encoded_journal_response_size(void* data) {
-	struct journal_response* msg = (struct journal_response*) data;
+int encoded_journal_response_size(void* buffer) {
+	
 	int encoded_size = 1;
 		encoded_size += sizeof(uint8_t);
 	if(encoded_size > MAX_ENCODED_SIZE) {
@@ -2119,7 +2119,7 @@ int init_journal_response(uint8_t fallo, struct journal_response* msg) {
 }
 
 void destroy_journal_response(void* buffer) {
-	struct journal_response* msg = (struct journal_response*) buffer;
+	
 	
 }
 
@@ -2130,7 +2130,7 @@ int pack_journal_response(uint8_t fallo, uint8_t *buff, int max_size) {
 	if((error = init_journal_response(fallo, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_journal_response(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_journal_response(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_journal_response(&msg);
 		return encoded_size;
 	}
@@ -2164,8 +2164,8 @@ int send_journal_response(uint8_t fallo, int socket_fd) {
 	return ret;
 }
 
-int encoded_add_request_size(void* data) {
-	struct add_request* msg = (struct add_request*) data;
+int encoded_add_request_size(void* buffer) {
+	
 	int encoded_size = 1;
 		encoded_size += sizeof(uint8_t);
 	encoded_size += sizeof(uint8_t);
@@ -2229,7 +2229,7 @@ int init_add_request(uint8_t n_memoria, uint8_t criterio, struct add_request* ms
 }
 
 void destroy_add_request(void* buffer) {
-	struct add_request* msg = (struct add_request*) buffer;
+	
 	
 }
 
@@ -2240,7 +2240,7 @@ int pack_add_request(uint8_t n_memoria, uint8_t criterio, uint8_t *buff, int max
 	if((error = init_add_request(n_memoria, criterio, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_add_request(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_add_request(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_add_request(&msg);
 		return encoded_size;
 	}
@@ -2274,8 +2274,8 @@ int send_add_request(uint8_t n_memoria, uint8_t criterio, int socket_fd) {
 	return ret;
 }
 
-int encoded_add_response_size(void* data) {
-	struct add_response* msg = (struct add_response*) data;
+int encoded_add_response_size(void* buffer) {
+	
 	int encoded_size = 1;
 		encoded_size += sizeof(uint8_t);
 	encoded_size += sizeof(uint8_t);
@@ -2346,7 +2346,7 @@ int init_add_response(uint8_t fallo, uint8_t n_memoria, uint8_t criterio, struct
 }
 
 void destroy_add_response(void* buffer) {
-	struct add_response* msg = (struct add_response*) buffer;
+	
 	
 }
 
@@ -2357,7 +2357,7 @@ int pack_add_response(uint8_t fallo, uint8_t n_memoria, uint8_t criterio, uint8_
 	if((error = init_add_response(fallo, n_memoria, criterio, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_add_response(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_add_response(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_add_response(&msg);
 		return encoded_size;
 	}
@@ -2391,8 +2391,8 @@ int send_add_response(uint8_t fallo, uint8_t n_memoria, uint8_t criterio, int so
 	return ret;
 }
 
-int encoded_run_request_size(void* data) {
-	struct run_request* msg = (struct run_request*) data;
+int encoded_run_request_size(void* buffer) {
+	struct run_request* msg = (struct run_request*) buffer;
 	int encoded_size = 1;
 	
 	if(msg->path == NULL) {
@@ -2492,7 +2492,7 @@ int pack_run_request(char* path, uint8_t *buff, int max_size) {
 	if((error = init_run_request(path, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_run_request(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_run_request(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_run_request(&msg);
 		return encoded_size;
 	}
@@ -2526,8 +2526,8 @@ int send_run_request(char* path, int socket_fd) {
 	return ret;
 }
 
-int encoded_run_response_size(void* data) {
-	struct run_response* msg = (struct run_response*) data;
+int encoded_run_response_size(void* buffer) {
+	struct run_response* msg = (struct run_response*) buffer;
 	int encoded_size = 1;
 		encoded_size += sizeof(uint8_t);
 
@@ -2634,7 +2634,7 @@ int pack_run_response(uint8_t fallo, char* path, uint8_t *buff, int max_size) {
 	if((error = init_run_response(fallo, path, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_run_response(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_run_response(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_run_response(&msg);
 		return encoded_size;
 	}
@@ -2668,8 +2668,8 @@ int send_run_response(uint8_t fallo, char* path, int socket_fd) {
 	return ret;
 }
 
-int encoded_gossip_size(void* data) {
-	struct gossip* msg = (struct gossip*) data;
+int encoded_gossip_size(void* buffer) {
+	
 	int encoded_size = 1;
 	
 	if(encoded_size > MAX_ENCODED_SIZE) {
@@ -2722,7 +2722,7 @@ int init_gossip( struct gossip* msg) {
 }
 
 void destroy_gossip(void* buffer) {
-	struct gossip* msg = (struct gossip*) buffer;
+	
 	
 }
 
@@ -2733,7 +2733,7 @@ int pack_gossip( uint8_t *buff, int max_size) {
 	if((error = init_gossip( &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_gossip(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_gossip(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_gossip(&msg);
 		return encoded_size;
 	}
@@ -2767,8 +2767,8 @@ int send_gossip( int socket_fd) {
 	return ret;
 }
 
-int encoded_gossip_response_size(void* data) {
-	struct gossip_response* msg = (struct gossip_response*) data;
+int encoded_gossip_response_size(void* buffer) {
+	struct gossip_response* msg = (struct gossip_response*) buffer;
 	int encoded_size = 1;
 	
 	if(msg->ips_memorias == NULL) {
@@ -2926,7 +2926,7 @@ int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8
 	if((error = init_gossip_response(ips_memorias_len, ips_memorias, puertos_memorias_len, puertos_memorias, &msg)) < 0) {
 		return error;
 	}
-	if((encoded_size = encode_gossip_response(&msg, local_buffer, max_size - 1)) < 0) {
+	if((encoded_size = encode_gossip_response(&msg, local_buffer, max_size - 2)) < 0) {
 		destroy_gossip_response(&msg);
 		return encoded_size;
 	}
@@ -3468,6 +3468,7 @@ int recv_n_bytes(int socket_fd, void* buffer, int bytes_to_read) {
 		}
 		bytes_rcvd += num_bytes;
 	}
+	return 0;
 }
 
 uint16_t recv_header(int socket_fd) {
@@ -3486,7 +3487,6 @@ int recv_msg(int socket_fd, void* buffer, int max_size) {
 	}
 	
 	uint16_t msg_size = 0;
-	uint8_t msg_id = 0;
 	int error;
 	
 	if((msg_size = recv_header(socket_fd)) < 0) {
