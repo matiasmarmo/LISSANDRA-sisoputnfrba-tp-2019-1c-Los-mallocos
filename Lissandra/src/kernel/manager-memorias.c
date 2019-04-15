@@ -147,16 +147,22 @@ int obtener_memorias_del_pool(memoria_t *memoria_fuente) {
 }
 
 int actualizar_memorias() {
+	int error;
 	memoria_t *memoria_fuente;
+	if((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+		return -error;
+	}
 	for(int i = 0; i < list_size(pool_memorias); i++) {
 		memoria_fuente = (memoria_t*) list_get(pool_memorias, i);
 		if(obtener_memorias_del_pool(memoria_fuente) == 0) {
 			// Memorias actualizadas
+			pthread_mutex_unlock(&memorias_mutex);
 			return 0;
 		}
 	}
 	// No se pudo actualizar el pool consultando a
 	// alguna de las memorias ya conocidas
+	pthread_mutex_unlock(&memorias_mutex);
 	return -1;
 }
 
@@ -202,3 +208,5 @@ int destruir_memorias() {
 	pthread_mutex_unlock(&memorias_mutex);
 	return 0;
 }
+
+
