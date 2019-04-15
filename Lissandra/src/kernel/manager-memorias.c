@@ -92,6 +92,16 @@ int conectar_memoria(memoria_t* memoria) {
 	return 0;
 }
 
+int enviar_a_memoria(void *mensaje, memoria_t *memoria) {
+	if (!memoria->conectada && (conectar_memoria(memoria) < 0)) {
+		return -1;
+	}
+	if (send_msg(memoria->socket_fd, mensaje) < 0) {
+		return -1;
+	}
+	return 0;
+}
+
 bool memoria_ya_conocida(memoria_t* memoria) {
 
 	bool _igual_a_nueva_memoria(void *elemento) {
@@ -123,20 +133,25 @@ void agregar_nuevas_memorias(void *buffer) {
 }
 
 int obtener_memorias_del_pool(memoria_t *memoria_fuente) {
-	int tamanio_maximo_respuesta = get_max_msg_size();
-	uint8_t buffer_local[tamanio_maximo_respuesta];
-	if (!memoria_fuente->conectada
-			|| (pthread_mutex_lock(&memoria_fuente->mutex) != 0)) {
-		return -1;
+	int error;
+	int tamanio_buffer = get_max_msg_size();
+	uint8_t buffer_local[tamanio_buffer];
+	struct gossip mensaje;
+	if ((error = pthread_mutex_lock(&memoria_fuente->mutex)) != 0) {
+		return -error;
 	}
-	if (send_gossip(memoria_fuente->socket_fd) < 0) {
+	init_gossip(&mensaje);
+	if (enviar_a_memoria(&mensaje, memoria_fuente) < 0) {
+		pthread_mutex_unlock(&memoria_fuente->mutex);
 		return -1;
 	}
 	if (recv_msg(memoria_fuente->socket_fd, buffer_local,
-			tamanio_maximo_respuesta) < 0) {
+			tamanio_buffer) < 0) {
+		pthread_mutex_unlock(&memoria_fuente->mutex);
 		return -1;
 	}
 	if (get_msg_id(buffer_local) != GOSSIP_RESPONSE_ID) {
+		pthread_mutex_unlock(&memoria_fuente->mutex);
 		destroy(buffer_local);
 		return -1;
 	}
@@ -149,12 +164,12 @@ int obtener_memorias_del_pool(memoria_t *memoria_fuente) {
 int actualizar_memorias() {
 	int error;
 	memoria_t *memoria_fuente;
-	if((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
 		return -error;
 	}
-	for(int i = 0; i < list_size(pool_memorias); i++) {
+	for (int i = 0; i < list_size(pool_memorias); i++) {
 		memoria_fuente = (memoria_t*) list_get(pool_memorias, i);
-		if(obtener_memorias_del_pool(memoria_fuente) == 0) {
+		if (obtener_memorias_del_pool(memoria_fuente) == 0) {
 			// Memorias actualizadas
 			pthread_mutex_unlock(&memorias_mutex);
 			return 0;
@@ -179,16 +194,10 @@ int inicializar_memorias() {
 	}
 	inicializar_listas();
 	list_add(pool_memorias, memoria_principal);
-	if (conectar_memoria(memoria_principal) < 0) {
+	if (obtener_memorias_del_pool(memoria_principal) < 0) {
 		// destruir_listas() va a destruir la memoria principal,
 		// la cual se encuentra dentros, por lo que no necesitamos
 		// hacerlo acá a mano
-		pthread_mutex_unlock(&memorias_mutex);
-		proximo_id_memoria = 0;
-		destruir_listas();
-		return -1;
-	}
-	if (obtener_memorias_del_pool(memoria_principal) < 0) {
 		pthread_mutex_unlock(&memorias_mutex);
 		proximo_id_memoria = 0;
 		destruir_listas();
@@ -209,4 +218,131 @@ int destruir_memorias() {
 	return 0;
 }
 
+memoria_t *buscar_memoria(t_list *lista, uint16_t id_memoria) {
 
+	bool _memoria_encontrada(void *elemento) {
+		memoria_t *memoria = (memoria_t*) elemento;
+		return memoria->id_memoria == id_memoria;
+	}
+	return (memoria_t*) list_find(lista, &_memoria_encontrada);
+}
+
+memoria_t *buscar_memoria_en_pool(uint16_t id_memoria) {
+	return buscar_memoria(pool_memorias, id_memoria);
+}
+
+int agregar_memoria_a_lista(t_list *lista, memoria_t *memoria) {
+	if (buscar_memoria(lista, memoria->id_memoria) == NULL) {
+		// La memoria no se encuentra ya en la lista
+		list_add(lista, memoria);
+		return 0;
+	}
+	return -1;
+}
+
+int realizar_journal_en_memoria(memoria_t *memoria) {
+	int error, resultado;
+	int tamanio_buffer = get_max_msg_size();
+	uint8_t buffer_local[tamanio_buffer];
+	struct journal_request request;
+	struct journal_response *respuesta;
+	if ((error = pthread_mutex_lock(&memoria->mutex)) != 0) {
+		return -error;
+	}
+	init_journal_request(&request);
+	if (enviar_a_memoria(&request, memoria) < 0) {
+		pthread_mutex_unlock(&memoria->mutex);
+		return -1;
+	}
+	if (recv_msg(memoria->socket_fd, buffer_local, tamanio_buffer) < 0) {
+		pthread_mutex_unlock(&memoria->mutex);
+		return -1;
+	}
+	if (get_msg_id(buffer_local) != JOURNAL_RESPONSE_ID) {
+		pthread_mutex_unlock(&memoria->mutex);
+		return -1;
+	}
+	respuesta = (struct journal_response*) buffer_local;
+	resultado = !respuesta->fallo;
+	pthread_mutex_unlock(&memoria->mutex);
+	return resultado;
+}
+
+int realizar_journal_a_memorias_de_shc() {
+	int resultado = 0;
+
+	void _realizar_journal(void *elemento) {
+		memoria_t *memoria = (memoria_t*) elemento;
+		if (realizar_journal_en_memoria(memoria) < 0) {
+			resultado = -1;
+		}
+	}
+
+	list_iterate(criterio_shc, &_realizar_journal);
+	return resultado;
+}
+
+int agregar_memoria_a_sc(uint16_t id_memoria) {
+	int error;
+	memoria_t *memoria;
+	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+		return -error;
+	}
+	if (list_size(criterio_sc) > 0) {
+		pthread_mutex_unlock(&memorias_mutex);
+		return -1;
+	}
+	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
+		pthread_mutex_unlock(&memorias_mutex);
+		return -1;
+	}
+	agregar_memoria_a_lista(criterio_sc, memoria);
+	pthread_mutex_unlock(&memorias_mutex);
+	return 0;
+}
+
+int agregar_memoria_a_shc(uint16_t id_memoria) {
+	int error;
+	memoria_t *memoria;
+	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+		return -error;
+	}
+	if (realizar_journal_a_memorias_de_shc() < 0) {
+		pthread_mutex_unlock(&memorias_mutex);
+		return -1;
+	}
+	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
+		pthread_mutex_unlock(&memorias_mutex);
+		return -1;
+	}
+	agregar_memoria_a_lista(criterio_shc, memoria);
+	pthread_mutex_unlock(&memorias_mutex);
+	return 0;
+}
+
+int agregar_memoria_a_ec(uint16_t id_memoria) {
+	int error;
+	memoria_t *memoria;
+	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+		return -error;
+	}
+	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
+		pthread_mutex_unlock(&memorias_mutex);
+		return -1;
+	}
+	agregar_memoria_a_lista(criterio_ec, memoria);
+	pthread_mutex_unlock(&memorias_mutex);
+	return 0;
+}
+
+int agregar_memoria_a_criterio(uint16_t id_memoria, uint8_t criterio) {
+	switch (criterio) {
+	case SC:
+		return agregar_memoria_a_sc(id_memoria);
+	case SHC:
+		return agregar_memoria_a_shc(id_memoria);
+	case EC:
+		return agregar_memoria_a_ec(id_memoria);
+	}
+	return -1;
+}
