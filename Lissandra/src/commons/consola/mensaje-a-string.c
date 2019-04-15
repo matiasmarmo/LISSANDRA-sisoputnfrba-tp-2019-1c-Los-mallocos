@@ -278,6 +278,24 @@ int run_response_to_string(void* mensaje, char* buffer, int tamanio_maximo) {
 	return 0;
 }
 
+int metrics_response_to_string(void* mensaje, char* buffer, int tamanio_maximo) {
+	struct metrics_response *response = (struct metrics_response*) mensaje;
+	char temporal[TAMANIO_MAX_STRING];
+
+	if (response->fallo) {
+		strcpy(temporal, "\nFallo METRICS\n");
+	} else {
+		strcpy(temporal, "\nResultado METRICS\n");
+		strcat(temporal, response->resultado);
+		strcat(temporal, "\n");
+	}
+	if (tamanio_maximo < strlen(temporal) + 1) {
+		return -1;
+	}
+	strcpy(buffer, temporal);
+	return 0;
+}
+
 void cargar_convertidor(uint8_t id, convertidor_t convertidor) {
 	char id_string[4];
 	obtener_key_string(id, id_string);
