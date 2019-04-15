@@ -301,7 +301,53 @@ void destroy_run_response(void*);
 int pack_run_response(uint8_t fallo, char* path, uint8_t *, int);
 int send_run_response(uint8_t fallo, char* path, int);
 
-#define GOSSIP_ID 17
+#define METRICS_REQUEST_ID 17
+#define METRICS_REQUEST_SIZE sizeof(struct metrics_request)
+
+struct metrics_request {
+	uint8_t id;
+	
+};
+
+int decode_metrics_request(void*, void*, int);
+int encode_metrics_request(void*, uint8_t*, int);
+int init_metrics_request( struct metrics_request*);
+void destroy_metrics_request(void*);
+int pack_metrics_request( uint8_t *, int);
+int send_metrics_request( int);
+
+#define METRICS_RESPONSE_ID 18
+#define METRICS_RESPONSE_SIZE sizeof(struct metrics_response)
+
+struct metrics_response {
+	uint8_t id;
+	uint8_t fallo;
+	char* resultado;
+};
+
+int decode_metrics_response(void*, void*, int);
+int encode_metrics_response(void*, uint8_t*, int);
+int init_metrics_response(uint8_t fallo, char* resultado, struct metrics_response*);
+void destroy_metrics_response(void*);
+int pack_metrics_response(uint8_t fallo, char* resultado, uint8_t *, int);
+int send_metrics_response(uint8_t fallo, char* resultado, int);
+
+#define EXIT_REQUEST_ID 19
+#define EXIT_REQUEST_SIZE sizeof(struct exit_request)
+
+struct exit_request {
+	uint8_t id;
+	
+};
+
+int decode_exit_request(void*, void*, int);
+int encode_exit_request(void*, uint8_t*, int);
+int init_exit_request( struct exit_request*);
+void destroy_exit_request(void*);
+int pack_exit_request( uint8_t *, int);
+int send_exit_request( int);
+
+#define GOSSIP_ID 20
 #define GOSSIP_SIZE sizeof(struct gossip)
 
 struct gossip {
@@ -316,7 +362,7 @@ void destroy_gossip(void*);
 int pack_gossip( uint8_t *, int);
 int send_gossip( int);
 
-#define GOSSIP_RESPONSE_ID 18
+#define GOSSIP_RESPONSE_ID 21
 #define GOSSIP_RESPONSE_SIZE sizeof(struct gossip_response)
 
 struct gossip_response {
