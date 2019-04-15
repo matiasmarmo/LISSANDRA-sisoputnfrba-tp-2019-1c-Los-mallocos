@@ -58,9 +58,9 @@ void destruir_listas() {
 	// destruimos todas las memorias ahí y en los criterios
 	// solo necesitamos destruir las listas.
 	destruir_lista_y_memorias(pool_memorias);
-	free(criterio_sc);
-	free(criterio_shc);
-	free(criterio_ec);
+	list_destroy(criterio_sc);
+	list_destroy(criterio_shc);
+	list_destroy(criterio_ec);
 }
 
 memoria_t *construir_memoria(char *ip_memoria, uint16_t puerto_memoria) {
@@ -93,12 +93,33 @@ int conectar_memoria(memoria_t* memoria) {
 }
 
 int enviar_a_memoria(void *mensaje, memoria_t *memoria) {
+	int error;
+	if ((error = pthread_mutex_lock(&memoria->mutex)) != 0) {
+		return -error;
+	}
 	if (!memoria->conectada && (conectar_memoria(memoria) < 0)) {
+		pthread_mutex_unlock(&memoria->mutex);
 		return -1;
 	}
 	if (send_msg(memoria->socket_fd, mensaje) < 0) {
+		pthread_mutex_unlock(&memoria->mutex);
 		return -1;
 	}
+	pthread_mutex_unlock(&memoria->mutex);
+	return 0;
+}
+
+int recibir_mensaje_de_memoria(memoria_t *memoria, void *buffer,
+		int tamanio_buffer) {
+	int error;
+	if ((error = pthread_mutex_lock(&memoria->mutex)) != 0) {
+		return -error;
+	}
+	if(recv_msg(memoria->socket_fd, buffer, tamanio_buffer) < 0) {
+		pthread_mutex_unlock(&memoria->mutex);
+		return -1;
+	}
+	pthread_mutex_unlock(&memoria->mutex);
 	return 0;
 }
 
@@ -133,31 +154,22 @@ void agregar_nuevas_memorias(void *buffer) {
 }
 
 int obtener_memorias_del_pool(memoria_t *memoria_fuente) {
-	int error;
 	int tamanio_buffer = get_max_msg_size();
 	uint8_t buffer_local[tamanio_buffer];
 	struct gossip mensaje;
-	if ((error = pthread_mutex_lock(&memoria_fuente->mutex)) != 0) {
-		return -error;
-	}
 	init_gossip(&mensaje);
 	if (enviar_a_memoria(&mensaje, memoria_fuente) < 0) {
-		pthread_mutex_unlock(&memoria_fuente->mutex);
 		return -1;
 	}
-	if (recv_msg(memoria_fuente->socket_fd, buffer_local,
-			tamanio_buffer) < 0) {
-		pthread_mutex_unlock(&memoria_fuente->mutex);
+	if (recibir_mensaje_de_memoria(memoria_fuente, buffer_local, tamanio_buffer) < 0) {
 		return -1;
 	}
 	if (get_msg_id(buffer_local) != GOSSIP_RESPONSE_ID) {
-		pthread_mutex_unlock(&memoria_fuente->mutex);
 		destroy(buffer_local);
 		return -1;
 	}
 	agregar_nuevas_memorias(buffer_local);
 	destroy(buffer_local);
-	pthread_mutex_unlock(&memoria_fuente->mutex);
 	return 0;
 }
 
@@ -241,31 +253,22 @@ int agregar_memoria_a_lista(t_list *lista, memoria_t *memoria) {
 }
 
 int realizar_journal_en_memoria(memoria_t *memoria) {
-	int error, resultado;
 	int tamanio_buffer = get_max_msg_size();
 	uint8_t buffer_local[tamanio_buffer];
 	struct journal_request request;
 	struct journal_response *respuesta;
-	if ((error = pthread_mutex_lock(&memoria->mutex)) != 0) {
-		return -error;
-	}
 	init_journal_request(&request);
 	if (enviar_a_memoria(&request, memoria) < 0) {
-		pthread_mutex_unlock(&memoria->mutex);
 		return -1;
 	}
-	if (recv_msg(memoria->socket_fd, buffer_local, tamanio_buffer) < 0) {
-		pthread_mutex_unlock(&memoria->mutex);
+	if (recibir_mensaje_de_memoria(memoria, buffer_local, tamanio_buffer) < 0) {
 		return -1;
 	}
 	if (get_msg_id(buffer_local) != JOURNAL_RESPONSE_ID) {
-		pthread_mutex_unlock(&memoria->mutex);
 		return -1;
 	}
 	respuesta = (struct journal_response*) buffer_local;
-	resultado = !respuesta->fallo;
-	pthread_mutex_unlock(&memoria->mutex);
-	return resultado;
+	return !respuesta->fallo;
 }
 
 int realizar_journal_a_memorias_de_shc() {
