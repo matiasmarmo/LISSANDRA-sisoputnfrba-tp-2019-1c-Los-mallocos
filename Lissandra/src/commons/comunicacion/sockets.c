@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include "sockets.h"
 
@@ -17,7 +19,7 @@ int get_local_addrinfo(const char* port, struct addrinfo* hints, struct addrinfo
 	return 0;
 }
 
-int get_socket(const struct addrinfo* addr) {
+int get_socket(const struct addrinfo* addr, int flag) {
 
 	// Recibe un addrinfo y retorna el file descriptor de un socket
 	// asociado a ella
@@ -26,18 +28,23 @@ int get_socket(const struct addrinfo* addr) {
 		addr->ai_socktype,
 		addr->ai_protocol);
 	if (socket_fd == -1) {
+		return -1;
+	}
+	if(flag == FLAG_NON_BLOCK && (fcntl(socket_fd, F_SETFL, O_NONBLOCK) < 0)) {
+		close(socket_fd);
+		return -1;
 	}
 	return socket_fd;
 }
 
-int get_binded_socket(const struct addrinfo* possible_addrinfo) {
+int get_binded_socket(const struct addrinfo* possible_addrinfo, int flag) {
 
 	// Recibe un addr info e intenta crear un socket asociado
 	// a ella y después bindearlo
 
 	int socket_fd;
 
-	if((socket_fd = get_socket(possible_addrinfo)) == -1) {
+	if((socket_fd = get_socket(possible_addrinfo, flag)) == -1) {
 		return -1;
 	}
 
@@ -50,20 +57,22 @@ int get_binded_socket(const struct addrinfo* possible_addrinfo) {
 	return socket_fd;
 }
 
-int get_connected_socket(const struct addrinfo* possible_addrinfo) {
+int get_connected_socket(const struct addrinfo* possible_addrinfo, int flag) {
 
 	// Recibe un addrinfo e intenta crear un socket asociado
 	// a ella y después conectarlo
 
 	int socket_fd;
 
-	if((socket_fd = get_socket(possible_addrinfo)) == -1) {
+	if((socket_fd = get_socket(possible_addrinfo, flag)) == -1) {
 		return -1;
 	}
 
 	if(connect(socket_fd,
 			possible_addrinfo->ai_addr,
-			possible_addrinfo->ai_addrlen) == -1) {
+			possible_addrinfo->ai_addrlen) == -1 &&
+			errno != EINPROGRESS) {
+
 		close(socket_fd);
 		return -1;
 	}
@@ -72,7 +81,7 @@ int get_connected_socket(const struct addrinfo* possible_addrinfo) {
 }
 
 int loop_addrinfo_list(struct addrinfo* linked_list,
-		int (*get_socket) (const struct addrinfo*)) {
+		int (*socket_builder) (const struct addrinfo*, int), int flag) {
 
 	// Recibe una lista enlazada resultado de getaddrinfo y un puntero
 	// a una función. La función debe tomar un addrinfo y devolver
@@ -85,7 +94,7 @@ int loop_addrinfo_list(struct addrinfo* linked_list,
 	int socket_fd;
 
 	for(p = linked_list; p != NULL; p = p->ai_next) {
-		if((socket_fd = get_socket(p)) != -1) {
+		if((socket_fd = socket_builder(p, flag)) != -1) {
 			return socket_fd;
 		}
 	}
@@ -111,7 +120,7 @@ int create_socket_server(const char* port, int backlog) {
 		return -1;
 	}
 
-	if((socket_fd = loop_addrinfo_list(server_info, &get_binded_socket)) == -1) {
+	if((socket_fd = loop_addrinfo_list(server_info, &get_binded_socket, FLAG_NONE)) == -1) {
 		return -1;
 	}
 
@@ -125,7 +134,7 @@ int create_socket_server(const char* port, int backlog) {
 	return socket_fd;
 }
 
-int create_socket_client(const char* host, const char* port) {
+int create_socket_client(const char* host, const char* port, int flag) {
 
 	// Recibe un host y un puerto. Retorna un socket TCP conectado
 	// a la direccion host:puerto o -1 en caso de error.
@@ -142,7 +151,7 @@ int create_socket_client(const char* host, const char* port) {
 		return -1;
 	}
 
-	if((socket_fd = loop_addrinfo_list(server_info, &get_connected_socket)) == -1) {
+	if((socket_fd = loop_addrinfo_list(server_info, &get_connected_socket, flag)) == -1) {
 		return -1;
 	}
 

@@ -80,7 +80,7 @@ memoria_t *construir_memoria(char *ip_memoria, uint16_t puerto_memoria) {
 
 int conectar_memoria(memoria_t* memoria) {
 	memoria->socket_fd = create_socket_client(memoria->ip_memoria,
-			memoria->puerto_memoria);
+			memoria->puerto_memoria, FLAG_NONE);
 	if (memoria->socket_fd < 0) {
 		return -1;
 	}
