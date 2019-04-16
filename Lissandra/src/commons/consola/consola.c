@@ -1,9 +1,11 @@
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
 #include "../comunicacion/protocol.h"
-#include "../parser/parser.h"
+#include "../parser.h"
 #include "consola.h"
 #include "mensaje-a-string.h"
 
@@ -19,41 +21,21 @@ void imprimir(char* linea) {
 
 void ejecutar_nueva_linea(char *linea) {
 	if (linea == NULL) {
-		imprimir("La linea no puede ser NULL\n");
 		free(linea);
+		cerrar_consola();
 		return;
 	}
 	add_history(linea);
 	int tamanio_maximo_buffer = get_max_msg_size();
 	uint8_t mensaje[tamanio_maximo_buffer];
-	int respuesta_parser = parser(linea, mensaje, tamanio_maximo_buffer);
 
-	if (respuesta_parser < 0) {
-		switch(respuesta_parser)
-		{
-			case ERROR:
-			imprimir("Error de parseo \n");
-			break;
-			case COMANDOS_INVALIDOS:
-			imprimir("Comandos invalidos \n");
-			break;
-			case CONSTANTE_INVALIDA:
-			imprimir("Constante invalida \n");
-			break;
-			case INDENTIFICADOR_INVALIDO:
-			imprimir("Indentificador invalido \n");
-			break;
-			case ERROR_TAMANIO_BUFFER:
-			imprimir("Error tamanio buffer \n");
-			break;
-			case CONSISTENCIA_INVALIDA:
-			imprimir("Consistencia invalida \n");
-			break;
-		}
-		free(linea);
-		return;
+	int respuesta_parser = parser(linea, mensaje, tamanio_maximo_buffer);
+	if(respuesta_parser < 0){
+		char buffer_parser_error[TAMANIO_MAX_STRING];
+		manejarError(respuesta_parser,buffer_parser_error, TAMANIO_MAX_STRING);
+		imprimir(buffer_parser_error);
 	}
-	imprimir("hola");
+
 	if (handler_actual != NULL) {
 		handler_actual(mensaje);
 	}
