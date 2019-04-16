@@ -8,19 +8,12 @@
 #include <commons/collections/list.h>
 #include <commons/string.h>
 
-#include "../commons/comunicacion/sockets.h"
-#include "../commons/comunicacion/protocol.h"
-#include "../commons/comunicacion/protocol-utils.h"
-#include "kernel-config.h"
-
-typedef struct memoria {
-	uint16_t id_memoria;
-	char ip_memoria[16];
-	char puerto_memoria[8];
-	pthread_mutex_t mutex;
-	int socket_fd;
-	bool conectada;
-} memoria_t;
+#include "../../commons/comunicacion/sockets.h"
+#include "../../commons/comunicacion/protocol.h"
+#include "../../commons/comunicacion/protocol-utils.h"
+#include "../kernel-config.h"
+#include "metadata-tablas.h"
+#include "manager-memorias.h"
 
 uint16_t proximo_id_memoria = 0;
 
@@ -42,6 +35,9 @@ void destruir_memoria(memoria_t *memoria) {
 	if (memoria->conectada) {
 		close(memoria->socket_fd);
 	}
+	pthread_mutex_lock(&memoria->mutex);
+	pthread_mutex_unlock(&memoria->mutex);
+	pthread_mutex_destroy(&memoria->mutex);
 	free(memoria);
 }
 
@@ -93,33 +89,20 @@ int conectar_memoria(memoria_t* memoria) {
 }
 
 int enviar_a_memoria(void *mensaje, memoria_t *memoria) {
-	int error;
-	if ((error = pthread_mutex_lock(&memoria->mutex)) != 0) {
-		return -error;
-	}
 	if (!memoria->conectada && (conectar_memoria(memoria) < 0)) {
-		pthread_mutex_unlock(&memoria->mutex);
 		return -1;
 	}
 	if (send_msg(memoria->socket_fd, mensaje) < 0) {
-		pthread_mutex_unlock(&memoria->mutex);
 		return -1;
 	}
-	pthread_mutex_unlock(&memoria->mutex);
 	return 0;
 }
 
 int recibir_mensaje_de_memoria(memoria_t *memoria, void *buffer,
 		int tamanio_buffer) {
-	int error;
-	if ((error = pthread_mutex_lock(&memoria->mutex)) != 0) {
-		return -error;
-	}
-	if(recv_msg(memoria->socket_fd, buffer, tamanio_buffer) < 0) {
-		pthread_mutex_unlock(&memoria->mutex);
+	if (recv_msg(memoria->socket_fd, buffer, tamanio_buffer) < 0) {
 		return -1;
 	}
-	pthread_mutex_unlock(&memoria->mutex);
 	return 0;
 }
 
@@ -158,12 +141,19 @@ int obtener_memorias_del_pool(memoria_t *memoria_fuente) {
 	uint8_t buffer_local[tamanio_buffer];
 	struct gossip mensaje;
 	init_gossip(&mensaje);
+	if (pthread_mutex_lock(&memoria_fuente->mutex) != 0) {
+		return -1;
+	}
 	if (enviar_a_memoria(&mensaje, memoria_fuente) < 0) {
+		pthread_mutex_unlock(&memoria_fuente->mutex);
 		return -1;
 	}
-	if (recibir_mensaje_de_memoria(memoria_fuente, buffer_local, tamanio_buffer) < 0) {
+	if (recibir_mensaje_de_memoria(memoria_fuente, buffer_local, tamanio_buffer)
+			< 0) {
+		pthread_mutex_unlock(&memoria_fuente->mutex);
 		return -1;
 	}
+	pthread_mutex_unlock(&memoria_fuente->mutex);
 	if (get_msg_id(buffer_local) != GOSSIP_RESPONSE_ID) {
 		destroy(buffer_local);
 		return -1;
@@ -216,6 +206,7 @@ int inicializar_memorias() {
 		return -1;
 	}
 	pthread_mutex_unlock(&memorias_mutex);
+	inicializar_tablas();
 	return 0;
 }
 
@@ -226,6 +217,7 @@ int destruir_memorias() {
 	}
 	proximo_id_memoria = 0;
 	destruir_listas();
+	destruir_tablas();
 	pthread_mutex_unlock(&memorias_mutex);
 	return 0;
 }
@@ -258,12 +250,18 @@ int realizar_journal_en_memoria(memoria_t *memoria) {
 	struct journal_request request;
 	struct journal_response *respuesta;
 	init_journal_request(&request);
+	if (pthread_mutex_lock(&memoria->mutex) != 0) {
+		return -1;
+	}
 	if (enviar_a_memoria(&request, memoria) < 0) {
+		pthread_mutex_unlock(&memoria->mutex);
 		return -1;
 	}
 	if (recibir_mensaje_de_memoria(memoria, buffer_local, tamanio_buffer) < 0) {
+		pthread_mutex_unlock(&memoria->mutex);
 		return -1;
 	}
+	pthread_mutex_unlock(&memoria->mutex);
 	if (get_msg_id(buffer_local) != JOURNAL_RESPONSE_ID) {
 		return -1;
 	}
@@ -348,4 +346,54 @@ int agregar_memoria_a_criterio(uint16_t id_memoria, uint8_t criterio) {
 		return agregar_memoria_a_ec(id_memoria);
 	}
 	return -1;
+}
+
+memoria_t *memoria_random(t_list *lista_memorias) {
+	if (list_size(lista_memorias) == 0) {
+		return NULL;
+	}
+	return list_get(lista_memorias, 0);
+}
+
+int realizar_describe(struct global_describe_response *response) {
+	struct describe_request request;
+	int tamanio_buffer = get_max_msg_size();
+	uint8_t buffer_local[tamanio_buffer];
+	memoria_t *memoria;
+	int error;
+	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+		return -error;
+	}
+	if ((memoria = memoria_random(pool_memorias)) == NULL) {
+		// Por el momento elegimos una memoria random para
+		// realizar el describe
+		pthread_mutex_unlock(&memorias_mutex);
+		return -1;
+	}
+	if (pthread_mutex_lock(&memoria->mutex) != 0) {
+		pthread_mutex_unlock(&memorias_mutex);
+		return -1;
+	}
+	pthread_mutex_unlock(&memorias_mutex);
+	if (init_describe_request(true, "", &request) < 0) {
+		pthread_mutex_unlock(&memoria->mutex);
+		return -1;
+	}
+	if (enviar_a_memoria(&request, memoria) < 0) {
+		pthread_mutex_unlock(&memoria->mutex);
+		destroy(&request);
+		return -1;
+	}
+	destroy(&request);
+	if (recibir_mensaje_de_memoria(memoria, buffer_local, tamanio_buffer) < 0) {
+		pthread_mutex_unlock(&memoria->mutex);
+		return -1;
+	}
+	pthread_mutex_unlock(&memoria->mutex);
+	if (get_msg_id(buffer_local) != GLOBAL_DESCRIBE_RESPONSE_ID) {
+		destroy(buffer_local);
+		return -1;
+	}
+	memcpy(response, buffer_local, tamanio_buffer);
+	return 0;
 }
