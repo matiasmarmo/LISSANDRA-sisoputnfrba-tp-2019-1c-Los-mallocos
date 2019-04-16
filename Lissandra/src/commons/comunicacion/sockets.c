@@ -1,9 +1,11 @@
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/select.h>
 
 #include "sockets.h"
 
@@ -158,4 +160,34 @@ int create_socket_client(const char* host, const char* port, int flag) {
 	freeaddrinfo(server_info);
 
 	return socket_fd;
+}
+
+int esperar_finalizacion_de_connect(int socket_fd, int timeout_ms) {
+
+	// Espera a que se conecte un socket no bloqueante
+
+	int ret, sock_opt = 0;
+	fd_set rfs;
+	struct timeval tv;
+	struct sockaddr_storage peer_addr;
+	socklen_t sock_len = 0;
+
+	tv.tv_sec = timeout_ms / 1000;
+	tv.tv_usec = (timeout_ms % 1000) * 1000000;
+	FD_ZERO(&rfs);
+	FD_SET(socket_fd, &rfs);
+
+	if((ret = select(socket_fd + 1, NULL, &rfs, NULL, &tv)) <= 0) {
+		// Hubo un error en select o se llegó al timeout
+		close(socket_fd);
+		return -1;
+	}
+	if((ret = getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &sock_opt, &sock_len)) < 0
+			|| sock_opt) {
+		// Puede haber fallado tanto getsockopt como el connect
+		close(socket_fd);
+		return -1;
+	}
+	// Si getpeername retorna cero, el socket está conectado
+	return getpeername(socket_fd, (struct sockaddr*)&peer_addr, &sock_len);
 }

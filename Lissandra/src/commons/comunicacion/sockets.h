@@ -7,4 +7,6 @@ int create_socket_server(const char*, int);
 
 int create_socket_client(const char*, const char *, int);
 
+int esperar_finalizacion_de_connect(int, int);
+
 #endif
