@@ -79,9 +79,18 @@ memoria_t *construir_memoria(char *ip_memoria, uint16_t puerto_memoria) {
 }
 
 int conectar_memoria(memoria_t* memoria) {
+	// Para conectarnos utilizamos un socket no bloqueante y lo esperamos
+	// 500ms a que se conecte. Si no logra conectarse en ese tiempo,
+	// wait_for_connection lo cierra y nos retorna distínto de 0.
+	// Por el momento las lecturas y escrituras se realizan en modo
+	// bloqueante, por lo que lo convertimos nuevamente a este estado.
 	memoria->socket_fd = create_socket_client(memoria->ip_memoria,
-			memoria->puerto_memoria, FLAG_NONE);
-	if (memoria->socket_fd < 0) {
+			memoria->puerto_memoria, FLAG_NON_BLOCK);
+	if (wait_for_connection(memoria->socket_fd, 500) != 0) {
+		return -1;
+	}
+	if(socket_set_blocking(memoria->socket_fd) < 0) {
+		close(memoria->socket_fd);
 		return -1;
 	}
 	memoria->conectada = true;

@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -162,7 +161,7 @@ int create_socket_client(const char* host, const char* port, int flag) {
 	return socket_fd;
 }
 
-int esperar_finalizacion_de_connect(int socket_fd, int timeout_ms) {
+int wait_for_connection(int socket_fd, int timeout_ms) {
 
 	// Espera a que se conecte un socket no bloqueante
 
@@ -190,4 +189,13 @@ int esperar_finalizacion_de_connect(int socket_fd, int timeout_ms) {
 	}
 	// Si getpeername retorna cero, el socket está conectado
 	return getpeername(socket_fd, (struct sockaddr*)&peer_addr, &sock_len);
+}
+
+int socket_set_blocking(int socket_fd) {
+	int flags = fcntl(socket_fd, F_GETFL);
+	if(flags == -1) {
+		return -1;
+	}
+	flags &= ~O_NONBLOCK;
+	return fcntl(socket_fd, F_SETFL, flags) != -1 ? 0 : -1;
 }
