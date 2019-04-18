@@ -86,10 +86,11 @@ int conectar_memoria(memoria_t* memoria) {
 	// bloqueante, por lo que lo convertimos nuevamente a este estado.
 	memoria->socket_fd = create_socket_client(memoria->ip_memoria,
 			memoria->puerto_memoria, FLAG_NON_BLOCK);
-	if (wait_for_connection(memoria->socket_fd, 500) != 0) {
+	if (memoria->socket_fd < 0
+			|| wait_for_connection(memoria->socket_fd, 500) != 0) {
 		return -1;
 	}
-	if(socket_set_blocking(memoria->socket_fd) < 0) {
+	if (socket_set_blocking(memoria->socket_fd) < 0) {
 		close(memoria->socket_fd);
 		return -1;
 	}
@@ -370,7 +371,7 @@ int realizar_describe(struct global_describe_response *response) {
 	uint8_t buffer_local[tamanio_buffer];
 	memoria_t *memoria;
 	int error;
-	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
+	if ((error = pthread_rwlock_rdlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
 	if ((memoria = memoria_random(pool_memorias)) == NULL) {
