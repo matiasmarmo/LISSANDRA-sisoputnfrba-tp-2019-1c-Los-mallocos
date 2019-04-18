@@ -12,6 +12,7 @@
 #include "../../commons/comunicacion/protocol.h"
 #include "../../commons/comunicacion/protocol-utils.h"
 #include "../kernel-config.h"
+#include "../metricas.h"
 #include "metadata-tablas.h"
 #include "manager-memorias.h"
 
@@ -111,6 +112,20 @@ int enviar_a_memoria(void *mensaje, memoria_t *memoria) {
 int recibir_mensaje_de_memoria(memoria_t *memoria, void *buffer,
 		int tamanio_buffer) {
 	if (recv_msg(memoria->socket_fd, buffer, tamanio_buffer) < 0) {
+		return -1;
+	}
+	return 0;
+}
+
+int enviar_y_recibir_respuesta(void *mensaje, memoria_t *memoria,
+		void *respuesta, int tamanio_respuesta) {
+	if (tamanio_respuesta < get_max_msg_size()) {
+		return -1;
+	}
+	if (enviar_a_memoria(mensaje, memoria) < 0) {
+		return -1;
+	}
+	if (recibir_mensaje_de_memoria(memoria, respuesta, tamanio_respuesta) < 0) {
 		return -1;
 	}
 	return 0;
@@ -279,7 +294,8 @@ int realizar_journal_en_memoria(memoria_t *memoria) {
 	return !respuesta->fallo;
 }
 
-int realizar_journal_a_memorias_de_shc() {
+int realizar_journal_a_lista(t_list *lista_memorias) {
+
 	int resultado = 0;
 
 	void _realizar_journal(void *elemento) {
@@ -289,8 +305,12 @@ int realizar_journal_a_memorias_de_shc() {
 		}
 	}
 
-	list_iterate(criterio_shc, &_realizar_journal);
+	list_iterate(lista_memorias, &_realizar_journal);
 	return resultado;
+}
+
+int realizar_journal_a_memorias_de_shc() {
+	return realizar_journal_a_lista(criterio_shc);
 }
 
 int agregar_memoria_a_sc(uint16_t id_memoria) {
@@ -406,4 +426,153 @@ int realizar_describe(struct global_describe_response *response) {
 	}
 	memcpy(response, buffer_local, tamanio_buffer);
 	return 0;
+}
+
+void registrar_metrica(memoria_t *memoria, void *mensaje, criterio_t criterio,
+		uint32_t latency_ms) {
+	tipo_operacion_t tipo_operacion;
+	switch (get_msg_id(mensaje)) {
+	case SELECT_REQUEST_ID:
+		tipo_operacion = OP_SELECT;
+		break;
+	case INSERT_REQUEST_ID:
+		tipo_operacion = OP_INSERT;
+		break;
+	default:
+		return;
+	}
+	registrar_operacion(tipo_operacion, criterio, latency_ms,
+			memoria->id_memoria);
+}
+
+int enviar_request_a_memoria(memoria_t *memoria, void *mensaje, void *respuesta,
+		int tamanio_respuesta, criterio_t criterio) {
+	if (tamanio_respuesta < get_max_msg_size()) {
+		return -1;
+	}
+	if (pthread_mutex_lock(&memoria->mutex) != 0) {
+		return -1;
+	}
+	clock_t inicio = clock();
+	if (enviar_y_recibir_respuesta(mensaje, memoria, respuesta,
+			tamanio_respuesta) < 0) {
+		pthread_mutex_unlock(&memoria->mutex);
+		return -1;
+	}
+	clock_t fin = clock();
+	if (inicio != -1 && fin != -1) {
+		uint32_t latency_ms = ((fin - inicio) * 1000) / CLOCKS_PER_SEC;
+		registrar_metrica(memoria, mensaje, criterio, latency_ms);
+	}
+	pthread_mutex_unlock(&memoria->mutex);
+	return 0;
+}
+
+int enviar_request_a_sc(void *mensaje, void *respuesta, int tamanio_respuesta) {
+	if (list_size(criterio_sc) == 0) {
+		return -1;
+	}
+	memoria_t *memoria = list_get(criterio_sc, 0);
+	return enviar_request_a_memoria(memoria, mensaje, respuesta,
+			tamanio_respuesta, CRITERIO_SC);
+}
+
+int enviar_request_a_shc(void *mensaje, uint16_t key, void *respuesta,
+		int tamanio_respuesta) {
+	if (list_size(criterio_shc) == 0) {
+		return -1;
+	}
+	// Por el momento usamos módulo como función de hash
+	memoria_t *memoria = list_get(criterio_shc, key % list_size(criterio_shc));
+	return enviar_request_a_memoria(memoria, mensaje, respuesta,
+			tamanio_respuesta, CRITERIO_SHC);
+}
+
+int enviar_request_a_ec(void *mensaje, void *respuesta, int tamanio_respuesta) {
+	if (list_size(criterio_ec) == 0) {
+		return -1;
+	}
+	memoria_t *memoria = memoria_random(criterio_ec);
+	return enviar_request_a_memoria(memoria, mensaje, respuesta,
+			tamanio_respuesta, CRITERIO_EC);
+}
+
+int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key) {
+	struct select_request *select_request;
+	struct insert_request *insert_request;
+	struct create_request *create_request;
+	struct describe_request *describe_request;
+	struct drop_request *drop_request;
+	switch (get_msg_id(mensaje)) {
+	case SELECT_REQUEST_ID:
+		select_request = (struct select_request*) mensaje;
+		*criterio = obtener_consistencia_tabla(select_request->tabla);
+		*key = select_request->key;
+		break;
+	case INSERT_REQUEST_ID:
+		insert_request = (struct insert_request*) mensaje;
+		*criterio = obtener_consistencia_tabla(insert_request->tabla);
+		*key = insert_request->key;
+		break;
+	case CREATE_REQUEST_ID:
+		create_request = (struct create_request*) mensaje;
+		*criterio = create_request->consistencia;
+		break;
+	case DESCRIBE_REQUEST_ID:
+		describe_request = (struct describe_request*) mensaje;
+		if (!describe_request->todas) {
+			*criterio = obtener_consistencia_tabla(describe_request->tabla);
+		}
+		break;
+	case DROP_REQUEST_ID:
+		drop_request = (struct drop_request*) mensaje;
+		*criterio = obtener_consistencia_tabla(drop_request->tabla);
+		break;
+	default:
+		return -1;
+	}
+	if (*criterio == -1) {
+		// Si el criterio es -1, significa que o no se conoce la tabla o
+		// el request es un describe global. En cualquiera de los casos,
+		// enviamos el request al criterio sc.
+		*criterio = CRITERIO_SC;
+	}
+	return 0;
+}
+
+int realizar_request(void *mensaje, void *respuesta, int tamanio_respuesta) {
+	int resultado = 0;
+	criterio_t criterio;
+	uint16_t key;
+
+	if (pthread_rwlock_rdlock(&memorias_rwlock) != 0) {
+		return -1;
+	}
+	if (get_msg_id(mensaje) == JOURNAL_REQUEST_ID) {
+		resultado = realizar_journal_a_lista(criterio_sc);
+		resultado = realizar_journal_a_lista(criterio_shc) < 0 ? -1 : resultado;
+		resultado = realizar_journal_a_lista(criterio_ec) < 0 ? -1 : resultado;
+		pthread_rwlock_unlock(&memorias_rwlock);
+		return resultado;
+	}
+	if (obtener_criterio_y_key(mensaje, &criterio, &key) < 0) {
+		pthread_rwlock_unlock(&memorias_rwlock);
+		return -1;
+	}
+	switch (criterio) {
+	case CRITERIO_SC:
+		resultado = enviar_request_a_sc(mensaje, respuesta, tamanio_respuesta);
+		break;
+	case CRITERIO_SHC:
+		resultado = enviar_request_a_shc(mensaje, key, respuesta,
+				tamanio_respuesta);
+		break;
+	case CRITERIO_EC:
+		resultado = enviar_request_a_ec(mensaje, respuesta, tamanio_respuesta);
+		break;
+	default:
+		return -1;
+	}
+	pthread_rwlock_unlock(&memorias_rwlock);
+	return resultado;
 }
