@@ -1,5 +1,7 @@
 #include <stdint.h>
+#include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <pthread.h>
 #include <time.h>
 #include <signal.h>
@@ -137,6 +139,7 @@ void *wrapper_periodica(void* entrada) {
 		pthread_exit(NULL);
 	}
 
+	memset(&sev, 0, sizeof(struct sigevent));
 	sev.sigev_notify = SIGEV_NONE;
 	sev.sigev_signo = 0;
 	sev.sigev_value.sival_int = 0;
@@ -169,6 +172,7 @@ void *wrapper_periodica(void* entrada) {
 				break;
 			}
 		}
+		usleep(200000);
 	}
 
 	timer_delete(timerid);
