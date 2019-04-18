@@ -19,7 +19,7 @@ typedef struct load_memoria {
 
 typedef struct operacion {
 	tipo_operacion_t tipo;
-	uint32_t latency;
+	uint32_t latency_usec;
 	uint16_t id_memoria;
 	time_t timestamp;
 } operacion_t;
@@ -94,7 +94,7 @@ operacion_t *construir_operacion_ptr(tipo_operacion_t tipo, uint32_t latency,
 	}
 	operacion_ptr->tipo = tipo;
 	operacion_ptr->id_memoria = id_memoria;
-	operacion_ptr->latency = latency;
+	operacion_ptr->latency_usec = latency;
 	operacion_ptr->timestamp = timestamp;
 	return operacion_ptr;
 }
@@ -224,7 +224,7 @@ uint32_t promedio_latency(t_list *lista) {
 
 	void _sumar_latency(void *elemento) {
 		operacion_t *operacion = (operacion_t*) elemento;
-		latency_total += operacion->latency;
+		latency_total += operacion->latency_usec;
 	}
 
 	list_iterate(lista, &_sumar_latency);
@@ -261,7 +261,7 @@ int concat(char **destino, int *tamanio_actual_destino, char *formato, ...) {
 
 int latency_string(t_list *lista, char *titulo, char **destino,
 		int *tamanio_actual_destino) {
-	if (concat(destino, tamanio_actual_destino, "%s%d\n", titulo,
+	if (concat(destino, tamanio_actual_destino, "%s%d microseconds\n", titulo,
 			promedio_latency(lista)) < 0) {
 		return -1;
 	}

@@ -429,7 +429,7 @@ int realizar_describe(struct global_describe_response *response) {
 }
 
 void registrar_metrica(memoria_t *memoria, void *mensaje, criterio_t criterio,
-		uint32_t latency_ms) {
+		uint32_t latency_usec) {
 	tipo_operacion_t tipo_operacion;
 	switch (get_msg_id(mensaje)) {
 	case SELECT_REQUEST_ID:
@@ -441,7 +441,7 @@ void registrar_metrica(memoria_t *memoria, void *mensaje, criterio_t criterio,
 	default:
 		return;
 	}
-	registrar_operacion(tipo_operacion, criterio, latency_ms,
+	registrar_operacion(tipo_operacion, criterio, latency_usec,
 			memoria->id_memoria);
 }
 
@@ -461,8 +461,8 @@ int enviar_request_a_memoria(memoria_t *memoria, void *mensaje, void *respuesta,
 	}
 	clock_t fin = clock();
 	if (inicio != -1 && fin != -1) {
-		uint32_t latency_ms = ((fin - inicio) * 1000) / CLOCKS_PER_SEC;
-		registrar_metrica(memoria, mensaje, criterio, latency_ms);
+		uint32_t latency_usec = ((fin - inicio) * 1000000) / CLOCKS_PER_SEC;
+		registrar_metrica(memoria, mensaje, criterio, latency_usec);
 	}
 	pthread_mutex_unlock(&memoria->mutex);
 	return 0;
