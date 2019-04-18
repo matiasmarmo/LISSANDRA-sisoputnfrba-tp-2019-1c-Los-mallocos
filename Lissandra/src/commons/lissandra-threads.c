@@ -105,25 +105,24 @@ int l_thread_solicitar_finalizacion(lissandra_thread_t *l_thread) {
 	return setear_valor(l_thread, &setear_debe_finalizar);
 }
 
-int l_thread_periodic_set_intervalo(lissandra_thread_periodic_t *lp_thread,
-		uint32_t intervalo) {
-	int error;
-	if ((error = pthread_mutex_lock(&lp_thread->l_thread.lock)) != 0) {
-		return -error;
-	}
-	lp_thread->intervalo = intervalo;
-	pthread_mutex_unlock(&lp_thread->l_thread.lock);
-	return 0;
-}
-
 uint32_t l_thread_periodic_get_intervalo(lissandra_thread_periodic_t *lp_thread) {
 	int error;
 	if ((error = pthread_mutex_lock(&lp_thread->l_thread.lock)) != 0) {
 		return -error;
 	}
-	uint32_t resultado = lp_thread->intervalo;
+	uint32_t resultado = lp_thread->interval_getter();
 	pthread_mutex_unlock(&lp_thread->l_thread.lock);
 	return resultado;
+}
+
+int l_thread_periodic_set_interval_getter(lissandra_thread_periodic_t *lp_thread, interval_getter_t interval_getter) {
+	int error;
+	if((error = pthread_mutex_lock(&lp_thread->l_thread.lock)) != 0) {
+		return -error;
+	}
+	lp_thread->interval_getter = interval_getter;
+	pthread_mutex_unlock(&lp_thread->l_thread.lock);
+	return 0;
 }
 
 void *wrapper_periodica(void* entrada) {
@@ -178,10 +177,11 @@ void *wrapper_periodica(void* entrada) {
 }
 
 int l_thread_periodic_create(lissandra_thread_periodic_t *lp_thread,
-		lissandra_thread_func funcion, uint32_t intervalo, void* entrada) {
+		lissandra_thread_func funcion, interval_getter_t interval_getter,
+		void* entrada) {
 	int error;
 	lp_thread->funcion_periodica = funcion;
-	lp_thread->intervalo = intervalo;
+	lp_thread->interval_getter = interval_getter;
 	if ((error = init_lissandra_thread(&lp_thread->l_thread, entrada) != 0)) {
 		return -error;
 	}
