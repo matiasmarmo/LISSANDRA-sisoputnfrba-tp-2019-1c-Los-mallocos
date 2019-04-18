@@ -172,7 +172,7 @@ int wait_for_connection(int socket_fd, int timeout_ms) {
 	socklen_t sock_len = 0;
 
 	tv.tv_sec = timeout_ms / 1000;
-	tv.tv_usec = (timeout_ms % 1000) * 1000000;
+	tv.tv_usec = (timeout_ms % 1000) * 1000;
 	FD_ZERO(&rfs);
 	FD_SET(socket_fd, &rfs);
 
