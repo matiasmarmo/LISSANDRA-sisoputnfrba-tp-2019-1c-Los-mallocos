@@ -17,7 +17,7 @@
 
 uint16_t proximo_id_memoria = 0;
 
-pthread_mutex_t memorias_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_rwlock_t memorias_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 t_list *pool_memorias;
 t_list *criterio_sc;
@@ -175,32 +175,32 @@ int obtener_memorias_del_pool(memoria_t *memoria_fuente) {
 int actualizar_memorias() {
 	int error;
 	memoria_t *memoria_fuente;
-	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
 	for (int i = 0; i < list_size(pool_memorias); i++) {
 		memoria_fuente = (memoria_t*) list_get(pool_memorias, i);
 		if (obtener_memorias_del_pool(memoria_fuente) == 0) {
 			// Memorias actualizadas
-			pthread_mutex_unlock(&memorias_mutex);
+			pthread_rwlock_unlock(&memorias_rwlock);
 			return 0;
 		}
 	}
 	// No se pudo actualizar el pool consultando a
 	// alguna de las memorias ya conocidas
-	pthread_mutex_unlock(&memorias_mutex);
+	pthread_rwlock_unlock(&memorias_rwlock);
 	return -1;
 }
 
 int inicializar_memorias() {
 	int error;
-	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
 	memoria_t *memoria_principal = construir_memoria(get_ip_memoria(),
 			get_puerto_memoria());
 	if (memoria_principal == NULL) {
-		pthread_mutex_unlock(&memorias_mutex);
+		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}
 	inicializar_listas();
@@ -209,25 +209,25 @@ int inicializar_memorias() {
 		// destruir_listas() va a destruir la memoria principal,
 		// la cual se encuentra dentros, por lo que no necesitamos
 		// hacerlo acá a mano
-		pthread_mutex_unlock(&memorias_mutex);
+		pthread_rwlock_unlock(&memorias_rwlock);
 		proximo_id_memoria = 0;
 		destruir_listas();
 		return -1;
 	}
-	pthread_mutex_unlock(&memorias_mutex);
+	pthread_rwlock_unlock(&memorias_rwlock);
 	inicializar_tablas();
 	return 0;
 }
 
 int destruir_memorias() {
 	int error;
-	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
 	proximo_id_memoria = 0;
 	destruir_listas();
 	destruir_tablas();
-	pthread_mutex_unlock(&memorias_mutex);
+	pthread_rwlock_unlock(&memorias_rwlock);
 	return 0;
 }
 
@@ -295,53 +295,53 @@ int realizar_journal_a_memorias_de_shc() {
 int agregar_memoria_a_sc(uint16_t id_memoria) {
 	int error;
 	memoria_t *memoria;
-	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
 	if (list_size(criterio_sc) > 0) {
-		pthread_mutex_unlock(&memorias_mutex);
+		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
-		pthread_mutex_unlock(&memorias_mutex);
+		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}
 	agregar_memoria_a_lista(criterio_sc, memoria);
-	pthread_mutex_unlock(&memorias_mutex);
+	pthread_rwlock_unlock(&memorias_rwlock);
 	return 0;
 }
 
 int agregar_memoria_a_shc(uint16_t id_memoria) {
 	int error;
 	memoria_t *memoria;
-	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
 	if (realizar_journal_a_memorias_de_shc() < 0) {
-		pthread_mutex_unlock(&memorias_mutex);
+		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
-		pthread_mutex_unlock(&memorias_mutex);
+		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}
 	agregar_memoria_a_lista(criterio_shc, memoria);
-	pthread_mutex_unlock(&memorias_mutex);
+	pthread_rwlock_unlock(&memorias_rwlock);
 	return 0;
 }
 
 int agregar_memoria_a_ec(uint16_t id_memoria) {
 	int error;
 	memoria_t *memoria;
-	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
-		pthread_mutex_unlock(&memorias_mutex);
+		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}
 	agregar_memoria_a_lista(criterio_ec, memoria);
-	pthread_mutex_unlock(&memorias_mutex);
+	pthread_rwlock_unlock(&memorias_rwlock);
 	return 0;
 }
 
@@ -361,7 +361,7 @@ memoria_t *memoria_random(t_list *lista_memorias) {
 	if (list_size(lista_memorias) == 0) {
 		return NULL;
 	}
-	return list_get(lista_memorias, 0);
+	return list_get(lista_memorias, rand() % list_size(lista_memorias));
 }
 
 int realizar_describe(struct global_describe_response *response) {
@@ -370,20 +370,20 @@ int realizar_describe(struct global_describe_response *response) {
 	uint8_t buffer_local[tamanio_buffer];
 	memoria_t *memoria;
 	int error;
-	if ((error = pthread_mutex_lock(&memorias_mutex)) != 0) {
+	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
 	if ((memoria = memoria_random(pool_memorias)) == NULL) {
 		// Por el momento elegimos una memoria random para
 		// realizar el describe
-		pthread_mutex_unlock(&memorias_mutex);
+		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}
 	if (pthread_mutex_lock(&memoria->mutex) != 0) {
-		pthread_mutex_unlock(&memorias_mutex);
+		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}
-	pthread_mutex_unlock(&memorias_mutex);
+	pthread_rwlock_unlock(&memorias_rwlock);
 	if (init_describe_request(true, "", &request) < 0) {
 		pthread_mutex_unlock(&memoria->mutex);
 		return -1;

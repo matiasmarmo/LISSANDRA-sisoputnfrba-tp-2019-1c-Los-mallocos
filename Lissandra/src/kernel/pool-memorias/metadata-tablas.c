@@ -20,19 +20,19 @@ typedef struct metadata_tabla {
 	pthread_mutex_t mutex;
 } metadata_tabla_t;
 
-pthread_mutex_t tablas_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_rwlock_t tablas_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 t_list *tablas;
 
 int inicializar_tablas() {
-	if (pthread_mutex_lock(&tablas_mutex) != 0) {
+	if (pthread_rwlock_wrlock(&tablas_rwlock) != 0) {
 		return -1;
 	}
 	tablas = list_create();
 	if (cargar_tablas() < 0) {
-		pthread_mutex_unlock(&tablas_mutex);
+		pthread_rwlock_unlock(&tablas_rwlock);
 		return -1;
 	}
-	pthread_mutex_unlock(&tablas_mutex);
+	pthread_rwlock_unlock(&tablas_rwlock);
 	return 0;
 }
 
@@ -44,7 +44,7 @@ void destruir_tabla(metadata_tabla_t *tabla) {
 }
 
 int destruir_tablas() {
-	if (pthread_mutex_lock(&tablas_mutex) != 0) {
+	if (pthread_rwlock_wrlock(&tablas_rwlock) != 0) {
 		return -1;
 	}
 
@@ -53,7 +53,7 @@ int destruir_tablas() {
 	}
 
 	list_destroy_and_destroy_elements(tablas, &_destruir);
-	pthread_mutex_unlock(&tablas_mutex);
+	pthread_rwlock_unlock(&tablas_rwlock);
 	return 0;
 }
 
@@ -109,11 +109,12 @@ int cargar_tablas() {
 	if (realizar_describe(&response) < 0) {
 		return -1;
 	}
-	if(response.fallo) {
+	if(response.fallo || pthread_rwlock_wrlock(&tablas_rwlock) != 0) {
 		destroy(&response);
 		return -1;
 	}
 	if ((tablas_recibidas = string_split(response.tablas, ";")) == NULL) {
+		pthread_rwlock_unlock(&tablas_rwlock);
 		destroy(&response);
 		return -1;
 	}
@@ -127,24 +128,23 @@ int cargar_tablas() {
 		}
 		cargar_tabla(nueva_tabla);
 	}
+	pthread_rwlock_unlock(&tablas_rwlock);
 	free(tablas_recibidas);
 	destroy(&response);
 	return 0;
 }
 
 int obtener_consistencia_tabla(char *nombre) {
-	int resultado;
 	metadata_tabla_t *tabla;
-	if (pthread_mutex_lock(&tablas_mutex) != 0) {
+	if (pthread_rwlock_rdlock(&tablas_rwlock) != 0) {
 		return -1;
 	}
-	tabla = buscar_tabla(nombre);
-	if (pthread_mutex_lock(&tabla->mutex) != 0) {
-		pthread_mutex_unlock(&tablas_mutex);
+	if ((tabla = buscar_tabla(nombre)) == NULL) {
+		pthread_rwlock_unlock(&tablas_rwlock);
 		return -1;
 	}
-	pthread_mutex_unlock(&tablas_mutex);
-	resultado = tabla->consistencia;
-	pthread_mutex_unlock(&tabla->mutex);
-	return resultado;
+	pthread_rwlock_unlock(&tablas_rwlock);
+	// No hace falta bloquear el mutex de la tabla
+	// porque la consistencia es un dato inmutable
+	return tabla->consistencia;
 }
