@@ -83,10 +83,11 @@ int agregar_nuevo_script(char *path) {
 void despachar_script_detenido(SCB *script) {
 	switch (script->estado) {
 	case INT_FIN_QUANTUM:
+	case ERROR_MISC:
 		queue_push(cola_ready, script);
 		break;
 	case SCRIPT_FINALIZADO:
-	case INT_ERROR:
+	case ERROR_SCRIPT:
 		script_exec_a_finalizado(script);
 		break;
 	default:

@@ -6,7 +6,7 @@ typedef struct nuevo_script {
 } nuevo_script_t;
 
 typedef enum {
-	NUEVO, SCRIPT_FINALIZADO, INT_FIN_QUANTUM, INT_ERROR
+	NUEVO, RUNNING, SCRIPT_FINALIZADO, INT_FIN_QUANTUM, ERROR_SCRIPT, ERROR_MISC
 } estado_runner_thread_t;
 
 typedef struct script_control_block {
