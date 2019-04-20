@@ -7,9 +7,9 @@
 #include "parser.h"
 #include "comunicacion/protocol.h"
 
-int isConsistency(char* );
 int isIdentifier(char* );
 int isConstant(char* );
+int isConsistency(char* );
 int obtenerProximaPalabra(char* , char* ,char ,int );
 int ejecutarSelect(char*,char*,int);
 int ejecutarInsert(char*,char*,int);
@@ -18,7 +18,8 @@ int ejecutarDescribe(char*,char*,int);
 int ejecutarDrop(char*,char*,int);
 int ejecutarJournal(char*,char*,int);
 int ejecutarAdd(char*,char*,int);
-
+int ejecutarMetrics(char* , int );
+int ejecutarExit(char*, int);
 
 int parser(char* linea,void* msg, int tamanioBuffer){
 	if(!memcmp(linea,"SELECT ",7      )){ return ejecutarSelect(linea,msg,tamanioBuffer);}
@@ -28,6 +29,8 @@ int parser(char* linea,void* msg, int tamanioBuffer){
 	if(!memcmp(linea,"DROP ",5        )){ return ejecutarDrop(linea,msg,tamanioBuffer);}
 	if(!strcmp(linea,"JOURNAL"        )){ return ejecutarJournal(linea,msg,tamanioBuffer);}
 	if(!memcmp(linea,"ADD MEMORY ",11 )){ return ejecutarAdd(linea,msg,tamanioBuffer);}
+	if(!strcmp(linea,"METRICS"        )){ return ejecutarMetrics(msg,tamanioBuffer);}
+	if(!strcmp(linea,"EXIT"           )){ return ejecutarExit(msg,tamanioBuffer);}
 	return ERROR;
 }
 
@@ -162,10 +165,10 @@ int ejecutarDescribe(char* msg,char* buffer, int tamanioBuffer){
 	int inicio = 8;
 	char nombreTabla[MAX_TOKENS_LENGTH];
 	if(msg[inicio]=='\0'){
-		struct describe_request mensaje;
-		init_describe_request(0,NULL,&mensaje);
-		memcpy(buffer, &mensaje, sizeof(struct describe_request));
-		return OK;
+		 struct describe_request mensaje;
+		 init_describe_request(0,NULL,&mensaje);
+		 memcpy(buffer, &mensaje, sizeof(struct describe_request));
+		 return OK;
 	}
 	inicio += 1;
 	int tamanioPalabra = obtenerProximaPalabra(msg, nombreTabla, '\0', inicio);
@@ -178,6 +181,7 @@ int ejecutarDescribe(char* msg,char* buffer, int tamanioBuffer){
 	memcpy(buffer, &mensaje, sizeof(struct describe_request));
 	return OK;
 }
+
 int ejecutarDrop(char* msg,char* buffer, int tamanioBuffer){
 	//DROP + NOMBRE_TABLA
 	int inicio = 6;
@@ -236,6 +240,22 @@ int ejecutarAdd(char* msg,char* buffer, int tamanioBuffer){
 	return OK;
 }
 
+int ejecutarMetrics(char* buffer, int tamanioBuffer){
+	struct metrics_request mensaje;
+	init_metrics_request(&mensaje);
+	if(sizeof(struct metrics_request) > tamanioBuffer){ return ERROR_TAMANIO_BUFFER; }
+	memcpy(buffer, &mensaje, sizeof(struct metrics_request));
+	return OK;
+}
+
+int ejecutarExit(char* buffer, int tamanioBuffer){
+	struct exit_request mensaje;
+	init_exit_request(&mensaje);
+	if(sizeof(struct exit_request) > tamanioBuffer){ return ERROR_TAMANIO_BUFFER; }
+	memcpy(buffer, &mensaje, sizeof(struct exit_request));
+	return OK;
+}
+
 int isIdentifier(char* id){ //Controla que id este conformado solo por letras , '_' o '-'
 	for(int i=0 ; i < strlen(id); i++){
 		if(!( isalnum(id[i]) || id[i]=='_' || id[i]=='-')){
@@ -262,3 +282,31 @@ int isConsistency(char* id){ //Controla que id haga match con alguna de las 3 co
 	}
 	return -1;
 }
+int manejarError(int error, char* buff,int tamanio){
+	if(tamanio < 150){ return ERROR; }
+	char mensaje[150] = "Ha cometido un error ";
+	switch(error){
+		case VALUE_INVALIDO:
+			strcat(mensaje,"al ingresar un valor invalido");
+			break;
+		case CONSISTENCIA_INVALIDA:
+			strcat(mensaje,"al ingresar una consistencia invalida");
+			break;
+		case ERROR_TAMANIO_BUFFER:
+			strcat(mensaje,"dado que el comando ingresado supera el buffer");
+			break;
+		case IDENTIFICADOR_INVALIDO:
+			strcat(mensaje,"al ingresar un identificador invalido");
+			break;
+		case CONSTANTE_INVALIDA:
+			strcat(mensaje,"al ingresar una constante invalida");
+			break;
+		case COMANDOS_INVALIDOS:
+		case ERROR:
+			strcat(mensaje,"al ingresar los comandos");
+			break;
+	}
+	memcpy(buff, &mensaje, sizeof(mensaje));
+	return 0;
+}
+
