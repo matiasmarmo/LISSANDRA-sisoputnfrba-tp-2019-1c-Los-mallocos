@@ -8,30 +8,39 @@
 
 #include "lissandra-threads.h"
 
-int init_lissandra_thread(lissandra_thread_t *l_thread, void* entrada) {
+int l_thread_init(lissandra_thread_t *l_thread) {
 	int error;
 	if ((error = pthread_mutex_init(&l_thread->lock, NULL)) != 0) {
 		return -error;
 	}
 	l_thread->debe_finalizar = false;
 	l_thread->finalizada = false;
-	l_thread->entrada = entrada;
 	return 0;
+}
+
+int l_thread_start(lissandra_thread_t *l_thread, lissandra_thread_func funcion,
+		void *entrada) {
+	int error;
+	l_thread->entrada = entrada;
+	if ((error = pthread_create(&l_thread->thread, NULL, funcion, l_thread))
+			!= 0) {
+		pthread_mutex_destroy(&l_thread->lock);
+		return -error;
+	}
+	return 0;
+}
+
+void l_thread_destroy(lissandra_thread_t *l_thread) {
+	pthread_mutex_destroy(&l_thread->lock);
 }
 
 int l_thread_create(lissandra_thread_t *l_thread, lissandra_thread_func funcion,
 		void* entrada) {
 	int error;
-	if ((error = init_lissandra_thread(l_thread, entrada)) != 0) {
+	if ((error = l_thread_init(l_thread)) != 0) {
 		return -error;
 	}
-	if ((error = pthread_create(&l_thread->thread, NULL, funcion, l_thread))
-			!= 0) {
-		// El mutex acaba de ser creado exitosamente y ningún thread puede haberlo adquirido,
-		// por lo que pthread_mutex_destroy no va a fallar y podemos prescindir de manejar
-		// el posible error.
-		// Para más información: https://pubs.opengroup.org/onlinepubs/7908799/xsh/pthread_mutex_init.html
-		pthread_mutex_destroy(&l_thread->lock);
+	if ((error = l_thread_start(l_thread, funcion, entrada)) != 0) {
 		return -error;
 	}
 	return 0;
@@ -40,7 +49,7 @@ int l_thread_create(lissandra_thread_t *l_thread, lissandra_thread_func funcion,
 int l_thread_join(lissandra_thread_t *l_thread, void** resultado) {
 	int join_res = pthread_join(l_thread->thread, resultado);
 	if (join_res == 0) {
-		pthread_mutex_destroy(&l_thread->lock);
+		l_thread_destroy(l_thread);
 	}
 	return join_res;
 }
@@ -117,9 +126,11 @@ uint32_t l_thread_periodic_get_intervalo(lissandra_thread_periodic_t *lp_thread)
 	return resultado;
 }
 
-int l_thread_periodic_set_interval_getter(lissandra_thread_periodic_t *lp_thread, interval_getter_t interval_getter) {
+int l_thread_periodic_set_interval_getter(
+		lissandra_thread_periodic_t *lp_thread,
+		interval_getter_t interval_getter) {
 	int error;
-	if((error = pthread_mutex_lock(&lp_thread->l_thread.lock)) != 0) {
+	if ((error = pthread_mutex_lock(&lp_thread->l_thread.lock)) != 0) {
 		return -error;
 	}
 	lp_thread->interval_getter = interval_getter;
@@ -186,11 +197,12 @@ int l_thread_periodic_create(lissandra_thread_periodic_t *lp_thread,
 	int error;
 	lp_thread->funcion_periodica = funcion;
 	lp_thread->interval_getter = interval_getter;
-	if ((error = init_lissandra_thread(&lp_thread->l_thread, entrada) != 0)) {
-		return -error;
+	if((error = l_thread_init(&lp_thread->l_thread)) != 0) {
+		return error;
 	}
-	if ((error = pthread_create(&lp_thread->l_thread.thread, NULL,
-			&wrapper_periodica, lp_thread)) != 0) {
+	lp_thread->l_thread.entrada = entrada;
+	if((error = pthread_create(&lp_thread->l_thread.thread, NULL, &wrapper_periodica, lp_thread)) != 0) {
+		l_thread_destroy(&lp_thread->l_thread);
 		return -error;
 	}
 	return 0;
