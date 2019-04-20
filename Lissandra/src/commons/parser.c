@@ -7,6 +7,7 @@
 #include "parser.h"
 #include "comunicacion/protocol.h"
 
+int isConsistency(char* );
 int isIdentifier(char* );
 int isConstant(char* );
 int obtenerProximaPalabra(char* , char* ,char ,int );
@@ -14,6 +15,9 @@ int ejecutarSelect(char*,char*,int);
 int ejecutarInsert(char*,char*,int);
 int ejecutarCreate(char*,char*,int);
 int ejecutarDescribe(char*,char*,int);
+int ejecutarDrop(char*,char*,int);
+int ejecutarJournal(char*,char*,int);
+int ejecutarAdd(char*,char*,int);
 
 
 int parser(char* linea,void* msg, int tamanioBuffer){
@@ -21,6 +25,9 @@ int parser(char* linea,void* msg, int tamanioBuffer){
 	if(!memcmp(linea,"INSERT ",7      )){ return ejecutarInsert(linea,msg,tamanioBuffer);}
 	if(!memcmp(linea,"CREATE ",7      )){ return ejecutarCreate(linea,msg,tamanioBuffer);}
 	if(!memcmp(linea,"DESCRIBE",8     )){ return ejecutarDescribe(linea,msg,tamanioBuffer);}
+	if(!memcmp(linea,"DROP ",5        )){ return ejecutarDrop(linea,msg,tamanioBuffer);}
+	if(!strcmp(linea,"JOURNAL"        )){ return ejecutarJournal(linea,msg,tamanioBuffer);}
+	if(!memcmp(linea,"ADD MEMORY ",11 )){ return ejecutarAdd(linea,msg,tamanioBuffer);}
 	return ERROR;
 }
 
@@ -171,6 +178,63 @@ int ejecutarDescribe(char* msg,char* buffer, int tamanioBuffer){
 	memcpy(buffer, &mensaje, sizeof(struct describe_request));
 	return OK;
 }
+int ejecutarDrop(char* msg,char* buffer, int tamanioBuffer){
+	//DROP + NOMBRE_TABLA
+	int inicio = 6;
+	char nombreTabla[MAX_TOKENS_LENGTH];
+
+	int tamanioPalabra = obtenerProximaPalabra(msg, nombreTabla, '\0', inicio);
+	if(tamanioPalabra == -1){ return COMANDOS_INVALIDOS; }
+	if(!isIdentifier(nombreTabla)){ return IDENTIFICADOR_INVALIDO; }
+
+	struct drop_request mensaje;
+	init_drop_request(nombreTabla,&mensaje);
+	if(sizeof(struct drop_request) > tamanioBuffer){ return ERROR_TAMANIO_BUFFER; }
+	memcpy(buffer, &mensaje, sizeof(struct drop_request));
+	return OK;
+}
+
+int ejecutarJournal(char* msg,char* buffer, int tamanioBuffer){
+	//JOURNAL
+	struct journal_request mensaje;
+	init_journal_request(&mensaje);
+	if(sizeof(struct journal_request) > tamanioBuffer){ return ERROR_TAMANIO_BUFFER; }
+	memcpy(buffer, &mensaje, sizeof(struct journal_request));
+	return OK;
+}
+
+int ejecutarAdd(char* msg,char* buffer, int tamanioBuffer){
+	//ADD MEMORY + NUMERO + TO + CRITERIO
+	int inicio = 11;
+	char numero[MAX_TOKENS_LENGTH];
+	char to[MAX_TOKENS_LENGTH];
+	char criterio[MAX_TOKENS_LENGTH];
+
+	int tamanioPalabra = obtenerProximaPalabra(msg, numero, ' ', inicio);
+	if(tamanioPalabra == -1){ return COMANDOS_INVALIDOS; }
+	if(!isConstant(numero)){ return IDENTIFICADOR_INVALIDO; }
+
+	uint64_t maximo = strtoumax(numero,NULL,10);
+	if(maximo > UINT16_MAX){ return CONSTANTE_INVALIDA; }
+	uint8_t nuevoNumero = strtoumax(numero,NULL,10);
+
+	inicio=inicio+tamanioPalabra+1;
+	tamanioPalabra = obtenerProximaPalabra(msg, to, ' ', inicio);
+	if(tamanioPalabra == -1){ return COMANDOS_INVALIDOS; }
+	if(strcmp(to,"TO")){ return IDENTIFICADOR_INVALIDO; }
+
+	inicio=inicio+tamanioPalabra+1;
+	tamanioPalabra = obtenerProximaPalabra(msg,criterio, '\0', inicio);
+	if(tamanioPalabra == -1){ return COMANDOS_INVALIDOS; }
+	int valorConsistencia = isConsistency(criterio);
+	if(valorConsistencia < 0){ return CONSISTENCIA_INVALIDA; }
+
+	struct add_request mensaje;
+	init_add_request(nuevoNumero,valorConsistencia,&mensaje);
+	if(sizeof(struct add_request) > tamanioBuffer){ return ERROR_TAMANIO_BUFFER; }
+	memcpy(buffer, &mensaje, sizeof(struct add_request));
+	return OK;
+}
 
 int isIdentifier(char* id){ //Controla que id este conformado solo por letras , '_' o '-'
 	for(int i=0 ; i < strlen(id); i++){
@@ -187,4 +251,14 @@ int isConstant(char* id){ //Controla que id este conformado solo por numeros
 		}
 	}
 	return OK;
+}
+int isConsistency(char* id){ //Controla que id haga match con alguna de las 3 consistencias validas
+	if(!strcmp(id,"SC")){ // Consistencias validas
+		return SC;
+	} else if(!strcmp(id,"SHC")){ // Consistencias validas
+		return SHC;
+	} else if(!strcmp(id,"EC")){ // Consistencias validas
+		return EC;
+	}
+	return -1;
 }
