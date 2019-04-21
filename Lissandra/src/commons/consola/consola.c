@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
@@ -11,12 +12,36 @@
 
 handler_t handler_actual;
 
+pthread_mutex_t consola_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 void imprimir(char* linea) {
+	if(pthread_mutex_lock(&consola_mutex) != 0) {
+		return;
+	}
 	rl_save_prompt();
 	rl_redisplay();
 	printf("%s\n", linea);
 	rl_restore_prompt();
+	pthread_mutex_unlock(&consola_mutex);
+}
+
+void imprimir_async(char* linea) {
+	if(pthread_mutex_lock(&consola_mutex) != 0) {
+		return;
+	}
+	char *linea_guardada;
+	int punto = rl_point;
+	linea_guardada = rl_copy_text(0, rl_end);
+	rl_save_prompt();
+	rl_replace_line("", 0);
 	rl_redisplay();
+	printf("%s\n", linea);
+	rl_restore_prompt();
+	rl_replace_line(linea_guardada, 0);
+	rl_point = punto;
+	rl_redisplay();
+	pthread_mutex_unlock(&consola_mutex);
+	free(linea_guardada);
 }
 
 void ejecutar_nueva_linea(char *linea) {
@@ -57,6 +82,13 @@ void mostrar(void* mensaje) {
 	convertir_en_string(mensaje, buffer, TAMANIO_MAX_STRING);
 	imprimir(buffer);
 }
+
+void mostrar_async(void* mensaje) {
+	char buffer[TAMANIO_MAX_STRING];
+	convertir_en_string(mensaje, buffer, TAMANIO_MAX_STRING);
+	imprimir_async(buffer);
+}
+
 
 void cerrar_consola() {
 	rl_callback_handler_remove();
