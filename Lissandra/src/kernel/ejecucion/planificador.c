@@ -16,7 +16,7 @@ t_queue *cola_new;
 t_queue *cola_ready;
 
 void destruir_nuevo_script(nuevo_script_t *nuevo_script) {
-	free(nuevo_script->path);
+	free(nuevo_script->str);
 	free(nuevo_script);
 }
 
@@ -56,13 +56,14 @@ void destruir_planificador() {
 	queue_destroy_and_destroy_elements(cola_ready, &_destruir_scb);
 }
 
-int agregar_nuevo_script(char *path) {
+int agregar_nuevo_script(bool es_request_unitario, char *str) {
 	nuevo_script_t *nuevo_script = malloc(sizeof(nuevo_script_t));
 	if (nuevo_script == NULL) {
 		return -1;
 	}
-	nuevo_script->path = strdup(path);
-	if (nuevo_script->path == NULL) {
+	nuevo_script->es_request_unitario = es_request_unitario;
+	nuevo_script->str= strdup(str);
+	if (nuevo_script->str == NULL) {
 		free(nuevo_script);
 		return -1;
 	}
@@ -134,7 +135,12 @@ SCB *construir_scb(nuevo_script_t *nuevo_script) {
 	if (scb == NULL) {
 		return NULL;
 	}
-	scb->source = leer_fuente_script(nuevo_script->path);
+	scb->es_request_unitario = nuevo_script->es_request_unitario;
+	if(nuevo_script->es_request_unitario) {
+		scb->source = strdup(nuevo_script->str);
+	} else {
+		scb->source = leer_fuente_script(nuevo_script->str);
+	}
 	if (scb->source == NULL) {
 		free(scb);
 		return NULL;
