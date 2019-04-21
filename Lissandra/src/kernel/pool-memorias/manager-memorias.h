@@ -24,6 +24,8 @@ int agregar_memoria_a_criterio(uint16_t, uint8_t);
 
 int realizar_describe(struct global_describe_response*);
 
-int realizar_request(void*, void*, int);
+int realizar_journal_a_todos_los_criterios();
+
+int enviar_request_a_memoria(void*, void*, int);
 
 #endif

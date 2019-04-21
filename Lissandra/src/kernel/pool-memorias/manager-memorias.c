@@ -313,6 +313,13 @@ int realizar_journal_a_memorias_de_shc() {
 	return realizar_journal_a_lista(criterio_shc);
 }
 
+int realizar_journal_a_todos_los_criterios() {
+	int resultado = realizar_journal_a_lista(criterio_sc);
+	resultado = realizar_journal_a_lista(criterio_shc) < 0 ? -1 : resultado;
+	resultado = realizar_journal_a_lista(criterio_ec) < 0 ? -1 : resultado;
+	return resultado;
+}
+
 int agregar_memoria_a_sc(uint16_t id_memoria) {
 	int error;
 	memoria_t *memoria;
@@ -445,7 +452,7 @@ void registrar_metrica(memoria_t *memoria, void *mensaje, criterio_t criterio,
 			memoria->id_memoria);
 }
 
-int enviar_request_a_memoria(memoria_t *memoria, void *mensaje, void *respuesta,
+int enviar_request(memoria_t *memoria, void *mensaje, void *respuesta,
 		int tamanio_respuesta, criterio_t criterio) {
 	if (tamanio_respuesta < get_max_msg_size()) {
 		return -1;
@@ -473,7 +480,7 @@ int enviar_request_a_sc(void *mensaje, void *respuesta, int tamanio_respuesta) {
 		return -1;
 	}
 	memoria_t *memoria = list_get(criterio_sc, 0);
-	return enviar_request_a_memoria(memoria, mensaje, respuesta,
+	return enviar_request(memoria, mensaje, respuesta,
 			tamanio_respuesta, CRITERIO_SC);
 }
 
@@ -484,7 +491,7 @@ int enviar_request_a_shc(void *mensaje, uint16_t key, void *respuesta,
 	}
 	// Por el momento usamos módulo como función de hash
 	memoria_t *memoria = list_get(criterio_shc, key % list_size(criterio_shc));
-	return enviar_request_a_memoria(memoria, mensaje, respuesta,
+	return enviar_request(memoria, mensaje, respuesta,
 			tamanio_respuesta, CRITERIO_SHC);
 }
 
@@ -493,7 +500,7 @@ int enviar_request_a_ec(void *mensaje, void *respuesta, int tamanio_respuesta) {
 		return -1;
 	}
 	memoria_t *memoria = memoria_random(criterio_ec);
-	return enviar_request_a_memoria(memoria, mensaje, respuesta,
+	return enviar_request(memoria, mensaje, respuesta,
 			tamanio_respuesta, CRITERIO_EC);
 }
 
@@ -540,7 +547,7 @@ int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key) {
 	return 0;
 }
 
-int realizar_request(void *mensaje, void *respuesta, int tamanio_respuesta) {
+int enviar_request_a_memoria(void *mensaje, void *respuesta, int tamanio_respuesta) {
 	int resultado = 0;
 	criterio_t criterio;
 	uint16_t key;

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -21,6 +22,13 @@ void liberar_requests(char **requests) {
 	free(requests);
 }
 
+void ejecutar_add_request(uint8_t *request_buffer, SCB *scb) {
+	struct add_request *add_request = (struct add_request*) request_buffer;
+	if(agregar_memoria_a_criterio(add_request->n_memoria, add_request->criterio) < 0) {
+		scb->estado = ERROR_SCRIPT;
+	}
+}
+
 void ejecutar_request(char **request, SCB *scb) {
 	// TODO: loguear representación en string de la respuesta a un archivo con resultados
 	// y loguear errores.
@@ -28,7 +36,7 @@ void ejecutar_request(char **request, SCB *scb) {
 	uint8_t buffer_request[tamanio_buffers];
 	uint8_t buffer_respuesta[tamanio_buffers];
 	string_trim(request);
-	if (*request == NULL) {
+	if(*request == NULL) {
 		scb->estado = ERROR_MISC;
 		return;
 	}
@@ -36,11 +44,20 @@ void ejecutar_request(char **request, SCB *scb) {
 		scb->estado = ERROR_SCRIPT;
 		return;
 	}
-	if (realizar_request(buffer_request, buffer_respuesta, tamanio_buffers)
-			< 0) {
-		scb->estado = ERROR_SCRIPT;
-		destroy(buffer_request);
-		return;
+	switch (get_msg_id(buffer_request)) {
+	case ADD_REQUEST_ID:
+		ejecutar_add_request(buffer_request, scb);
+		break;
+	case JOURNAL_REQUEST_ID:
+		if (realizar_journal_a_todos_los_criterios() < 0) {
+			scb->estado = ERROR_SCRIPT;
+		}
+		break;
+	default:
+		if (enviar_request_a_memoria(buffer_request, buffer_respuesta,
+				tamanio_buffers) < 0) {
+			scb->estado = ERROR_SCRIPT;
+		}
 	}
 	destroy(buffer_request);
 	destroy(buffer_respuesta);
@@ -56,7 +73,7 @@ void *ejecutar_script(void *entrada) {
 	char **requests = string_split(scb->source, "\n");
 	while (counter < quantum && requests[scb->request_pointer] != NULL) {
 		ejecutar_request(&requests[scb->request_pointer], scb);
-		if(scb->estado != RUNNING) {
+		if (scb->estado != RUNNING) {
 			break;
 		}
 		counter++;
@@ -64,7 +81,7 @@ void *ejecutar_script(void *entrada) {
 	}
 	if (requests[scb->request_pointer] == NULL) {
 		scb->estado = SCRIPT_FINALIZADO;
-	} else if(counter == quantum) {
+	} else if (counter == quantum) {
 		scb->estado = INT_FIN_QUANTUM;
 	}
 	liberar_requests(requests);
