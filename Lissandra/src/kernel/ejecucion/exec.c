@@ -2,13 +2,16 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <commons/string.h>
 
 #include "../../commons/comunicacion/protocol.h"
+#include "../../commons/consola/consola.h"
 #include "../../commons/lissandra-threads.h"
 #include "../../commons/parser.h"
 #include "../pool-memorias/manager-memorias.h"
 #include "../kernel-config.h"
+#include "../metricas.h"
 #include "planificador.h"
 #include "exec.h"
 
@@ -27,6 +30,19 @@ void ejecutar_add_request(uint8_t *request_buffer, SCB *scb) {
 	if(agregar_memoria_a_criterio(add_request->n_memoria, add_request->criterio) < 0) {
 		scb->estado = ERROR_SCRIPT;
 	}
+}
+
+void informar_metricas() {
+	char *metricas = obtener_metricas();
+	struct metrics_response response;
+	if(metricas == NULL) {
+		return;
+	}
+	if(init_metrics_response(false, metricas, &response) < 0) {
+		return;
+	}
+	mostrar_async(&response);
+	destroy(&response);
 }
 
 void ejecutar_request(char **request, SCB *scb) {
@@ -52,6 +68,9 @@ void ejecutar_request(char **request, SCB *scb) {
 		if (realizar_journal_a_todos_los_criterios() < 0) {
 			scb->estado = ERROR_SCRIPT;
 		}
+		break;
+	case METRICS_REQUEST_ID:
+		informar_metricas();
 		break;
 	default:
 		if (enviar_request_a_memoria(buffer_request, buffer_respuesta,

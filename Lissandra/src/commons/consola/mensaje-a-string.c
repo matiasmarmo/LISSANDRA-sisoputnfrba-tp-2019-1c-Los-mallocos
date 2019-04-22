@@ -281,7 +281,6 @@ int run_response_to_string(void* mensaje, char* buffer, int tamanio_maximo) {
 int metrics_response_to_string(void* mensaje, char* buffer, int tamanio_maximo) {
 	struct metrics_response *response = (struct metrics_response*) mensaje;
 	char temporal[TAMANIO_MAX_STRING];
-
 	if (response->fallo) {
 		strcpy(temporal, "\nFallo METRICS\n");
 	} else {
@@ -314,6 +313,7 @@ void llenar_diccionario() {
 	cargar_convertidor(JOURNAL_RESPONSE_ID, &journal_response_to_string);
 	cargar_convertidor(ADD_RESPONSE_ID, &add_response_to_string);
 	cargar_convertidor(RUN_RESPONSE_ID, &run_response_to_string);
+	cargar_convertidor(METRICS_RESPONSE_ID, &metrics_response_to_string);
 }
 
 void iniciar_diccionario() {
