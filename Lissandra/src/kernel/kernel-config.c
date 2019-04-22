@@ -16,40 +16,40 @@
 #define SLEEP_EJECUCION "SLEEP_EJECUCION"
 
 t_config* configuracion;
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t kernel_config_lock = PTHREAD_MUTEX_INITIALIZER;
 
 int inicializar_kernel_config() {
-	return inicializar_configuracion(&configuracion, CONFIG_PATH, &lock);
+	return inicializar_configuracion(&configuracion, CONFIG_PATH, &kernel_config_lock);
 }
 
 int actualizar_kernel_config() {
-	return actualizar_configuracion(&configuracion, CONFIG_PATH, &lock);
+	return actualizar_configuracion(&configuracion, CONFIG_PATH, &kernel_config_lock);
 }
 
 int destruir_kernel_config() {
-	return destruir_configuracion(configuracion, &lock);
+	return destruir_configuracion(configuracion, &kernel_config_lock);
 }
 
 char* get_ip_memoria() {
-	return get_string_value(configuracion, IP_MEMORIA, &lock);
+	return get_string_value(configuracion, IP_MEMORIA, &kernel_config_lock);
 }
 
 int get_puerto_memoria() {
-	return get_int_value(configuracion, PUERTO_MEMORIA, &lock);
+	return get_int_value(configuracion, PUERTO_MEMORIA, &kernel_config_lock);
 }
 
 int get_quantum() {
-	return get_int_value(configuracion, QUANTUM, &lock);
+	return get_int_value(configuracion, QUANTUM, &kernel_config_lock);
 }
 
 int get_multiprocesamiento() {
-	return get_int_value(configuracion, MULTIPROCESAMIENTO, &lock);
+	return get_int_value(configuracion, MULTIPROCESAMIENTO, &kernel_config_lock);
 }
 
 int get_refresh_metadata() {
-	return get_int_value(configuracion, METADATA_REFRESH, &lock);
+	return get_int_value(configuracion, METADATA_REFRESH, &kernel_config_lock);
 }
 
 int get_retardo_ejecucion() {
-	return get_int_value(configuracion, SLEEP_EJECUCION, &lock);
+	return get_int_value(configuracion, SLEEP_EJECUCION, &kernel_config_lock);
 }

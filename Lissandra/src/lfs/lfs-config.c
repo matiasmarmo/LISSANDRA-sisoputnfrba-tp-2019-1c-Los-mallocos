@@ -15,36 +15,36 @@
 #define TIEMPO_DUMP "TIEMPO_DUMP"
 
 t_config* configuracion;
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lfs_config_lock = PTHREAD_MUTEX_INITIALIZER;
 
 int inicializar_lfs_config() {
-	return inicializar_configuracion(&configuracion, CONFIG_PATH, &lock);
+	return inicializar_configuracion(&configuracion, CONFIG_PATH, &lfs_config_lock);
 }
 
 int actualizar_lfs_config() {
-	return actualizar_configuracion(&configuracion, CONFIG_PATH, &lock);
+	return actualizar_configuracion(&configuracion, CONFIG_PATH, &lfs_config_lock);
 }
 
 int destruir_lfs_config() {
-	return destruir_configuracion(configuracion, &lock);
+	return destruir_configuracion(configuracion, &lfs_config_lock);
 }
 
 int get_puerto_escucha() {
-	return get_int_value(configuracion, PUERTO_ESCUCHA, &lock);
+	return get_int_value(configuracion, PUERTO_ESCUCHA, &lfs_config_lock);
 }
 
 char* get_punto_montaje() {
-	return get_string_value(configuracion, PUNTO_MONTAJE, &lock);
+	return get_string_value(configuracion, PUNTO_MONTAJE, &lfs_config_lock);
 }
 
 int get_retardo() {
-	return get_int_value(configuracion, RETARDO, &lock);
+	return get_int_value(configuracion, RETARDO, &lfs_config_lock);
 }
 
 int get_tamanio_value() {
-	return get_int_value(configuracion, TAMANIO_VALUE, &lock);
+	return get_int_value(configuracion, TAMANIO_VALUE, &lfs_config_lock);
 }
 
 int get_tiempo_dump() {
-	return get_int_value(configuracion, TIEMPO_DUMP, &lock);
+	return get_int_value(configuracion, TIEMPO_DUMP, &lfs_config_lock);
 }
