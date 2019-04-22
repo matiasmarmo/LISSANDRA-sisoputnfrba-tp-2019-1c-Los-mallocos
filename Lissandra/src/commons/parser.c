@@ -20,6 +20,7 @@ int ejecutarJournal(char*,char*,int);
 int ejecutarAdd(char*,char*,int);
 int ejecutarMetrics(char* , int );
 int ejecutarExit(char*, int);
+int ejecutarRun(char*,char*,int);
 
 int parser(char* linea,void* msg, int tamanioBuffer){
 	if(!memcmp(linea,"SELECT ",7      )){ return ejecutarSelect(linea,msg,tamanioBuffer);}
@@ -31,6 +32,7 @@ int parser(char* linea,void* msg, int tamanioBuffer){
 	if(!memcmp(linea,"ADD MEMORY ",11 )){ return ejecutarAdd(linea,msg,tamanioBuffer);}
 	if(!strcmp(linea,"METRICS"        )){ return ejecutarMetrics(msg,tamanioBuffer);}
 	if(!strcmp(linea,"EXIT"           )){ return ejecutarExit(msg,tamanioBuffer);}
+	if(!memcmp(linea,"RUN ",4         )){ return ejecutarRun(linea,msg,tamanioBuffer);}
 	return ERROR;
 }
 
@@ -253,6 +255,22 @@ int ejecutarExit(char* buffer, int tamanioBuffer){
 	init_exit_request(&mensaje);
 	if(sizeof(struct exit_request) > tamanioBuffer){ return ERROR_TAMANIO_BUFFER; }
 	memcpy(buffer, &mensaje, sizeof(struct exit_request));
+	return OK;
+}
+
+int ejecutarRun(char* msg,char* buffer, int tamanioBuffer){
+	//RUN + ARCHIVO
+	int inicio = 4;
+	char archivo[MAX_TOKENS_LENGTH];
+
+	int tamanioPalabra = obtenerProximaPalabra(msg, archivo, ' ', inicio);
+	if(tamanioPalabra == -1){ return COMANDOS_INVALIDOS; }
+	if(!isIdentifier(archivo)){ return IDENTIFICADOR_INVALIDO; }
+
+	struct run_request mensaje;
+	init_run_request(archivo,&mensaje);
+	if(sizeof(struct run_request) > tamanioBuffer){ return ERROR_TAMANIO_BUFFER; }
+	memcpy(buffer, &mensaje, sizeof(struct run_request));
 	return OK;
 }
 

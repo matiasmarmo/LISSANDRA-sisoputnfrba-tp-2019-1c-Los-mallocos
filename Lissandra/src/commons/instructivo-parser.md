@@ -11,6 +11,7 @@
 | ADD MEMORY | ADD MEMORY [NUMERO] TO [CRITERIO] |
 | METRICS | METRICS |
 | EXIT | EXIT |
+| RUN | ARCHIVO |
 
 ### Devolucion
 
