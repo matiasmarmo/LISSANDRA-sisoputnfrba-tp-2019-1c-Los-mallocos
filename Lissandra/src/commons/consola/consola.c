@@ -59,10 +59,12 @@ void ejecutar_nueva_linea(char *linea) {
 		char buffer_parser_error[TAMANIO_MAX_STRING];
 		manejarError(respuesta_parser,buffer_parser_error, TAMANIO_MAX_STRING);
 		imprimir(buffer_parser_error);
+		free(linea);
+		return;
 	}
 
 	if (handler_actual != NULL) {
-		handler_actual(mensaje);
+		handler_actual(linea, mensaje);
 	}
 	free(linea);
 }

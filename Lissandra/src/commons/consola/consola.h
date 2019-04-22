@@ -1,7 +1,7 @@
 #ifndef CONSOLA_H_
 #define CONSOLA_H_
 
-typedef void (*handler_t)(void*);
+typedef void (*handler_t)(char*,void*);
 
 void iniciar_consola(handler_t handler);
 void leer_siguiente_caracter();
