@@ -263,9 +263,8 @@ int ejecutarRun(char* msg,char* buffer, int tamanioBuffer){
 	int inicio = 4;
 	char archivo[MAX_TOKENS_LENGTH];
 
-	int tamanioPalabra = obtenerProximaPalabra(msg, archivo, ' ', inicio);
+	int tamanioPalabra = obtenerProximaPalabra(msg, archivo, '\0', inicio);
 	if(tamanioPalabra == -1){ return COMANDOS_INVALIDOS; }
-	if(!isIdentifier(archivo)){ return IDENTIFICADOR_INVALIDO; }
 
 	struct run_request mensaje;
 	init_run_request(archivo,&mensaje);
