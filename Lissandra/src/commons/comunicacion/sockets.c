@@ -122,6 +122,7 @@ int create_socket_server(const char* port, int backlog) {
 	}
 
 	if((socket_fd = loop_addrinfo_list(server_info, &get_binded_socket, FLAG_NONE)) == -1) {
+		freeaddrinfo(server_info);
 		return -1;
 	}
 
@@ -153,6 +154,7 @@ int create_socket_client(const char* host, const char* port, int flag) {
 	}
 
 	if((socket_fd = loop_addrinfo_list(server_info, &get_connected_socket, flag)) == -1) {
+		freeaddrinfo(server_info);
 		return -1;
 	}
 
