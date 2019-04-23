@@ -16,7 +16,7 @@
 #define SLEEP_EJECUCION "SLEEP_EJECUCION"
 
 t_config* configuracion;
-pthread_mutex_t kernel_config_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_rwlock_t kernel_config_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 int inicializar_kernel_config() {
 	return inicializar_configuracion(&configuracion, CONFIG_PATH, &kernel_config_lock);

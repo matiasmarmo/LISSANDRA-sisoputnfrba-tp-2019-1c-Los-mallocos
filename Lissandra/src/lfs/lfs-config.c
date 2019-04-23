@@ -15,7 +15,7 @@
 #define TIEMPO_DUMP "TIEMPO_DUMP"
 
 t_config* configuracion;
-pthread_mutex_t lfs_config_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_rwlock_t lfs_config_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 int inicializar_lfs_config() {
 	return inicializar_configuracion(&configuracion, CONFIG_PATH, &lfs_config_lock);
