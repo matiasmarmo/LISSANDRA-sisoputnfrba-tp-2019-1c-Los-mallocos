@@ -3,6 +3,7 @@
 
 #include "kernel-config.h"
 #include "../commons/lissandra-config.h"
+#include "../commons/lissandra-inotify.h"
 
 // Path al archivo de configuración
 #define CONFIG_PATH "./kernel.conf"
@@ -24,6 +25,10 @@ int inicializar_kernel_config() {
 
 int actualizar_kernel_config() {
 	return actualizar_configuracion(&configuracion, CONFIG_PATH, &kernel_config_lock);
+}
+
+int inicializar_kernel_inotify(lissandra_thread_t* l_thread) {
+	return iniciar_inotify_watch(CONFIG_PATH, &actualizar_kernel_config, l_thread);
 }
 
 int destruir_kernel_config() {

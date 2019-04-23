@@ -22,9 +22,10 @@ void finalizar_kernel() {
 int main() {
 	inicializar_metricas();
 	inicializar_kernel_config();
-	lissandra_thread_t consola, planificador;
+	lissandra_thread_t consola, planificador, inotify;
 	l_thread_create(&planificador, &correr_planificador, NULL);
 	l_thread_create(&consola, &correr_consola, NULL);
+	inicializar_kernel_inotify(&inotify);
 
 	pthread_mutex_lock(&kernel_main_mutex);
 	pthread_cond_wait(&kernel_main_cond, &kernel_main_mutex);
@@ -34,6 +35,8 @@ int main() {
 	l_thread_join(&consola, NULL);
 	l_thread_solicitar_finalizacion(&planificador);
 	l_thread_join(&planificador, NULL);
+	l_thread_solicitar_finalizacion(&inotify);
+	l_thread_join(&inotify, NULL);
 	destruir_kernel_config();
 	destruir_metricas();
 	return 0;

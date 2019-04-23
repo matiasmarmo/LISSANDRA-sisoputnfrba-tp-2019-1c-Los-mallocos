@@ -1,7 +1,10 @@
 #ifndef KERNEL_CONFIG_H_
 #define KERNEL_CONFIG_H_
 
+#include "../commons/lissandra-threads.h"
+
 int inicializar_kernel_config();
+int inicializar_kernel_inotify(lissandra_thread_t*);
 int actualizar_kernel_config();
 int destruir_kernel_config();
 
