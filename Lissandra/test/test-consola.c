@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <inttypes.h>
 #include "../src/commons/comunicacion/protocol.h"
-#include "../src/commons/parser.h"
 #include "CUnit/CUnit.h"
 #include "CUnit/Basic.h"
 /*-----------------Function to be tested---------*/
@@ -16,21 +15,7 @@ void test_1(){
 void test_2(){
 		//.........
 }
-/*-----------------Test Cases--------------------*/
-CU_TestInfo testcases1[] = {
-		//.........
-		CU_TEST_INFO_NULL
-};
-CU_TestInfo testcases2[] = {
-		//.........
-		CU_TEST_INFO_NULL
-};
 
-/*------------- Suites -----------------------*/
-CU_SuiteInfo suites_consola[] = {
-        //.........
-		CU_SUITE_INFO_NULL
-};
 
 
 

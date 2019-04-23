@@ -6,8 +6,8 @@
 #include "CUnit/CUnit.h"
 #include "CUnit/Basic.h"
 #include "test-main.h"
-#include "test-parser.c"
-#include "test-consola.c"
+#include "test-parser.h"
+#include "test-consola.h"
 
 void AddTests(int*,int);
 int validarEntrada(int, char*[], int*);
