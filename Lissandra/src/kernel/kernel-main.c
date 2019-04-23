@@ -10,6 +10,7 @@
 #include "kernel-config.h"
 #include "kernel-consola.h"
 #include "metricas.h"
+#include "kernel-main.h"
 
 pthread_mutex_t kernel_main_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t kernel_main_cond = PTHREAD_COND_INITIALIZER;
@@ -24,9 +25,11 @@ int main() {
 	lissandra_thread_t consola, planificador;
 	l_thread_create(&planificador, &correr_planificador, NULL);
 	l_thread_create(&consola, &correr_consola, NULL);
+
 	pthread_mutex_lock(&kernel_main_mutex);
 	pthread_cond_wait(&kernel_main_cond, &kernel_main_mutex);
 	pthread_mutex_unlock(&kernel_main_mutex);
+
 	l_thread_solicitar_finalizacion(&consola);
 	l_thread_join(&consola, NULL);
 	l_thread_solicitar_finalizacion(&planificador);
