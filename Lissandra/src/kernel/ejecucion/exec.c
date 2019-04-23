@@ -87,6 +87,13 @@ void ejecutar_request(char **request, SCB *scb) {
 	case METRICS_REQUEST_ID:
 		ejecutar_metrics_request(buffer_respuesta, scb);
 		break;
+	case EXIT_REQUEST_ID:
+		// Ignoramos la aparición de un exit en un script.
+		// En caso de que el EXIT se ingrese por consola,
+		// el módulo de consola del kernel finalizará
+		// la ejecución del proceso y la linea no llegará
+		// a este punto.
+		break;
 	default:
 		if (enviar_request_a_memoria(buffer_request, buffer_respuesta,
 				tamanio_buffers) < 0) {
