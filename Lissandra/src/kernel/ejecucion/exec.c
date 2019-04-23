@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <commons/string.h>
 
 #include "../../commons/comunicacion/protocol.h"
@@ -25,24 +26,40 @@ void liberar_requests(char **requests) {
 	free(requests);
 }
 
-void ejecutar_add_request(uint8_t *request_buffer, SCB *scb) {
+void ejecutar_add_request(uint8_t *request_buffer, uint8_t *buffer_respuesta,
+		SCB *scb) {
 	struct add_request *add_request = (struct add_request*) request_buffer;
-	if(agregar_memoria_a_criterio(add_request->n_memoria, add_request->criterio) < 0) {
+	struct add_response *add_response = (struct add_response*) buffer_respuesta;
+	bool fallo = false;
+	if (agregar_memoria_a_criterio(add_request->n_memoria,
+			add_request->criterio) < 0) {
 		scb->estado = ERROR_SCRIPT;
+		fallo = true;
 	}
+	init_add_response(fallo, add_request->n_memoria, add_request->criterio,
+			add_response);
 }
 
-void informar_metricas() {
+void ejecutar_journal_request(uint8_t *buffer_respuesta, SCB *scb) {
+	struct journal_response *journal_response = (struct journal_response*) buffer_respuesta;
+	bool fallo;
+	if (realizar_journal_a_todos_los_criterios() < 0) {
+		scb->estado = ERROR_SCRIPT;
+		fallo = true;
+	}
+	init_journal_response(fallo, journal_response);
+}
+
+void ejecutar_metrics_request(uint8_t *buffer_respuesta, SCB *scb) {
 	char *metricas = obtener_metricas();
 	struct metrics_response response;
-	if(metricas == NULL) {
-		return;
+	if (metricas == NULL || init_metrics_response(false, metricas, &response) < 0) {
+		scb->estado = ERROR_MISC;
+		response.id = METRICS_RESPONSE_ID;
+		response.fallo = true;
+		response.resultado = NULL;
 	}
-	if(init_metrics_response(false, metricas, &response) < 0) {
-		return;
-	}
-	mostrar_async(&response);
-	destroy(&response);
+	memcpy(buffer_respuesta, &response, sizeof(struct metrics_response));
 }
 
 void ejecutar_request(char **request, SCB *scb) {
@@ -52,7 +69,7 @@ void ejecutar_request(char **request, SCB *scb) {
 	uint8_t buffer_request[tamanio_buffers];
 	uint8_t buffer_respuesta[tamanio_buffers];
 	string_trim(request);
-	if(*request == NULL) {
+	if (*request == NULL) {
 		scb->estado = ERROR_MISC;
 		return;
 	}
@@ -62,21 +79,22 @@ void ejecutar_request(char **request, SCB *scb) {
 	}
 	switch (get_msg_id(buffer_request)) {
 	case ADD_REQUEST_ID:
-		ejecutar_add_request(buffer_request, scb);
+		ejecutar_add_request(buffer_request, buffer_respuesta, scb);
 		break;
 	case JOURNAL_REQUEST_ID:
-		if (realizar_journal_a_todos_los_criterios() < 0) {
-			scb->estado = ERROR_SCRIPT;
-		}
+		ejecutar_journal_request(buffer_respuesta, scb);
 		break;
 	case METRICS_REQUEST_ID:
-		informar_metricas();
+		ejecutar_metrics_request(buffer_respuesta, scb);
 		break;
 	default:
 		if (enviar_request_a_memoria(buffer_request, buffer_respuesta,
 				tamanio_buffers) < 0) {
 			scb->estado = ERROR_SCRIPT;
 		}
+	}
+	if(scb->es_request_unitario) {
+		mostrar_async(buffer_respuesta);
 	}
 	destroy(buffer_request);
 	destroy(buffer_respuesta);
