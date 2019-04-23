@@ -5,11 +5,15 @@
 #include "../commons/consola/consola.h"
 #include "../commons/lissandra-threads.h"
 #include "ejecucion/planificador.h"
+#include "kernel-main.h"
 
 void manejar_nuevo_request(char *linea, void *request) {
-	if(get_msg_id(request) == RUN_REQUEST_ID) {
+	int msg_id = get_msg_id(request);
+	if(msg_id == RUN_REQUEST_ID) {
 		struct run_request *run_request = (struct run_request*) request;
 		agregar_nuevo_script(false, run_request->path);
+	} else if(msg_id == EXIT_REQUEST_ID){
+		finalizar_kernel();
 	} else {
 		agregar_nuevo_script(true, linea);
 	}
