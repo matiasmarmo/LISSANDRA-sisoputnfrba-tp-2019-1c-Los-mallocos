@@ -30,6 +30,10 @@ metadata_tabla_t *construir_tabla(char *nombre, uint8_t consistencia) {
 	return tabla;
 }
 
+void destruir_tabla(metadata_tabla_t *tabla) {
+	free(tabla);
+}
+
 metadata_tabla_t *buscar_tabla(char *nombre) {
 
 	bool _tabla_encontrada(void *elemento) {
@@ -44,6 +48,8 @@ int cargar_tabla(metadata_tabla_t *nueva_tabla) {
 			nueva_tabla->nombre_tabla);
 	if (tabla_ya_cargada == NULL) {
 		list_add(tablas, nueva_tabla);
+	} else {
+		destruir_tabla(nueva_tabla);
 	}
 	return 0;
 }
@@ -89,10 +95,6 @@ int inicializar_tablas() {
 	return 0;
 }
 
-void destruir_tabla(metadata_tabla_t *tabla) {
-	free(tabla);
-}
-
 int destruir_tablas() {
 	if (pthread_rwlock_wrlock(&tablas_rwlock) != 0) {
 		return -1;
@@ -115,6 +117,11 @@ int obtener_metadata_tablas() {
 	resultado = _cargar_tablas();
 	pthread_rwlock_unlock(&tablas_rwlock);
 	return resultado;
+}
+
+void *actualizar_tablas_threaded(void *entrada) {
+	obtener_metadata_tablas();
+	return NULL;
 }
 
 int obtener_consistencia_tabla(char *nombre) {

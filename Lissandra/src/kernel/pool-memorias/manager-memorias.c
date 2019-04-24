@@ -148,16 +148,21 @@ void agregar_nuevas_memorias(void *buffer) {
 	memoria_t *nueva_memoria;
 	char ip_string[16] = { 0 };
 	for (int i = 0; i < mensaje->ips_memorias_len; i++) {
+		memset(ip_string, 0, 16);
 		uint32_a_ipv4_string(mensaje->ips_memorias[i], ip_string, 16);
 		nueva_memoria = construir_memoria(ip_string,
 				mensaje->puertos_memorias[i]);
-		if (nueva_memoria != NULL && !memoria_ya_conocida(nueva_memoria)) {
+		if(nueva_memoria == NULL) {
+			continue;
+		}
+		if (!memoria_ya_conocida(nueva_memoria)) {
 			// Si falló la construcción de una memoria o
 			// la misma ya se encuentra en el pool,
 			// no la agregamos al pool y continuamos con el resto.
 			list_add(pool_memorias, nueva_memoria);
+		} else {
+			destruir_memoria(nueva_memoria);
 		}
-		memset(ip_string, 0, 16);
 	}
 }
 
@@ -206,6 +211,11 @@ int actualizar_memorias() {
 	// alguna de las memorias ya conocidas
 	pthread_rwlock_unlock(&memorias_rwlock);
 	return -1;
+}
+
+void *actualizar_memorias_threaded(void *entrada) {
+	actualizar_memorias();
+	return NULL;
 }
 
 int inicializar_memorias() {
@@ -389,7 +399,7 @@ memoria_t *memoria_random(t_list *lista_memorias) {
 	if (list_size(lista_memorias) == 0) {
 		return NULL;
 	}
-	return list_get(lista_memorias, rand() % list_size(lista_memorias));
+	return list_get(lista_memorias, rand() & list_size(lista_memorias));
 }
 
 int realizar_describe(struct global_describe_response *response) {

@@ -20,6 +20,8 @@ int inicializar_memorias();
 int actualizar_memorias();
 int destruir_memorias();
 
+void *actualizar_memorias_threaded(void*);
+
 int agregar_memoria_a_criterio(uint16_t, uint8_t);
 
 int realizar_describe(struct global_describe_response*);

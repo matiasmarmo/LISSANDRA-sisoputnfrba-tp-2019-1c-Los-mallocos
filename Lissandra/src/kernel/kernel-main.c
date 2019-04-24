@@ -27,7 +27,6 @@ void inicializar_kernel() {
 		exit(EXIT_FAILURE);
 	}
 	if (inicializar_memorias() < 0) {
-		printf("Error init memorias\n");
 		destruir_metricas();
 		destruir_kernel_config();
 		exit(EXIT_FAILURE);
@@ -47,23 +46,27 @@ void finalizar_thread(lissandra_thread_t *l_thread) {
 
 int main() {
 	inicializar_kernel();
-	int planificador_ret, consola_ret, inotify_ret;
+	int rets[5];
 	lissandra_thread_t planificador, consola, inotify;
-	planificador_ret = l_thread_create(&planificador, &correr_planificador,
-			NULL);
-	consola_ret = l_thread_create(&consola, &correr_consola, NULL);
-	inotify_ret = inicializar_kernel_inotify(&inotify);
+	lissandra_thread_periodic_t metadata_updater, memorias_updater;
+	rets[0] = l_thread_create(&planificador, &correr_planificador, NULL);
+	rets[1] = l_thread_create(&consola, &correr_consola, NULL);
+	rets[2] = inicializar_kernel_inotify(&inotify);
+	rets[3] = l_thread_periodic_create(&metadata_updater,
+			&actualizar_tablas_threaded, &get_refresh_metadata, NULL);
+	rets[4] = l_thread_periodic_create(&memorias_updater,
+			&actualizar_memorias_threaded, &get_refresh_memorias, NULL);
 
-	if (planificador_ret != 0 || consola_ret != 0 || inotify_ret != 0) {
-		printf("Error threads\n");
-		finalizar_thread(&planificador);
-		finalizar_thread(&consola);
-		finalizar_thread(&inotify);
-		liberar_recursos_kernel();
-		exit(EXIT_FAILURE);
+	for (int i = 0; i < 5; i++) {
+		if (rets[i] != 0) {
+			finalizar_thread(&planificador);
+			finalizar_thread(&consola);
+			finalizar_thread(&inotify);
+			liberar_recursos_kernel();
+			exit(EXIT_FAILURE);
+		}
 	}
 
-	printf("Listo\n");
 	pthread_mutex_lock(&kernel_main_mutex);
 	pthread_cond_wait(&kernel_main_cond, &kernel_main_mutex);
 	pthread_mutex_unlock(&kernel_main_mutex);
@@ -71,6 +74,8 @@ int main() {
 	finalizar_thread(&planificador);
 	finalizar_thread(&consola);
 	finalizar_thread(&inotify);
+	finalizar_thread(&metadata_updater.l_thread);
+	finalizar_thread(&memorias_updater.l_thread);
 	liberar_recursos_kernel();
 	return 0;
 
