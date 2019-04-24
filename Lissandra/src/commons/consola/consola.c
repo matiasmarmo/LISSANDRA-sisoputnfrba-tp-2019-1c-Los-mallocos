@@ -15,7 +15,7 @@ handler_t handler_actual;
 pthread_mutex_t consola_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void imprimir(char* linea) {
-	if(pthread_mutex_lock(&consola_mutex) != 0) {
+	if (pthread_mutex_lock(&consola_mutex) != 0) {
 		return;
 	}
 	rl_save_prompt();
@@ -26,7 +26,7 @@ void imprimir(char* linea) {
 }
 
 void imprimir_async(char* linea) {
-	if(pthread_mutex_lock(&consola_mutex) != 0) {
+	if (pthread_mutex_lock(&consola_mutex) != 0) {
 		return;
 	}
 	char *linea_guardada;
@@ -55,9 +55,9 @@ void ejecutar_nueva_linea(char *linea) {
 	uint8_t mensaje[tamanio_maximo_buffer];
 
 	int respuesta_parser = parser(linea, mensaje, tamanio_maximo_buffer);
-	if(respuesta_parser < 0){
+	if (respuesta_parser < 0) {
 		char buffer_parser_error[TAMANIO_MAX_STRING];
-		manejarError(respuesta_parser,buffer_parser_error, TAMANIO_MAX_STRING);
+		manejarError(respuesta_parser, buffer_parser_error, TAMANIO_MAX_STRING);
 		imprimir(buffer_parser_error);
 		free(linea);
 		return;
@@ -91,8 +91,10 @@ void mostrar_async(void* mensaje) {
 	imprimir_async(buffer);
 }
 
-
 void cerrar_consola() {
+	rl_save_prompt();
+	rl_replace_line("", 0);
+	rl_redisplay();
 	rl_callback_handler_remove();
 	rl_clear_history();
 	cerrar_diccionario();

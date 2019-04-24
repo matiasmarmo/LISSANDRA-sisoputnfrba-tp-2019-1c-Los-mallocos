@@ -399,7 +399,7 @@ memoria_t *memoria_random(t_list *lista_memorias) {
 	if (list_size(lista_memorias) == 0) {
 		return NULL;
 	}
-	return list_get(lista_memorias, rand() & list_size(lista_memorias));
+	return list_get(lista_memorias, rand() % list_size(lista_memorias));
 }
 
 int realizar_describe(struct global_describe_response *response) {

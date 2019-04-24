@@ -7,6 +7,8 @@
 #include "ejecucion/planificador.h"
 #include "kernel-main.h"
 
+bool finalizacion_indicada = false;
+
 void manejar_nuevo_request(char *linea, void *request) {
 	int msg_id = get_msg_id(request);
 	if(msg_id == RUN_REQUEST_ID) {
@@ -14,6 +16,7 @@ void manejar_nuevo_request(char *linea, void *request) {
 		agregar_nuevo_script(false, run_request->path);
 	} else if(msg_id == EXIT_REQUEST_ID){
 		finalizar_kernel();
+		finalizacion_indicada = true;
 	} else {
 		agregar_nuevo_script(true, linea);
 	}
@@ -23,7 +26,7 @@ void manejar_nuevo_request(char *linea, void *request) {
 void *correr_consola(void *entrada) {
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) entrada;
 	iniciar_consola(&manejar_nuevo_request);
-	while(!l_thread_debe_finalizar(l_thread)) {
+	while(!l_thread_debe_finalizar(l_thread) && !finalizacion_indicada) {
 		leer_siguiente_caracter();
 		usleep(100);
 	}
