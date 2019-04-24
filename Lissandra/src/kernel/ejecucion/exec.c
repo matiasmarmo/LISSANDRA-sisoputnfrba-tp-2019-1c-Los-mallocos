@@ -26,7 +26,7 @@ void liberar_requests(char **requests) {
 	free(requests);
 }
 
-void ejecutar_add_request(uint8_t *request_buffer, uint8_t *buffer_respuesta,
+int ejecutar_add_request(uint8_t *request_buffer, uint8_t *buffer_respuesta,
 		SCB *scb) {
 	struct add_request *add_request = (struct add_request*) request_buffer;
 	struct add_response *add_response = (struct add_response*) buffer_respuesta;
@@ -38,33 +38,39 @@ void ejecutar_add_request(uint8_t *request_buffer, uint8_t *buffer_respuesta,
 	}
 	init_add_response(fallo, add_request->n_memoria, add_request->criterio,
 			add_response);
+	return 0;
 }
 
-void ejecutar_journal_request(uint8_t *buffer_respuesta, SCB *scb) {
-	struct journal_response *journal_response = (struct journal_response*) buffer_respuesta;
+int ejecutar_journal_request(uint8_t *buffer_respuesta, SCB *scb) {
+	struct journal_response *journal_response =
+			(struct journal_response*) buffer_respuesta;
 	bool fallo;
 	if (realizar_journal_a_todos_los_criterios() < 0) {
 		scb->estado = ERROR_SCRIPT;
 		fallo = true;
 	}
 	init_journal_response(fallo, journal_response);
+	return 0;
 }
 
-void ejecutar_metrics_request(uint8_t *buffer_respuesta, SCB *scb) {
+int ejecutar_metrics_request(uint8_t *buffer_respuesta, SCB *scb) {
 	char *metricas = obtener_metricas();
 	struct metrics_response response;
-	if (metricas == NULL || init_metrics_response(false, metricas, &response) < 0) {
+	if (metricas == NULL
+			|| init_metrics_response(false, metricas, &response) < 0) {
 		scb->estado = ERROR_MISC;
 		response.id = METRICS_RESPONSE_ID;
 		response.fallo = true;
 		response.resultado = NULL;
 	}
 	memcpy(buffer_respuesta, &response, sizeof(struct metrics_response));
+	return 0;
 }
 
 void ejecutar_request(char **request, SCB *scb) {
 	// TODO: loguear representación en string de la respuesta a un archivo con resultados
 	// y loguear errores.
+	int ret;
 	int tamanio_buffers = get_max_msg_size();
 	uint8_t buffer_request[tamanio_buffers];
 	uint8_t buffer_respuesta[tamanio_buffers];
@@ -79,13 +85,13 @@ void ejecutar_request(char **request, SCB *scb) {
 	}
 	switch (get_msg_id(buffer_request)) {
 	case ADD_REQUEST_ID:
-		ejecutar_add_request(buffer_request, buffer_respuesta, scb);
+		ret = ejecutar_add_request(buffer_request, buffer_respuesta, scb);
 		break;
 	case JOURNAL_REQUEST_ID:
-		ejecutar_journal_request(buffer_respuesta, scb);
+		ret = ejecutar_journal_request(buffer_respuesta, scb);
 		break;
 	case METRICS_REQUEST_ID:
-		ejecutar_metrics_request(buffer_respuesta, scb);
+		ret = ejecutar_metrics_request(buffer_respuesta, scb);
 		break;
 	case EXIT_REQUEST_ID:
 		// Ignoramos la aparición de un exit en un script.
@@ -95,16 +101,18 @@ void ejecutar_request(char **request, SCB *scb) {
 		// a este punto.
 		break;
 	default:
-		if (enviar_request_a_memoria(buffer_request, buffer_respuesta,
-				tamanio_buffers) < 0) {
+		if ((ret = enviar_request_a_memoria(buffer_request, buffer_respuesta,
+				tamanio_buffers)) < 0) {
 			scb->estado = ERROR_SCRIPT;
 		}
 	}
-	if(scb->es_request_unitario) {
+	if (scb->es_request_unitario && ret == 0) {
 		mostrar_async(buffer_respuesta);
 	}
 	destroy(buffer_request);
-	destroy(buffer_respuesta);
+	if(ret == 0) {
+		destroy(buffer_respuesta);
+	}
 	usleep(get_retardo_ejecucion() * 1000);
 }
 
