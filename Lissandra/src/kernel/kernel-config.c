@@ -14,6 +14,7 @@
 #define QUANTUM "QUANTUM"
 #define MULTIPROCESAMIENTO "MULTIPROCESAMIENTO"
 #define METADATA_REFRESH "METADATA_REFRESH"
+#define MEMORIAS_REFRESH "MEMORIAS_REFRESH"
 #define SLEEP_EJECUCION "SLEEP_EJECUCION"
 
 t_config* configuracion;
@@ -53,6 +54,10 @@ int get_multiprocesamiento() {
 
 int get_refresh_metadata() {
 	return get_int_value(configuracion, METADATA_REFRESH, &kernel_config_lock);
+}
+
+int get_refresh_memorias() {
+	return get_int_value(configuracion, MEMORIAS_REFRESH, &kernel_config_lock);
 }
 
 int get_retardo_ejecucion() {

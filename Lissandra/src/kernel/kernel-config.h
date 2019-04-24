@@ -13,6 +13,7 @@ int get_puerto_memoria();
 int get_quantum();
 int get_multiprocesamiento();
 int get_refresh_metadata();
+int get_refresh_memorias();
 int get_retardo_ejecucion();
 
 #endif
