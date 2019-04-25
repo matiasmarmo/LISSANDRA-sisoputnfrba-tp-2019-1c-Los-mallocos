@@ -402,6 +402,18 @@ memoria_t *memoria_random(t_list *lista_memorias) {
 	return list_get(lista_memorias, rand() % list_size(lista_memorias));
 }
 
+memoria_t *memoria_conectada_random(t_list *lista_memorias) {
+
+	bool _esta_conectada(void *elemento) {
+		return ((memoria_t*) elemento)->conectada;
+	}
+
+	t_list *memorias_conectadas = list_filter(lista_memorias, &_esta_conectada);
+	memoria_t *memoria_resultado = memoria_random(memorias_conectadas);
+	list_destroy(memorias_conectadas);
+	return memoria_resultado;
+}
+
 int realizar_describe(struct global_describe_response *response) {
 	struct describe_request request;
 	int tamanio_buffer = get_max_msg_size();
@@ -411,7 +423,7 @@ int realizar_describe(struct global_describe_response *response) {
 	if ((error = pthread_rwlock_rdlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
-	if ((memoria = memoria_random(pool_memorias)) == NULL) {
+	if ((memoria = memoria_conectada_random(pool_memorias)) == NULL) {
 		// Por el momento elegimos una memoria random para
 		// realizar el describe
 		pthread_rwlock_unlock(&memorias_rwlock);
