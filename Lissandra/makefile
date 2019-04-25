@@ -1,5 +1,10 @@
 CC=gcc
-CFLAGS= -Wall -g
+
+CFLAGS= -Wall
+ifndef RELEASE
+	CFLAGS += -g -DDEBUG
+endif
+
 CLIBS = -lcommons -pthread -lrt -lreadline
 
 PATHS = $(shell find src/ test/ -type d -printf "%p ")
@@ -23,9 +28,9 @@ LSF_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(LSF_S))
 
 TEST_S = $(shell find test/ -name "*.c" -type f -printf "%f ")
 TEST_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(TEST_S))
-KERNEL_TEST_O = $(filter-out %main.o,$(KERNEL_O))
-MEMORY_TEST_O = $(filter-out %main.o,$(MEMORY_O))
-LSF_TEST_O = $(filter-out %main.o,$(LSF_O))
+KERNEL_TEST_O = $(filter-out %-consola.o %main.o,$(KERNEL_O))
+MEMORY_TEST_O = $(filter-out %-consola.o %main.o,$(MEMORY_O))
+LSF_TEST_O = $(filter-out %-consola.o %main.o,$(LSF_O))
 
 -include $(COMMON_O:.o=.d)
 -include $(KERNEL_O:.o=.d)
