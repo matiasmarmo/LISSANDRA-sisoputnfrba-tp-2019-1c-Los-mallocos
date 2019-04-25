@@ -44,6 +44,13 @@ void finalizar_thread(lissandra_thread_t *l_thread) {
 	l_thread_join(l_thread, NULL);
 }
 
+void finalizar_thread_si_se_creo(lissandra_thread_t *l_thread, int create_ret) {
+	// Si el create al thread retornó 0 (fue exitoso), la finalizamos.
+	if(create_ret == 0) {
+		finalizar_thread(l_thread);
+	}
+}
+
 int main() {
 	inicializar_kernel();
 	int rets[5];
@@ -59,9 +66,11 @@ int main() {
 
 	for (int i = 0; i < 5; i++) {
 		if (rets[i] != 0) {
-			finalizar_thread(&planificador);
-			finalizar_thread(&consola);
-			finalizar_thread(&inotify);
+			finalizar_thread_si_se_creo(&planificador, rets[0]);
+			finalizar_thread_si_se_creo(&consola, rets[1]);
+			finalizar_thread_si_se_creo(&inotify, rets[2]);
+			finalizar_thread_si_se_creo(&metadata_updater.l_thread, rets[3]);
+			finalizar_thread_si_se_creo(&memorias_updater.l_thread, rets[4]);
 			liberar_recursos_kernel();
 			exit(EXIT_FAILURE);
 		}
