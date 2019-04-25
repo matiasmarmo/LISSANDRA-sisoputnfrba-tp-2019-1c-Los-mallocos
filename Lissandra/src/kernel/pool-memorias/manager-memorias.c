@@ -99,11 +99,25 @@ int conectar_memoria(memoria_t* memoria) {
 	return 0;
 }
 
+void remover_memoria_de_sus_criterios(memoria_t *memoria) {
+
+	bool _memoria_encontrada(void *elemento) {
+		return ((memoria_t*) elemento)->id_memoria == memoria->id_memoria;
+	}
+
+	list_remove_by_condition(criterio_sc, &_memoria_encontrada);
+	list_remove_by_condition(criterio_shc, &_memoria_encontrada);
+	list_remove_by_condition(criterio_ec, &_memoria_encontrada);
+}
+
 int enviar_a_memoria(void *mensaje, memoria_t *memoria) {
 	if (!memoria->conectada && (conectar_memoria(memoria) < 0)) {
 		return -1;
 	}
 	if (send_msg(memoria->socket_fd, mensaje) < 0) {
+		memoria->conectada = false;
+		close(memoria->socket_fd);
+		remover_memoria_de_sus_criterios(memoria);
 		return -1;
 	}
 	return 0;
@@ -112,6 +126,9 @@ int enviar_a_memoria(void *mensaje, memoria_t *memoria) {
 int recibir_mensaje_de_memoria(memoria_t *memoria, void *buffer,
 		int tamanio_buffer) {
 	if (recv_msg(memoria->socket_fd, buffer, tamanio_buffer) < 0) {
+		memoria->conectada = false;
+		close(memoria->socket_fd);
+		remover_memoria_de_sus_criterios(memoria);
 		return -1;
 	}
 	return 0;
@@ -152,7 +169,7 @@ void agregar_nuevas_memorias(void *buffer) {
 		uint32_a_ipv4_string(mensaje->ips_memorias[i], ip_string, 16);
 		nueva_memoria = construir_memoria(ip_string,
 				mensaje->puertos_memorias[i]);
-		if(nueva_memoria == NULL) {
+		if (nueva_memoria == NULL) {
 			continue;
 		}
 		if (!memoria_ya_conocida(nueva_memoria)) {
@@ -438,16 +455,13 @@ int realizar_describe(struct global_describe_response *response) {
 		pthread_mutex_unlock(&memoria->mutex);
 		return -1;
 	}
-	if (enviar_a_memoria(&request, memoria) < 0) {
+	if (enviar_y_recibir_respuesta(&request, memoria, buffer_local,
+			tamanio_buffer) < 0) {
 		pthread_mutex_unlock(&memoria->mutex);
 		destroy(&request);
 		return -1;
 	}
 	destroy(&request);
-	if (recibir_mensaje_de_memoria(memoria, buffer_local, tamanio_buffer) < 0) {
-		pthread_mutex_unlock(&memoria->mutex);
-		return -1;
-	}
 	pthread_mutex_unlock(&memoria->mutex);
 	if (get_msg_id(buffer_local) != GLOBAL_DESCRIBE_RESPONSE_ID) {
 		destroy(buffer_local);
@@ -502,8 +516,8 @@ int enviar_request_a_sc(void *mensaje, void *respuesta, int tamanio_respuesta) {
 		return -1;
 	}
 	memoria_t *memoria = list_get(criterio_sc, 0);
-	return enviar_request(memoria, mensaje, respuesta,
-			tamanio_respuesta, CRITERIO_SC);
+	return enviar_request(memoria, mensaje, respuesta, tamanio_respuesta,
+			CRITERIO_SC);
 }
 
 int enviar_request_a_shc(void *mensaje, uint16_t key, void *respuesta,
@@ -513,8 +527,8 @@ int enviar_request_a_shc(void *mensaje, uint16_t key, void *respuesta,
 	}
 	// Por el momento usamos módulo como función de hash
 	memoria_t *memoria = list_get(criterio_shc, key % list_size(criterio_shc));
-	return enviar_request(memoria, mensaje, respuesta,
-			tamanio_respuesta, CRITERIO_SHC);
+	return enviar_request(memoria, mensaje, respuesta, tamanio_respuesta,
+			CRITERIO_SHC);
 }
 
 int enviar_request_a_ec(void *mensaje, void *respuesta, int tamanio_respuesta) {
@@ -522,8 +536,8 @@ int enviar_request_a_ec(void *mensaje, void *respuesta, int tamanio_respuesta) {
 		return -1;
 	}
 	memoria_t *memoria = memoria_random(criterio_ec);
-	return enviar_request(memoria, mensaje, respuesta,
-			tamanio_respuesta, CRITERIO_EC);
+	return enviar_request(memoria, mensaje, respuesta, tamanio_respuesta,
+			CRITERIO_EC);
 }
 
 int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key) {
@@ -569,7 +583,8 @@ int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key) {
 	return 0;
 }
 
-int enviar_request_a_memoria(void *mensaje, void *respuesta, int tamanio_respuesta) {
+int enviar_request_a_memoria(void *mensaje, void *respuesta,
+		int tamanio_respuesta) {
 	int resultado = 0;
 	criterio_t criterio;
 	uint16_t key;
