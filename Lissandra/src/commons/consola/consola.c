@@ -72,6 +72,7 @@ void ejecutar_nueva_linea(char *linea) {
 void iniciar_consola(handler_t handler) {
 	handler_actual = handler;
 	rl_callback_handler_install("> ", ejecutar_nueva_linea);
+	rl_bind_key('\t', rl_complete);
 	iniciar_diccionario();
 }
 
