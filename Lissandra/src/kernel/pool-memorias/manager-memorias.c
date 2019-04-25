@@ -99,6 +99,8 @@ int conectar_memoria(memoria_t* memoria) {
 	return 0;
 }
 
+int realizar_journal_a_memorias_de_shc();
+
 void remover_memoria_de_sus_criterios(memoria_t *memoria) {
 
 	bool _memoria_encontrada(void *elemento) {
@@ -106,7 +108,11 @@ void remover_memoria_de_sus_criterios(memoria_t *memoria) {
 	}
 
 	list_remove_by_condition(criterio_sc, &_memoria_encontrada);
-	list_remove_by_condition(criterio_shc, &_memoria_encontrada);
+	if(list_remove_by_condition(criterio_shc, &_memoria_encontrada) != NULL) {
+		// Si estaba en el criterio shc y se la removió, realizamos un journal
+		// a las memorias del criterio
+		realizar_journal_a_memorias_de_shc();
+	}
 	list_remove_by_condition(criterio_ec, &_memoria_encontrada);
 }
 
