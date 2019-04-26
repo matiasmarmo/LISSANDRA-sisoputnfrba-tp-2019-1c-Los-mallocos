@@ -381,6 +381,11 @@ int agregar_memoria_a_shc(uint16_t id_memoria) {
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
+	if(buscar_memoria(criterio_shc, id_memoria) != NULL) {
+		// La memoria ya se encuentra en SHC
+		pthread_rwlock_unlock(&memorias_rwlock);
+		return 0;
+	}
 	if (realizar_journal_a_memorias_de_shc() < 0) {
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
