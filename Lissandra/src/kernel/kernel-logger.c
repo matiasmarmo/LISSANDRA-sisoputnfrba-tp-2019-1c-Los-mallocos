@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <pthread.h>
 #include <stdarg.h>
 #include <commons/log.h>
 #include <commons/string.h>
 
 #include "../commons/lissandra-logger.h"
+#include "../commons/consola/consola.h"
 #include "kernel-logger.h"
 
 #define KERNEL_PROGRAM "kernel"
@@ -19,7 +21,7 @@ int inicializar_kernel_logger() {
 	return kernel_logger == NULL ? -1 : 0;
 }
 
-void kernel_log_to_level(t_log_level level, char *format, ...) {
+void kernel_log_to_level(t_log_level level, bool es_consola, char *format, ...) {
 	va_list arguments;
 	va_start(arguments, format);
 	char *string = string_from_vformat(format, arguments);
@@ -47,6 +49,9 @@ void kernel_log_to_level(t_log_level level, char *format, ...) {
 	case LOG_LEVEL_ERROR:
 		log_error(kernel_logger, string);
 		break;
+	}
+	if(es_consola) {
+		imprimir_async(string);
 	}
 	pthread_mutex_unlock(&kernel_logger_mutex);
 	free(string);

@@ -10,4 +10,7 @@ void cerrar_consola();
 void mostrar(void*);
 void mostrar_async(void*);
 
+void imprimir(char*);
+void imprimir_async(char*);
+
 #endif
