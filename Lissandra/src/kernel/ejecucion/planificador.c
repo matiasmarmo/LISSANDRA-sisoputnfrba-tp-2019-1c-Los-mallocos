@@ -160,7 +160,7 @@ void admitir_nuevos_scripts() {
 	while ((nuevo_script = queue_pop(cola_new)) != NULL) {
 		SCB *nuevo_scb = construir_scb(nuevo_script);
 		if (nuevo_scb == NULL) {
-			kernel_log_error("Error al admitir nuevo script.");
+			kernel_log_to_level(LOG_LEVEL_ERROR, "Error al admitir nuevo script.");
 			script_new_a_finalizado(nuevo_script);
 			continue;
 		}
@@ -190,7 +190,7 @@ void *correr_planificador(void *entrada) {
 	int cantidad_runner_threads = get_multiprocesamiento();
 	lissandra_thread_t *runner_threads[cantidad_runner_threads];
 	inicializar_planificador(runner_threads, cantidad_runner_threads);
-	kernel_log_info("Esperando scripts.");
+	kernel_log_to_level(LOG_LEVEL_INFO, "Esperando scripts.");
 	while (!l_thread_debe_finalizar(self)) {
 		for (int i = 0; i < cantidad_runner_threads; i++) {
 			if (runner_threads[i] == NULL || l_thread_finalizo(runner_threads[i])) {
@@ -199,7 +199,7 @@ void *correr_planificador(void *entrada) {
 		}
 		usleep(200000);
 	}
-	kernel_log_info("Finalizando planificador.");
+	kernel_log_to_level(LOG_LEVEL_INFO, "Finalizando planificador.");
 	for(int i = 0; i < cantidad_runner_threads; i++) {
 		if(runner_threads[i] != NULL) {
 			l_thread_solicitar_finalizacion(runner_threads[i]);
