@@ -5,9 +5,11 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <commons/collections/queue.h>
+#include <commons/log.h>
 
 #include "../../commons/lissandra-threads.h"
 #include "../kernel-config.h"
+#include "../kernel-logger.h"
 #include "exec.h"
 #include "planificador.h"
 
@@ -158,7 +160,7 @@ void admitir_nuevos_scripts() {
 	while ((nuevo_script = queue_pop(cola_new)) != NULL) {
 		SCB *nuevo_scb = construir_scb(nuevo_script);
 		if (nuevo_scb == NULL) {
-			// No pudieron crearse las estructuras administrativas
+			kernel_log_error("Error al admitir nuevo script.");
 			script_new_a_finalizado(nuevo_script);
 			continue;
 		}
@@ -187,10 +189,8 @@ void *correr_planificador(void *entrada) {
 	lissandra_thread_t *self = (lissandra_thread_t*) entrada;
 	int cantidad_runner_threads = get_multiprocesamiento();
 	lissandra_thread_t *runner_threads[cantidad_runner_threads];
-	if (inicializar_planificador(runner_threads, cantidad_runner_threads)
-			!= 0) {
-		pthread_exit(NULL);
-	}
+	inicializar_planificador(runner_threads, cantidad_runner_threads);
+	kernel_log_info("Esperando scripts.");
 	while (!l_thread_debe_finalizar(self)) {
 		for (int i = 0; i < cantidad_runner_threads; i++) {
 			if (runner_threads[i] == NULL || l_thread_finalizo(runner_threads[i])) {
@@ -199,6 +199,7 @@ void *correr_planificador(void *entrada) {
 		}
 		usleep(200000);
 	}
+	kernel_log_info("Finalizando planificador.");
 	for(int i = 0; i < cantidad_runner_threads; i++) {
 		if(runner_threads[i] != NULL) {
 			l_thread_solicitar_finalizacion(runner_threads[i]);

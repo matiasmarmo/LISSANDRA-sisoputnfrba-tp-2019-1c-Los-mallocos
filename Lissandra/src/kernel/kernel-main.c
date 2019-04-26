@@ -23,19 +23,21 @@ void finalizar_kernel() {
 
 void inicializar_kernel() {
 	inicializar_metricas();
-	if (inicializar_kernel_config() < 0) {
+	if (inicializar_kernel_logger() < 0) {
 		destruir_metricas();
+		exit(EXIT_FAILURE);
+	}
+	if (inicializar_kernel_config() < 0) {
+		kernel_log_error("Error al inicializar archivo de configuración. Abortando.");
+		destruir_metricas();
+		destruir_kernel_logger();
 		exit(EXIT_FAILURE);
 	}
 	if (inicializar_memorias() < 0) {
+		kernel_log_error("Error al inicializar el pool de memorias. Abortando.");
 		destruir_metricas();
 		destruir_kernel_config();
-		exit(EXIT_FAILURE);
-	}
-	if (inicializar_kernel_logger() < 0) {
-		destruir_metricas();
-		destruir_kernel_config();
-		destruir_memorias();
+		destruir_kernel_logger();
 		exit(EXIT_FAILURE);
 	}
 }
@@ -84,6 +86,8 @@ int main() {
 		}
 	}
 
+	kernel_log_info("Todos los módulos inicializados.");
+
 	pthread_mutex_lock(&kernel_main_mutex);
 	pthread_cond_wait(&kernel_main_cond, &kernel_main_mutex);
 	pthread_mutex_unlock(&kernel_main_mutex);
@@ -93,6 +97,7 @@ int main() {
 	finalizar_thread(&inotify);
 	finalizar_thread(&metadata_updater.l_thread);
 	finalizar_thread(&memorias_updater.l_thread);
+	kernel_log_info("Finalizando.");
 	liberar_recursos_kernel();
 	return 0;
 
