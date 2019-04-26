@@ -153,6 +153,7 @@ int enviar_y_recibir_respuesta(void *mensaje, memoria_t *memoria,
 	}
 	while (get_msg_id(respuesta) == MEMORY_FULL_ID) {
 		destroy(respuesta);
+                usleep(100000);
 		if (enviar_a_memoria(mensaje, memoria) < 0) {
 			return -1;
 		}
