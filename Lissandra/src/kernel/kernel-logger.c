@@ -18,14 +18,6 @@ int inicializar_kernel_logger() {
 	return kernel_logger == NULL ? -1 : 0;
 }
 
-t_log *get_kernel_logger() {
-	return kernel_logger;
-}
-
-pthread_mutex_t *get_kernel_logger_mutex() {
-	return &kernel_logger_mutex;
-}
-
 #define kernel_log(kernel_log_func, log_func) \
 	void kernel_log_func(char *string) { \
 		if(kernel_logger != NULL && pthread_mutex_lock(&kernel_logger_mutex) == 0){ \
@@ -41,6 +33,34 @@ kernel_log(kernel_log_warning, log_warning);
 kernel_log(kernel_log_error, log_error);
 
 #undef kernel_log
+
+void kernel_log_to_level(t_log_level level, char *format, ...) {
+	va_list arguments;
+	va_start(arguments, format);
+	char *string = string_from_vformat(format, arguments);
+	va_end(arguments);
+	if(string == NULL) {
+		return;
+	}
+	switch (level) {
+	case LOG_LEVEL_TRACE:
+		kernel_log_trace(string);
+		break;
+	case LOG_LEVEL_DEBUG:
+		kernel_log_debug(string);
+		break;
+	case LOG_LEVEL_INFO:
+		kernel_log_info(string);
+		break;
+	case LOG_LEVEL_WARNING:
+		kernel_log_warning(string);
+		break;
+	case LOG_LEVEL_ERROR:
+		kernel_log_error(string);
+		break;
+	}
+	free(string);
+}
 
 void destruir_kernel_logger() {
 	log_destroy(kernel_logger);
