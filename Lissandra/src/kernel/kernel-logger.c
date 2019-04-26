@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdarg.h>
@@ -63,5 +64,6 @@ void kernel_log_to_level(t_log_level level, char *format, ...) {
 }
 
 void destruir_kernel_logger() {
+	fflush(kernel_logger->file);
 	log_destroy(kernel_logger);
 }
