@@ -382,6 +382,21 @@ void destroy_gossip_response(void*);
 int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, uint8_t *, int);
 int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, int);
 
+#define MEMORY_FULL_ID 22
+#define MEMORY_FULL_SIZE sizeof(struct memory_full)
+
+struct memory_full {
+	uint8_t id;
+	
+};
+
+int decode_memory_full(void*, void*, int);
+int encode_memory_full(void*, uint8_t*, int);
+int init_memory_full( struct memory_full*);
+void destroy_memory_full(void*);
+int pack_memory_full( uint8_t *, int);
+int send_memory_full( int);
+
 int decode(void*, void*, int);
 int destroy(void*);
 int bytes_needed_to_pack(void*);

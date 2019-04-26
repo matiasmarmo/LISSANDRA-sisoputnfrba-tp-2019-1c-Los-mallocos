@@ -3300,6 +3300,105 @@ int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8
 	return ret;
 }
 
+int encoded_memory_full_size(void* buffer) {
+	
+	int encoded_size = 1;
+	
+	if(encoded_size > MAX_ENCODED_SIZE) {
+		return MESSAGE_TOO_BIG;
+	}
+	return encoded_size;
+}
+
+int decode_memory_full (void *recv_data, void* decoded_data, int max_decoded_size) {
+    
+	if(max_decoded_size < sizeof(struct memory_full)) {
+		return BUFFER_TOO_SMALL;
+	}
+
+	uint8_t* byte_data = (uint8_t*) recv_data;
+	int current = 0;
+	struct memory_full msg;
+	msg.id = byte_data[current++];
+	
+	
+	memcpy(decoded_data, &msg, sizeof(struct memory_full));
+	return 0;
+}
+
+int encode_memory_full(void* msg_buffer, uint8_t* buff, int max_size) {
+	
+	int encoded_size = 0;
+	struct memory_full msg = *((struct memory_full*) msg_buffer);
+
+	if((encoded_size = encoded_memory_full_size(&msg)) < 0) {
+		return encoded_size;
+	}
+	if(encoded_size > max_size) {
+		return BUFFER_TOO_SMALL;
+	}
+
+	
+
+	int current = 0;
+	buff[current++] = msg.id;
+	
+	
+	return encoded_size;
+}
+
+int init_memory_full( struct memory_full* msg) {
+	msg->id = MEMORY_FULL_ID;
+	
+	return 0;
+}
+
+void destroy_memory_full(void* buffer) {
+	
+	
+}
+
+int pack_memory_full( uint8_t *buff, int max_size) {
+	uint8_t local_buffer[max_size - 2];
+	struct memory_full msg;
+	int error, encoded_size;
+	if((error = init_memory_full( &msg)) < 0) {
+		return error;
+	}
+	if((encoded_size = encode_memory_full(&msg, local_buffer, max_size - 2)) < 0) {
+		destroy_memory_full(&msg);
+		return encoded_size;
+	}
+	destroy_memory_full(&msg);
+	return pack_msg(encoded_size, local_buffer, buff);
+}
+
+int send_memory_full( int socket_fd) {
+
+	int bytes_to_send, ret;
+	int current_buffer_size = sizeof(struct memory_full);
+	uint8_t* local_buffer = malloc(current_buffer_size);
+	if(local_buffer == NULL) {
+		return ALLOC_ERROR;
+	}
+
+	while((bytes_to_send = pack_memory_full( local_buffer, current_buffer_size)) == BUFFER_TOO_SMALL) {
+		current_buffer_size *= 2;
+		local_buffer = realloc(local_buffer, current_buffer_size);
+		if(local_buffer == NULL) {
+			return ALLOC_ERROR;
+		}
+	}
+
+	if(bytes_to_send < 0) {
+		return bytes_to_send;
+	}
+
+	ret = _send_full_msg(socket_fd, local_buffer, bytes_to_send);
+	free(local_buffer);
+	return ret;
+}
+
 typedef int (*decoder_t)(void*, void*, int);
 typedef void (*destroyer_t)(void*);
 typedef int (*encoder_t)(void*, uint8_t*, int);
@@ -3426,6 +3525,11 @@ int decode(void *data, void *buff, int max_size) {
 			decoder = &decode_gossip_response;
 			body_size = sizeof(struct gossip_response);
 			break;
+	
+		case MEMORY_FULL_ID:
+			decoder = &decode_memory_full;
+			body_size = sizeof(struct memory_full);
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -3534,6 +3638,10 @@ int destroy(void* buffer) {
 		case GOSSIP_RESPONSE_ID:
 			destroyer = &destroy_gossip_response;
 			break;
+	
+		case MEMORY_FULL_ID:
+			destroyer = &destroy_memory_full;
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -3637,6 +3745,10 @@ int bytes_needed_to_pack(void* buffer) {
 		case GOSSIP_RESPONSE_ID:
 			size_getter = &encoded_gossip_response_size;
 			break;
+	
+		case MEMORY_FULL_ID:
+			size_getter = &encoded_memory_full_size;
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -3738,6 +3850,10 @@ int send_msg(int socket_fd, void* buffer) {
 	
 		case GOSSIP_RESPONSE_ID:
 			encoder = &encode_gossip_response;
+			break;
+	
+		case MEMORY_FULL_ID:
+			encoder = &encode_memory_full;
 			break;
 		default:
 			return UNKNOWN_ID;
@@ -3846,6 +3962,10 @@ int struct_size_from_id(uint8_t msg_id) {
 		case GOSSIP_RESPONSE_ID:
 			size = sizeof(struct gossip_response);
 			break;
+	
+		case MEMORY_FULL_ID:
+			size = sizeof(struct memory_full);
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -3918,7 +4038,7 @@ int _send_full_msg(int socket_fd, uint8_t* buffer, int bytes_to_send) {
 }
 
 int get_max_msg_size() {
-	int sizes[22] = { sizeof(struct select_request),
+	int sizes[23] = { sizeof(struct select_request),
 					sizeof(struct select_response),
 					sizeof(struct insert_request),
 					sizeof(struct insert_response),
@@ -3939,9 +4059,10 @@ int get_max_msg_size() {
 					sizeof(struct metrics_response),
 					sizeof(struct exit_request),
 					sizeof(struct gossip),
-					sizeof(struct gossip_response) };
+					sizeof(struct gossip_response),
+					sizeof(struct memory_full) };
 	int max = -1;
-	for(int i = 0; i < 22; i++) {
+	for(int i = 0; i < 23; i++) {
 		if(sizes[i] > max) {
 			max = sizes[i];
 		}
