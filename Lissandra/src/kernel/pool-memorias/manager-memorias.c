@@ -108,7 +108,7 @@ void remover_memoria_de_sus_criterios(memoria_t *memoria) {
 	}
 
 	list_remove_by_condition(criterio_sc, &_memoria_encontrada);
-	if(list_remove_by_condition(criterio_shc, &_memoria_encontrada) != NULL) {
+	if (list_remove_by_condition(criterio_shc, &_memoria_encontrada) != NULL) {
 		// Si estaba en el criterio shc y se la removió, realizamos un journal
 		// a las memorias del criterio
 		realizar_journal_a_memorias_de_shc();
@@ -150,6 +150,16 @@ int enviar_y_recibir_respuesta(void *mensaje, memoria_t *memoria,
 	}
 	if (recibir_mensaje_de_memoria(memoria, respuesta, tamanio_respuesta) < 0) {
 		return -1;
+	}
+	while (get_msg_id(respuesta) == MEMORY_FULL_ID) {
+		destroy(respuesta);
+		if (enviar_a_memoria(mensaje, memoria) < 0) {
+			return -1;
+		}
+		if (recibir_mensaje_de_memoria(memoria, respuesta, tamanio_respuesta)
+				< 0) {
+			return -1;
+		}
 	}
 	return 0;
 }
@@ -197,12 +207,8 @@ int obtener_memorias_del_pool(memoria_t *memoria_fuente) {
 	if (pthread_mutex_lock(&memoria_fuente->mutex) != 0) {
 		return -1;
 	}
-	if (enviar_a_memoria(&mensaje, memoria_fuente) < 0) {
-		pthread_mutex_unlock(&memoria_fuente->mutex);
-		return -1;
-	}
-	if (recibir_mensaje_de_memoria(memoria_fuente, buffer_local, tamanio_buffer)
-			< 0) {
+	if (enviar_y_recibir_respuesta(&mensaje, memoria_fuente, buffer_local,
+			tamanio_buffer) < 0) {
 		pthread_mutex_unlock(&memoria_fuente->mutex);
 		return -1;
 	}
@@ -230,8 +236,8 @@ int actualizar_memorias() {
 			return 0;
 		}
 	}
-	// No se pudo actualizar el pool consultando a
-	// alguna de las memorias ya conocidas
+// No se pudo actualizar el pool consultando a
+// alguna de las memorias ya conocidas
 	pthread_rwlock_unlock(&memorias_rwlock);
 	return -1;
 }
@@ -311,11 +317,8 @@ int realizar_journal_en_memoria(memoria_t *memoria) {
 	if (pthread_mutex_lock(&memoria->mutex) != 0) {
 		return -1;
 	}
-	if (enviar_a_memoria(&request, memoria) < 0) {
-		pthread_mutex_unlock(&memoria->mutex);
-		return -1;
-	}
-	if (recibir_mensaje_de_memoria(memoria, buffer_local, tamanio_buffer) < 0) {
+	if (enviar_y_recibir_respuesta(&request, memoria, buffer_local,
+			tamanio_buffer) < 0) {
 		pthread_mutex_unlock(&memoria->mutex);
 		return -1;
 	}
@@ -531,7 +534,7 @@ int enviar_request_a_shc(void *mensaje, uint16_t key, void *respuesta,
 	if (list_size(criterio_shc) == 0) {
 		return -1;
 	}
-	// Por el momento usamos módulo como función de hash
+// Por el momento usamos módulo como función de hash
 	memoria_t *memoria = list_get(criterio_shc, key % list_size(criterio_shc));
 	return enviar_request(memoria, mensaje, respuesta, tamanio_respuesta,
 			CRITERIO_SHC);
