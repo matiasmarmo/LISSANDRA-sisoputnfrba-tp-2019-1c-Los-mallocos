@@ -123,6 +123,7 @@ int enviar_a_memoria(void *mensaje, memoria_t *memoria) {
 		return -1;
 	}
 	if (send_msg(memoria->socket_fd, mensaje) < 0) {
+		kernel_log_to_level(LOG_LEVEL_ERROR, true, "Memoria n° %d caida.", memoria->id_memoria);
 		memoria->conectada = false;
 		close(memoria->socket_fd);
 		remover_memoria_de_sus_criterios(memoria);
@@ -528,8 +529,11 @@ int enviar_request(memoria_t *memoria, void *mensaje, void *respuesta,
 	return 0;
 }
 
-int enviar_request_a_sc(void *mensaje, void *respuesta, int tamanio_respuesta) {
+int enviar_request_a_sc(void *mensaje, void *respuesta, int tamanio_respuesta,
+		bool es_request_unitario) {
 	if (list_size(criterio_sc) == 0) {
+		kernel_log_to_level(LOG_LEVEL_ERROR, es_request_unitario,
+				"Ninguna memoria asociada al criterio SC");
 		return -1;
 	}
 	memoria_t *memoria = list_get(criterio_sc, 0);
@@ -538,17 +542,22 @@ int enviar_request_a_sc(void *mensaje, void *respuesta, int tamanio_respuesta) {
 }
 
 int enviar_request_a_shc(void *mensaje, uint16_t key, void *respuesta,
-		int tamanio_respuesta) {
+		int tamanio_respuesta, bool es_request_unitario) {
 	if (list_size(criterio_shc) == 0) {
+		kernel_log_to_level(LOG_LEVEL_ERROR, es_request_unitario,
+				"Ninguna memoria asociada al criterio SHC");
 		return -1;
 	}
-// Por el momento usamos módulo como función de hash
+	// Por el momento usamos módulo como función de hash
 	memoria_t *memoria = list_get(criterio_shc, key % list_size(criterio_shc));
 	return enviar_request(memoria, mensaje, respuesta, tamanio_respuesta,
 			CRITERIO_SHC);
 }
 
-int enviar_request_a_ec(void *mensaje, void *respuesta, int tamanio_respuesta) {
+int enviar_request_a_ec(void *mensaje, void *respuesta, int tamanio_respuesta,
+		bool es_request_unitario) {
+	kernel_log_to_level(LOG_LEVEL_ERROR, es_request_unitario,
+			"Ninguna memoria asociada al criterio EC");
 	if (list_size(criterio_ec) == 0) {
 		return -1;
 	}
@@ -631,14 +640,16 @@ int enviar_request_a_memoria(void *mensaje, void *respuesta,
 	}
 	switch (criterio) {
 	case CRITERIO_SC:
-		resultado = enviar_request_a_sc(mensaje, respuesta, tamanio_respuesta);
+		resultado = enviar_request_a_sc(mensaje, respuesta, tamanio_respuesta,
+				es_request_unitario);
 		break;
 	case CRITERIO_SHC:
 		resultado = enviar_request_a_shc(mensaje, key, respuesta,
-				tamanio_respuesta);
+				tamanio_respuesta, es_request_unitario);
 		break;
 	case CRITERIO_EC:
-		resultado = enviar_request_a_ec(mensaje, respuesta, tamanio_respuesta);
+		resultado = enviar_request_a_ec(mensaje, respuesta, tamanio_respuesta,
+				es_request_unitario);
 		break;
 	default:
 		return -1;

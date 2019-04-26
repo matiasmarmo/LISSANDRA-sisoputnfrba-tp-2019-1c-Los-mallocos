@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <commons/string.h>
+#include <commons/log.h>
 
 #include "../../commons/comunicacion/protocol.h"
 #include "../../commons/consola/consola.h"
@@ -13,6 +14,7 @@
 #include "../pool-memorias/manager-memorias.h"
 #include "../kernel-config.h"
 #include "../metricas.h"
+#include "../kernel-logger.h"
 #include "planificador.h"
 #include "exec.h"
 
@@ -103,6 +105,8 @@ void ejecutar_request(char **request, SCB *scb) {
 	default:
 		if ((ret = enviar_request_a_memoria(buffer_request, buffer_respuesta,
 				tamanio_buffers, scb->es_request_unitario)) < 0) {
+			kernel_log_to_level(LOG_LEVEL_ERROR, scb->es_request_unitario,
+					"El request '%s' no pudo ser enviado.", *request);
 			scb->estado = ERROR_SCRIPT;
 		}
 	}
@@ -110,7 +114,7 @@ void ejecutar_request(char **request, SCB *scb) {
 		mostrar_async(buffer_respuesta);
 	}
 	destroy(buffer_request);
-	if(ret == 0) {
+	if (ret == 0) {
 		destroy(buffer_respuesta);
 	}
 	usleep(get_retardo_ejecucion() * 1000);
