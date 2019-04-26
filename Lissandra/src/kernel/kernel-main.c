@@ -8,6 +8,7 @@
 #include "pool-memorias/manager-memorias.h"
 #include "pool-memorias/metadata-tablas.h"
 #include "ejecucion/planificador.h"
+#include "kernel-logger.h"
 #include "kernel-config.h"
 #include "kernel-consola.h"
 #include "metricas.h"
@@ -31,12 +32,19 @@ void inicializar_kernel() {
 		destruir_kernel_config();
 		exit(EXIT_FAILURE);
 	}
+	if (inicializar_kernel_logger() < 0) {
+		destruir_metricas();
+		destruir_kernel_config();
+		destruir_memorias();
+		exit(EXIT_FAILURE);
+	}
 }
 
 void liberar_recursos_kernel() {
 	destruir_metricas();
 	destruir_kernel_config();
 	destruir_memorias();
+	destruir_kernel_logger();
 }
 
 void finalizar_thread(lissandra_thread_t *l_thread) {
@@ -46,7 +54,7 @@ void finalizar_thread(lissandra_thread_t *l_thread) {
 
 void finalizar_thread_si_se_creo(lissandra_thread_t *l_thread, int create_ret) {
 	// Si el create al thread retornó 0 (fue exitoso), la finalizamos.
-	if(create_ret == 0) {
+	if (create_ret == 0) {
 		finalizar_thread(l_thread);
 	}
 }
