@@ -7,10 +7,12 @@
 #include <pthread.h>
 #include <commons/collections/list.h>
 #include <commons/string.h>
+#include <commons/log.h>
 
 #include "../../commons/comunicacion/sockets.h"
 #include "../../commons/comunicacion/protocol.h"
 #include "../../commons/comunicacion/protocol-utils.h"
+#include "../kernel-logger.h"
 #include "../kernel-config.h"
 #include "../metricas.h"
 #include "metadata-tablas.h"
@@ -153,7 +155,7 @@ int enviar_y_recibir_respuesta(void *mensaje, memoria_t *memoria,
 	}
 	while (get_msg_id(respuesta) == MEMORY_FULL_ID) {
 		destroy(respuesta);
-                usleep(100000);
+		usleep(100000);
 		if (enviar_a_memoria(mensaje, memoria) < 0) {
 			return -1;
 		}
@@ -382,7 +384,7 @@ int agregar_memoria_a_shc(uint16_t id_memoria) {
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
-	if(buscar_memoria(criterio_shc, id_memoria) != NULL) {
+	if (buscar_memoria(criterio_shc, id_memoria) != NULL) {
 		// La memoria ya se encuentra en SHC
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return 0;
@@ -555,20 +557,24 @@ int enviar_request_a_ec(void *mensaje, void *respuesta, int tamanio_respuesta) {
 			CRITERIO_EC);
 }
 
-int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key) {
+int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key,
+		bool es_request_unitario) {
 	struct select_request *select_request;
 	struct insert_request *insert_request;
 	struct create_request *create_request;
 	struct describe_request *describe_request;
 	struct drop_request *drop_request;
+	char *nombre_tabla = "";
 	switch (get_msg_id(mensaje)) {
 	case SELECT_REQUEST_ID:
 		select_request = (struct select_request*) mensaje;
+		nombre_tabla = select_request->tabla;
 		*criterio = obtener_consistencia_tabla(select_request->tabla);
 		*key = select_request->key;
 		break;
 	case INSERT_REQUEST_ID:
 		insert_request = (struct insert_request*) mensaje;
+		nombre_tabla = insert_request->tabla;
 		*criterio = obtener_consistencia_tabla(insert_request->tabla);
 		*key = insert_request->key;
 		break;
@@ -578,28 +584,32 @@ int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key) {
 		break;
 	case DESCRIBE_REQUEST_ID:
 		describe_request = (struct describe_request*) mensaje;
+		nombre_tabla = describe_request->tabla;
 		if (!describe_request->todas) {
 			*criterio = obtener_consistencia_tabla(describe_request->tabla);
+		} else {
+			// Indicamos que no hay error
+			*criterio = 0;
 		}
 		break;
 	case DROP_REQUEST_ID:
 		drop_request = (struct drop_request*) mensaje;
+		nombre_tabla = drop_request->tabla;
 		*criterio = obtener_consistencia_tabla(drop_request->tabla);
 		break;
 	default:
 		return -1;
 	}
 	if (*criterio == -1) {
-		// Si el criterio es -1, significa que o no se conoce la tabla o
-		// el request es un describe global. En cualquiera de los casos,
-		// enviamos el request al criterio sc.
-		*criterio = CRITERIO_SC;
+		kernel_log_to_level(LOG_LEVEL_ERROR, es_request_unitario,
+				"Tabla desconocida: %s. Request fallido.", nombre_tabla);
+		return -1;
 	}
 	return 0;
 }
 
 int enviar_request_a_memoria(void *mensaje, void *respuesta,
-		int tamanio_respuesta) {
+		int tamanio_respuesta, bool es_request_unitario) {
 	int resultado = 0;
 	criterio_t criterio;
 	uint16_t key;
@@ -614,7 +624,8 @@ int enviar_request_a_memoria(void *mensaje, void *respuesta,
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return resultado;
 	}
-	if (obtener_criterio_y_key(mensaje, &criterio, &key) < 0) {
+	if (obtener_criterio_y_key(mensaje, &criterio, &key, es_request_unitario)
+			< 0) {
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}

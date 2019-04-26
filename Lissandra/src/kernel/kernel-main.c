@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <commons/collections/list.h>
@@ -29,13 +30,13 @@ void inicializar_kernel() {
 		exit(EXIT_FAILURE);
 	}
 	if (inicializar_kernel_config() < 0) {
-		kernel_log_to_level(LOG_LEVEL_ERROR, "Error al inicializar archivo de configuración. Abortando.");
+		kernel_log_to_level(LOG_LEVEL_ERROR, false, "Error al inicializar archivo de configuración. Abortando.");
 		destruir_metricas();
 		destruir_kernel_logger();
 		exit(EXIT_FAILURE);
 	}
 	if (inicializar_memorias() < 0) {
-		kernel_log_to_level(LOG_LEVEL_ERROR, "Error al inicializar el pool de memorias. Abortando.");
+		kernel_log_to_level(LOG_LEVEL_ERROR, false, "Error al inicializar el pool de memorias. Abortando.");
 		destruir_metricas();
 		destruir_kernel_config();
 		destruir_kernel_logger();
@@ -87,7 +88,7 @@ int main() {
 		}
 	}
 
-	kernel_log_to_level(LOG_LEVEL_INFO, "Todos los módulos inicializados.");
+	kernel_log_to_level(LOG_LEVEL_INFO, false, "Todos los módulos inicializados.");
 
 	pthread_mutex_lock(&kernel_main_mutex);
 	pthread_cond_wait(&kernel_main_cond, &kernel_main_mutex);
@@ -98,7 +99,7 @@ int main() {
 	finalizar_thread(&inotify);
 	finalizar_thread(&metadata_updater.l_thread);
 	finalizar_thread(&memorias_updater.l_thread);
-	kernel_log_to_level(LOG_LEVEL_INFO, "Finalizando.");
+	kernel_log_to_level(LOG_LEVEL_INFO, false, "Finalizando.");
 	liberar_recursos_kernel();
 	return 0;
 

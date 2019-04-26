@@ -102,7 +102,7 @@ void ejecutar_request(char **request, SCB *scb) {
 		break;
 	default:
 		if ((ret = enviar_request_a_memoria(buffer_request, buffer_respuesta,
-				tamanio_buffers)) < 0) {
+				tamanio_buffers, scb->es_request_unitario)) < 0) {
 			scb->estado = ERROR_SCRIPT;
 		}
 	}

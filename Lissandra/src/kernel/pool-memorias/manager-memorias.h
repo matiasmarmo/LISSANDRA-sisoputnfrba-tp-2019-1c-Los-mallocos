@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdbool.h>
 
 #include "../../commons/comunicacion/protocol.h"
 
@@ -28,6 +29,6 @@ int realizar_describe(struct global_describe_response*);
 
 int realizar_journal_a_todos_los_criterios();
 
-int enviar_request_a_memoria(void*, void*, int);
+int enviar_request_a_memoria(void*, void*, int, bool);
 
 #endif
