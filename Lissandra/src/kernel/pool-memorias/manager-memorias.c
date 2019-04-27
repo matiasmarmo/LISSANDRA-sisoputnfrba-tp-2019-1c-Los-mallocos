@@ -91,9 +91,14 @@ int conectar_memoria(memoria_t* memoria) {
 			memoria->puerto_memoria, FLAG_NON_BLOCK);
 	if (memoria->socket_fd < 0
 			|| wait_for_connection(memoria->socket_fd, 500) != 0) {
+		kernel_log_to_level(LOG_LEVEL_ERROR, false,
+				"No pudo conectarse la memoria número %d", memoria->id_memoria);
 		return -1;
 	}
 	if (socket_set_blocking(memoria->socket_fd) < 0) {
+		kernel_log_to_level(LOG_LEVEL_DEBUG, false,
+				"Error al convertir al socket de la memoria %d de bloqueante a no bloqueante",
+				memoria->id_memoria);
 		close(memoria->socket_fd);
 		return -1;
 	}
@@ -123,7 +128,8 @@ int enviar_a_memoria(void *mensaje, memoria_t *memoria) {
 		return -1;
 	}
 	if (send_msg(memoria->socket_fd, mensaje) < 0) {
-		kernel_log_to_level(LOG_LEVEL_ERROR, true, "Memoria n° %d caida.", memoria->id_memoria);
+		kernel_log_to_level(LOG_LEVEL_ERROR, true, "Memoria número %d caída.",
+				memoria->id_memoria);
 		memoria->conectada = false;
 		close(memoria->socket_fd);
 		remover_memoria_de_sus_criterios(memoria);
@@ -135,6 +141,8 @@ int enviar_a_memoria(void *mensaje, memoria_t *memoria) {
 int recibir_mensaje_de_memoria(memoria_t *memoria, void *buffer,
 		int tamanio_buffer) {
 	if (recv_msg(memoria->socket_fd, buffer, tamanio_buffer) < 0) {
+		kernel_log_to_level(LOG_LEVEL_ERROR, true, "Memoria número %d caída.",
+				memoria->id_memoria);
 		memoria->conectada = false;
 		close(memoria->socket_fd);
 		remover_memoria_de_sus_criterios(memoria);
@@ -240,8 +248,8 @@ int actualizar_memorias() {
 			return 0;
 		}
 	}
-// No se pudo actualizar el pool consultando a
-// alguna de las memorias ya conocidas
+	// No se pudo actualizar el pool consultando a
+	// alguna de las memorias ya conocidas
 	pthread_rwlock_unlock(&memorias_rwlock);
 	return -1;
 }
@@ -271,6 +279,8 @@ int inicializar_memorias() {
 		pthread_rwlock_unlock(&memorias_rwlock);
 		proximo_id_memoria = 0;
 		destruir_listas();
+		kernel_log_to_level(LOG_LEVEL_ERROR, false,
+				"Fallo al realizar gossip inicial");
 		return -1;
 	}
 	pthread_rwlock_unlock(&memorias_rwlock);
@@ -364,7 +374,7 @@ int agregar_memoria_a_sc(uint16_t id_memoria) {
 	int error;
 	memoria_t *memoria;
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
-		return -error;
+		return FALLO_BLOQUEO_SEMAFORO;
 	}
 	if (list_size(criterio_sc) > 0) {
 		pthread_rwlock_unlock(&memorias_rwlock);
@@ -372,7 +382,7 @@ int agregar_memoria_a_sc(uint16_t id_memoria) {
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
-		return -1;
+		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_sc, memoria);
 	pthread_rwlock_unlock(&memorias_rwlock);
@@ -383,7 +393,7 @@ int agregar_memoria_a_shc(uint16_t id_memoria) {
 	int error;
 	memoria_t *memoria;
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
-		return -error;
+		return FALLO_BLOQUEO_SEMAFORO;
 	}
 	if (buscar_memoria(criterio_shc, id_memoria) != NULL) {
 		// La memoria ya se encuentra en SHC
@@ -396,7 +406,7 @@ int agregar_memoria_a_shc(uint16_t id_memoria) {
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
-		return -1;
+		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_shc, memoria);
 	pthread_rwlock_unlock(&memorias_rwlock);
@@ -407,27 +417,36 @@ int agregar_memoria_a_ec(uint16_t id_memoria) {
 	int error;
 	memoria_t *memoria;
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
-		return -error;
+		return FALLO_BLOQUEO_SEMAFORO;
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
-		return -1;
+		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_ec, memoria);
 	pthread_rwlock_unlock(&memorias_rwlock);
 	return 0;
 }
 
-int agregar_memoria_a_criterio(uint16_t id_memoria, uint8_t criterio) {
+int agregar_memoria_a_criterio(uint16_t id_memoria, uint8_t criterio,
+		int es_request_unitario) {
+	int resultado;
 	switch (criterio) {
 	case SC:
-		return agregar_memoria_a_sc(id_memoria);
+		resultado = agregar_memoria_a_sc(id_memoria);
+		break;
 	case SHC:
-		return agregar_memoria_a_shc(id_memoria);
+		resultado = agregar_memoria_a_shc(id_memoria);
+		break;
 	case EC:
-		return agregar_memoria_a_ec(id_memoria);
+		resultado = agregar_memoria_a_ec(id_memoria);
+		break;
 	}
-	return -1;
+	if (resultado == MEMORIA_DESCONOCIDA) {
+		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario,
+				"Memoria número %d desconocida.", id_memoria);
+	}
+	return resultado;
 }
 
 memoria_t *memoria_random(t_list *lista_memorias) {
@@ -446,6 +465,15 @@ memoria_t *memoria_conectada_random(t_list *lista_memorias) {
 	t_list *memorias_conectadas = list_filter(lista_memorias, &_esta_conectada);
 	memoria_t *memoria_resultado = memoria_random(memorias_conectadas);
 	list_destroy(memorias_conectadas);
+	if (memoria_resultado != NULL) {
+		return memoria_resultado;
+	}
+	// No hay ninguna memoria conectada, elegimos una al azar y la conectamos
+	memoria_resultado = memoria_random(lista_memorias);
+	if (memoria_resultado != NULL && conectar_memoria(memoria_resultado) < 0) {
+		// No se pudo conectar la memoria elegida
+		memoria_resultado = NULL;
+	}
 	return memoria_resultado;
 }
 
@@ -462,6 +490,8 @@ int realizar_describe(struct global_describe_response *response) {
 		// Por el momento elegimos una memoria random para
 		// realizar el describe
 		pthread_rwlock_unlock(&memorias_rwlock);
+		kernel_log_to_level(LOG_LEVEL_DEBUG, false,
+				"Fallo al obtener metadata de tablas. Ninguna memoria conectada.");
 		return -1;
 	}
 	if (pthread_mutex_lock(&memoria->mutex) != 0) {
@@ -530,7 +560,7 @@ int enviar_request(memoria_t *memoria, void *mensaje, void *respuesta,
 }
 
 int enviar_request_a_sc(void *mensaje, void *respuesta, int tamanio_respuesta,
-		bool es_request_unitario) {
+		int es_request_unitario) {
 	if (list_size(criterio_sc) == 0) {
 		kernel_log_to_level(LOG_LEVEL_ERROR, es_request_unitario,
 				"Ninguna memoria asociada al criterio SC");
@@ -542,7 +572,7 @@ int enviar_request_a_sc(void *mensaje, void *respuesta, int tamanio_respuesta,
 }
 
 int enviar_request_a_shc(void *mensaje, uint16_t key, void *respuesta,
-		int tamanio_respuesta, bool es_request_unitario) {
+		int tamanio_respuesta, int es_request_unitario) {
 	if (list_size(criterio_shc) == 0) {
 		kernel_log_to_level(LOG_LEVEL_ERROR, es_request_unitario,
 				"Ninguna memoria asociada al criterio SHC");
@@ -555,10 +585,10 @@ int enviar_request_a_shc(void *mensaje, uint16_t key, void *respuesta,
 }
 
 int enviar_request_a_ec(void *mensaje, void *respuesta, int tamanio_respuesta,
-		bool es_request_unitario) {
-	kernel_log_to_level(LOG_LEVEL_ERROR, es_request_unitario,
-			"Ninguna memoria asociada al criterio EC");
+		int es_request_unitario) {
 	if (list_size(criterio_ec) == 0) {
+		kernel_log_to_level(LOG_LEVEL_ERROR, es_request_unitario,
+				"Ninguna memoria asociada al criterio EC");
 		return -1;
 	}
 	memoria_t *memoria = memoria_random(criterio_ec);
@@ -567,7 +597,7 @@ int enviar_request_a_ec(void *mensaje, void *respuesta, int tamanio_respuesta,
 }
 
 int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key,
-		bool es_request_unitario) {
+		int es_request_unitario) {
 	struct select_request *select_request;
 	struct insert_request *insert_request;
 	struct create_request *create_request;

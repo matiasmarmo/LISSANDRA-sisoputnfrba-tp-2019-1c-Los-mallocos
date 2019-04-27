@@ -34,7 +34,7 @@ int ejecutar_add_request(uint8_t *request_buffer, uint8_t *buffer_respuesta,
 	struct add_response *add_response = (struct add_response*) buffer_respuesta;
 	bool fallo = false;
 	if (agregar_memoria_a_criterio(add_request->n_memoria,
-			add_request->criterio) < 0) {
+			add_request->criterio, scb->es_request_unitario) < 0) {
 		scb->estado = ERROR_SCRIPT;
 		fallo = true;
 	}

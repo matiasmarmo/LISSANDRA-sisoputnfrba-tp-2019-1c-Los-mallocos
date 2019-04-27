@@ -8,6 +8,10 @@
 
 #include "../../commons/comunicacion/protocol.h"
 
+typedef enum manager_memorias_error {
+	MEMORIA_DESCONOCIDA = -10, FALLO_BLOQUEO_SEMAFORO
+} manager_memorias_error_t;
+
 typedef struct memoria {
 	uint16_t id_memoria;
 	char ip_memoria[16];
@@ -23,7 +27,7 @@ int destruir_memorias();
 
 void *actualizar_memorias_threaded(void*);
 
-int agregar_memoria_a_criterio(uint16_t, uint8_t);
+int agregar_memoria_a_criterio(uint16_t, uint8_t, int);
 
 int realizar_describe(struct global_describe_response*);
 
