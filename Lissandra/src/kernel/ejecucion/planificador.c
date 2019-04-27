@@ -205,6 +205,9 @@ void *correr_planificador(void *entrada) {
 			l_thread_solicitar_finalizacion(runner_threads[i]);
 			l_thread_join(runner_threads[i], NULL);
 			l_thread_destroy(runner_threads[i]);
+			if((runner_threads[i])->entrada != NULL) {
+				destruir_scb((SCB*)(runner_threads[i])->entrada);
+			}
 			free(runner_threads[i]);
 		}
 	}
