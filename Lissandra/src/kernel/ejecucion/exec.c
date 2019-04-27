@@ -66,6 +66,7 @@ int ejecutar_metrics_request(uint8_t *buffer_respuesta, SCB *scb) {
 		response.resultado = NULL;
 	}
 	memcpy(buffer_respuesta, &response, sizeof(struct metrics_response));
+	free(metricas);
 	return 0;
 }
 
