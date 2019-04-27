@@ -23,16 +23,16 @@ int ejecutarExit(char*, int);
 int ejecutarRun(char*,char*,int);
 
 int parser(char* linea,void* msg, int tamanioBuffer){
-	if(!memcmp(linea,"SELECT ",7      )){ return ejecutarSelect(linea,msg,tamanioBuffer);}
-	if(!memcmp(linea,"INSERT ",7      )){ return ejecutarInsert(linea,msg,tamanioBuffer);}
-	if(!memcmp(linea,"CREATE ",7      )){ return ejecutarCreate(linea,msg,tamanioBuffer);}
-	if(!memcmp(linea,"DESCRIBE",8     )){ return ejecutarDescribe(linea,msg,tamanioBuffer);}
-	if(!memcmp(linea,"DROP ",5        )){ return ejecutarDrop(linea,msg,tamanioBuffer);}
-	if(!strcmp(linea,"JOURNAL"        )){ return ejecutarJournal(linea,msg,tamanioBuffer);}
-	if(!memcmp(linea,"ADD MEMORY ",11 )){ return ejecutarAdd(linea,msg,tamanioBuffer);}
-	if(!strcmp(linea,"METRICS"        )){ return ejecutarMetrics(msg,tamanioBuffer);}
-	if(!strcmp(linea,"EXIT"           )){ return ejecutarExit(msg,tamanioBuffer);}
-	if(!memcmp(linea,"RUN ",4         )){ return ejecutarRun(linea,msg,tamanioBuffer);}
+	if(!strncmp(linea,"SELECT ",7      )){ return ejecutarSelect(linea,msg,tamanioBuffer);}
+	if(!strncmp(linea,"INSERT ",7      )){ return ejecutarInsert(linea,msg,tamanioBuffer);}
+	if(!strncmp(linea,"CREATE ",7      )){ return ejecutarCreate(linea,msg,tamanioBuffer);}
+	if(!strncmp(linea,"DESCRIBE",8     )){ return ejecutarDescribe(linea,msg,tamanioBuffer);}
+	if(!strncmp(linea,"DROP ",5        )){ return ejecutarDrop(linea,msg,tamanioBuffer);}
+	if(!strcmp(linea,"JOURNAL"         )){ return ejecutarJournal(linea,msg,tamanioBuffer);}
+	if(!strncmp(linea,"ADD MEMORY ",11 )){ return ejecutarAdd(linea,msg,tamanioBuffer);}
+	if(!strcmp(linea,"METRICS"         )){ return ejecutarMetrics(msg,tamanioBuffer);}
+	if(!strcmp(linea,"EXIT"            )){ return ejecutarExit(msg,tamanioBuffer);}
+	if(!strncmp(linea,"RUN ",4         )){ return ejecutarRun(linea,msg,tamanioBuffer);}
 	return ERROR;
 }
 
