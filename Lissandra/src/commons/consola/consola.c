@@ -33,6 +33,7 @@ void imprimir_async(char* linea) {
 	int punto = rl_point;
 	linea_guardada = rl_copy_text(0, rl_end);
 	rl_save_prompt();
+	rl_free_line_state();
 	rl_replace_line("", 0);
 	rl_redisplay();
 	printf("%s\n", linea);
