@@ -33,23 +33,7 @@ void kernel_log_to_level(t_log_level level, bool es_consola, char *format, ...) 
 		free(string);
 		return;
 	}
-	switch (level) {
-	case LOG_LEVEL_TRACE:
-		log_trace(kernel_logger, string);
-		break;
-	case LOG_LEVEL_DEBUG:
-		log_debug(kernel_logger, string);
-		break;
-	case LOG_LEVEL_INFO:
-		log_info(kernel_logger, string);
-		break;
-	case LOG_LEVEL_WARNING:
-		log_warning(kernel_logger, string);
-		break;
-	case LOG_LEVEL_ERROR:
-		log_error(kernel_logger, string);
-		break;
-	}
+	lissandra_log_to_level(kernel_logger, level, string);
 	if(es_consola) {
 		imprimir_async(string);
 	}

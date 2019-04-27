@@ -3,8 +3,8 @@
 
 #include <commons/log.h>
 
-extern t_log_level lissandra_log_level;
-
 t_log *lissandra_log_create(char*, char*);
+
+void lissandra_log_to_level(t_log*, t_log_level, char*);
 
 #endif
