@@ -3,7 +3,8 @@
 | ID | ESTRUCTURA |
 | ------ | ------ |
 | SELECT | SELECT [NOMBRE TABLA] [KEY] |
-| INSERT | INSERT [NOMBRE TABLA] [KEY] "[VALUE]" [TIMESTAMP] |
+| INSERT | INSERT [NOMBRE TABLA] [KEY] "[VALUE]" [TIMESTAMP] -- en caso de ser corrido en el proceso LFS |
+| INSERT | INSERT [NOMBRE TABLA] [KEY] "[VALUE]"  -- en caso de ser corrido en los procesos memoria o el kernel |
 | CREATE | CREATE [NOMBRE TABLA] [TIPO CONSISTENCIA] [NUMERO PARTICIONES] [TIEMPO COMPACTACION] |
 | DESCRIBE | DESCRIBE  ó  DESCRIBE [NOMBRE TABLA] |
 | DROP | DROP [NOMBRE TABLA] |
