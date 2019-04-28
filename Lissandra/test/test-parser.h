@@ -39,6 +39,18 @@ void test_drop_1();
 void test_drop_2();
 void test_drop_3();
 void test_drop_4();
+void test_journal_1();
+void test_journal_2();
+void test_journal_3();
+void test_journal_4();
+void test_add_1();
+void test_add_2();
+void test_add_3();
+void test_add_4();
+void test_add_5();
+void test_add_6();
+void test_metrics_1();
+void test_exit_1();
 void test_run_1();
 void test_run_2();
 void test_run_3();
@@ -87,6 +99,30 @@ CU_TestInfo testcasesDrop[] = {
         {"Testing DROP TABLA#$ is wrong", test_drop_4},
 		CU_TEST_INFO_NULL
 };
+CU_TestInfo testcasesJournal[] = {
+		{"Testing JOURNAL is ok:", test_run_1},
+		{"Testing JOURNAL TABLA1 is wrong:", test_run_2},
+        {"Testing JOURNAL TABLA1 acereje is wrong:", test_run_3},
+		{"Testing JOURNAL TABLA1 acereje is wrong:", test_journal_4},
+		CU_TEST_INFO_NULL
+};
+CU_TestInfo testcasesAdd[] = {
+		{"Testing ADD MEMORY 4 TO SC is ok", test_add_1},
+		{"Testing ADD MEMORY 400 TO EC is ok", test_add_2},
+        {"Testing ADD MEMORY acereje TO EC is wrong", test_add_3},
+        {"Testing ADD MEMORY 400 TO 22 is wrong", test_add_4},
+		{"Testing ADD MEMORY is wrong", test_add_5},
+		{"Testing ADD MEMORY 400 acereje SC is wrong", test_add_6},
+		CU_TEST_INFO_NULL
+};
+CU_TestInfo testcasesMetrics[] = {
+		{"Testing METRICS is ok:", test_metrics_1},
+		CU_TEST_INFO_NULL
+};
+CU_TestInfo testcasesExit[] = {
+		{"Testing EXIT is ok:", test_exit_1},
+		CU_TEST_INFO_NULL
+};
 CU_TestInfo testcasesRun[] = {
 		{"Testing RUN /usr/nico/home/nombre-archivo is ok:", test_run_1},
 		{"Testing RUN /usr/nico/home /nombre-archivo is wrong:", test_run_2},
@@ -100,6 +136,10 @@ CU_SuiteInfo suites_parser[] = {
 		{"Testing the function parser, CREATE command:", 0, 0, NULL, NULL, testcasesCreate},
 		{"Testing the function parser, DESCRIBE command:", 0, 0, NULL, NULL, testcasesDescribe},
 		{"Testing the function parser, DROP command:", 0, 0, NULL, NULL, testcasesDrop},
+		{"Testing the function parser, JOURNAL command:", 0, 0, NULL, NULL, testcasesJournal},
+		{"Testing the function parser, ADD command:", 0, 0, NULL, NULL, testcasesAdd},
+		{"Testing the function parser, METRICS command:", 0, 0, NULL, NULL, testcasesMetrics},
+		{"Testing the function parser, EXIT command:", 0, 0, NULL, NULL, testcasesExit},
 		{"Testing the function parser, RUN command:", 0, 0, NULL, NULL, testcasesRun},
 		CU_SUITE_INFO_NULL
 };

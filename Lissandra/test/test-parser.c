@@ -185,6 +185,78 @@ void test_drop_4(){
 		char* msg = "DROP TABLA#$";
         CU_ASSERT_EQUAL(parser(msg,mensaje,a),IDENTIFICADOR_INVALIDO);
 }
+void test_journal_1(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "JOURNAL";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
+}
+void test_journal_2(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "JOURNAL TABLA1";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),ERROR);
+}
+void test_journal_3(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "JOURNAL TABLA1 acereje";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),ERROR);
+}
+void test_journal_4(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "JOURNAL TABLA1 acereje";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),ERROR);
+}
+void test_add_1(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "ADD MEMORY 4 TO SC";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
+}
+void test_add_2(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "ADD MEMORY 400 TO EC";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
+}
+void test_add_3(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "ADD MEMORY acereje TO EC";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),IDENTIFICADOR_INVALIDO);
+}
+void test_add_4(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "ADD MEMORY 400 TO 22";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),CONSISTENCIA_INVALIDA);
+}
+void test_add_5(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "ADD MEMORY";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),ERROR);
+}
+void test_add_6(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "ADD MEMORY 400 acereje SC";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),IDENTIFICADOR_INVALIDO);
+}
+void test_metrics_1(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "METRICS";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
+}
+void test_exit_1(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "EXIT";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
+}
 void test_run_1(){
 		uint8_t mensaje[get_max_msg_size()];
 		int a= get_max_msg_size();
