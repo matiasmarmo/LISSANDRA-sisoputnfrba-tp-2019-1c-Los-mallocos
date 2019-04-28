@@ -10,6 +10,7 @@
 int isIdentifier(char* );
 int isConstant(char* );
 int isConsistency(char* );
+int isPath(char* );
 int obtenerProximaPalabra(char* , char* ,char ,int );
 int ejecutarSelect(char*,char*,int);
 int ejecutarInsert(char*,char*,int);
@@ -271,6 +272,7 @@ int ejecutarRun(char* msg,char* buffer, int tamanioBuffer){
 
 	int tamanioPalabra = obtenerProximaPalabra(msg, archivo, '\0', inicio);
 	if(tamanioPalabra == -1){ return COMANDOS_INVALIDOS; }
+	if(!isPath(archivo)){ return DIRECCION_INVALIDA; }
 
 	struct run_request mensaje;
 	init_run_request(archivo,&mensaje);
@@ -279,7 +281,7 @@ int ejecutarRun(char* msg,char* buffer, int tamanioBuffer){
 	return OK;
 }
 
-int isIdentifier(char* id){ //Controla que id este conformado solo por letras , '_' o '-'
+int isIdentifier(char* id){ //Controla que id este conformado solo por letras, numeros , '_' o '-'
 	for(int i=0 ; i < strlen(id); i++){
 		if(!( isalnum(id[i]) || id[i]=='_' || id[i]=='-')){
 			return FALSE;
@@ -304,6 +306,14 @@ int isConsistency(char* id){ //Controla que id haga match con alguna de las 3 co
 		return EC;
 	}
 	return -1;
+}
+int isPath(char* id){ //Controla que la direccion este conformada solo por letras, numeros , '_' o '-' o '/'
+	for(int i=0 ; i < strlen(id); i++){
+		if(!( isalnum(id[i]) || id[i]=='_' || id[i]=='-' || id[i]=='/')){
+			return FALSE;
+		}
+	}
+	return OK;
 }
 int manejarError(int error, char* buff,int tamanio){
 	if(tamanio < 150){ return ERROR; }

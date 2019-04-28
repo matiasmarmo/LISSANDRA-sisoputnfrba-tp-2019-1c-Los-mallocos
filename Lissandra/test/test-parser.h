@@ -25,6 +25,9 @@ void test_insert_3();
 void test_insert_4();
 void test_insert_5();
 void test_insert_6();
+void test_run_1();
+void test_run_2();
+void test_run_3();
 /*-----------------Test Cases--------------------*/
 CU_TestInfo testcasesSelect[] = {
 		{"Testing SELECT tabla1 123 is ok:", test_select_1},
@@ -47,10 +50,17 @@ CU_TestInfo testcasesInsert[] = {
 		{"Testing INSERT TABLA1 3 \"Mi nombre es Lissandra\"  1548421507 is wrong", test_insert_6},
 		CU_TEST_INFO_NULL
 };
+CU_TestInfo testcasesRun[] = {
+		{"Testing RUN /usr/nico/home/nombre-archivo is ok:", test_run_1},
+		{"Testing RUN /usr/nico/home /nombre-archivo is wrong:", test_run_2},
+        {"Testing RUN &/usr/nico/home/nombre-archivo is wrong:", test_run_3},
+		CU_TEST_INFO_NULL
+};
 /*------------- Suites -----------------------*/
 CU_SuiteInfo suites_parser[] = {
         {"Testing the function parser, SELECT command:", 0, 0, NULL, NULL, testcasesSelect},
 		{"Testing the function parser, INSERT command:", 0, 0, NULL, NULL, testcasesInsert},
+		{"Testing the function parser, RUN command:", 0, 0, NULL, NULL, testcasesRun},
 		CU_SUITE_INFO_NULL
 };
 

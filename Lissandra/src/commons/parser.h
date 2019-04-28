@@ -4,7 +4,9 @@
 #define MAX_TOKENS_LENGTH    100
 #define MIN_64bits 0
 
-enum errores{ VALUE_INVALIDO = -7,
+enum errores{
+			  DIRECCION_INVALIDA = -8,
+			  VALUE_INVALIDO,
 			  CONSISTENCIA_INVALIDA,
 	          ERROR_TAMANIO_BUFFER,
 			  IDENTIFICADOR_INVALIDO,

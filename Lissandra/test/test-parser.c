@@ -101,3 +101,21 @@ void test_insert_6(){
 		char* msg = "INSERT TABLA1 3 \"Mi nombre es Lissandra\"  1548421507";
         CU_ASSERT_EQUAL(parser(msg,mensaje,a),CONSTANTE_INVALIDA);
 }
+void test_run_1(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "RUN /usr/nico/home/nombre-archivo";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
+}
+void test_run_2(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "RUN /usr/nico/home /nombre-archivo";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),DIRECCION_INVALIDA);
+}
+void test_run_3(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "RUN &/usr/nico/home/nombre-archivo";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),DIRECCION_INVALIDA);
+}
