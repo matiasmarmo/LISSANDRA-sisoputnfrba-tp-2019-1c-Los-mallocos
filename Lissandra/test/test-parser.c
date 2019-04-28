@@ -74,12 +74,30 @@ void test_insert_1(){
 void test_insert_2(){
 		uint8_t mensaje[get_max_msg_size()];
 		int a= get_max_msg_size();
-		char* msg = "INSERT TABLA1 3 Mi nombre es Lissandra\" 1548421507";
-        CU_ASSERT_EQUAL(parser(msg,mensaje,a),VALUE_INVALIDO);
+		char* msg = "INSERT TABLA1 3 \"Mi nombre es Lissandra\"";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
 }
 void test_insert_3(){
 		uint8_t mensaje[get_max_msg_size()];
 		int a= get_max_msg_size();
+		char* msg = "INSERT TABLA1 3 Mi nombre es Lissandra\" 1548421507";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),VALUE_INVALIDO);
+}
+void test_insert_4(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
 		char* msg = "INSERT TABLA1 B3 \"Mi nombre es Lissandra\" 1548421507";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),CONSTANTE_INVALIDA);
+}
+void test_insert_5(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "INSERT TABLA1 3 \"Mi nombre es Lissandra\" BBs1507";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),CONSTANTE_INVALIDA);
+}
+void test_insert_6(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "INSERT TABLA1 3 \"Mi nombre es Lissandra\"  1548421507";
         CU_ASSERT_EQUAL(parser(msg,mensaje,a),CONSTANTE_INVALIDA);
 }

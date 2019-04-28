@@ -22,6 +22,9 @@ void test_select_9();
 void test_insert_1();
 void test_insert_2();
 void test_insert_3();
+void test_insert_4();
+void test_insert_5();
+void test_insert_6();
 /*-----------------Test Cases--------------------*/
 CU_TestInfo testcasesSelect[] = {
 		{"Testing SELECT tabla1 123 is ok:", test_select_1},
@@ -37,8 +40,11 @@ CU_TestInfo testcasesSelect[] = {
 };
 CU_TestInfo testcasesInsert[] = {
 		{"Testing INSERT TABLA1 3 \"Mi nombre es Lissandra\" 1548421507 is ok:", test_insert_1},
-        {"Testing INSERT TABLA1 3 Mi nombre es Lissandra\" 1548421507 is wrong:", test_insert_2},
-        {"Testing INSERT TABLA1 B3 \"Mi nombre es Lissandra\" 1548421507 is wrong:", test_insert_3},
+		{"Testing INSERT TABLA1 3 \"Mi nombre es Lissandra\" is ok:", test_insert_2},
+        {"Testing INSERT TABLA1 3 Mi nombre es Lissandra\" 1548421507 is wrong:", test_insert_3},
+        {"Testing INSERT TABLA1 B3 \"Mi nombre es Lissandra\" 1548421507 is wrong:", test_insert_4},
+		{"Testing INSERT TABLA1 3 \"Mi nombre es Lissandra\" B1507 is wrong", test_insert_5},
+		{"Testing INSERT TABLA1 3 \"Mi nombre es Lissandra\"  1548421507 is wrong", test_insert_6},
 		CU_TEST_INFO_NULL
 };
 /*------------- Suites -----------------------*/
