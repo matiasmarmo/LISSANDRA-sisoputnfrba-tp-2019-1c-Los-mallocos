@@ -101,6 +101,90 @@ void test_insert_6(){
 		char* msg = "INSERT TABLA1 3 \"Mi nombre es Lissandra\"  1548421507";
         CU_ASSERT_EQUAL(parser(msg,mensaje,a),CONSTANTE_INVALIDA);
 }
+void test_create_1(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "CREATE TABLA1 SC 4 60000";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
+}
+void test_create_2(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "CREATE TABLA1 EC 4 60000";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
+}
+void test_create_3(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "CREATE TABLA1 acereje 4 60000";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),ERROR_TAMANIO_BUFFER);
+}
+void test_create_4(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "CREATE TABLA1 SC B4 60000";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),COMANDOS_INVALIDOS);
+}
+void test_create_5(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "CREATE TABLA1 SpC 4";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),ERROR_TAMANIO_BUFFER);
+}
+void test_create_6(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "CREATE";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),ERROR);
+}
+void test_describe_1(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "DESCRIBE TABLA1";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
+}
+void test_describe_2(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "DESCRIBE";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
+}
+void test_describe_3(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "DESCRIBE TABLA1 acereje";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),IDENTIFICADOR_INVALIDO);
+}
+void test_describe_4(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "DESCRIBE TABLA#$";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),IDENTIFICADOR_INVALIDO);
+}
+void test_drop_1(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "DROP TABLA1";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),OK);
+}
+void test_drop_2(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "DROP";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),ERROR);
+}
+void test_drop_3(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "DROP TABLA1 acereje";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),IDENTIFICADOR_INVALIDO);
+}
+void test_drop_4(){
+		uint8_t mensaje[get_max_msg_size()];
+		int a= get_max_msg_size();
+		char* msg = "DROP TABLA#$";
+        CU_ASSERT_EQUAL(parser(msg,mensaje,a),IDENTIFICADOR_INVALIDO);
+}
 void test_run_1(){
 		uint8_t mensaje[get_max_msg_size()];
 		int a= get_max_msg_size();
