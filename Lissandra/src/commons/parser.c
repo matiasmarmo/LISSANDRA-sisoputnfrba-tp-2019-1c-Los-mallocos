@@ -76,12 +76,13 @@ int ejecutarSelect(char* msg,char* buffer, int tamanioBuffer){
 }
 
 int ejecutarInsert(char* msg,char* buffer, int tamanioBuffer){
-	//INSERT + NOMBRE_TABLA + KEY + "VALUE" + TIMESTAMP
+	//INSERT + NOMBRE_TABLA + KEY + "VALUE" + TIMESTAMP (opcional)
 	int inicio = 7;
 	char nombreTabla[MAX_TOKENS_LENGTH];
 	char key[MAX_TOKENS_LENGTH];
 	char value[MAX_TOKENS_LENGTH];
 	char espacio[MAX_TOKENS_LENGTH];
+	char finDeArchivo[MAX_TOKENS_LENGTH];
 	char timestamp[MAX_TOKENS_LENGTH];
 
 	int tamanioPalabra = obtenerProximaPalabra(msg, nombreTabla, ' ', inicio);
@@ -103,16 +104,20 @@ int ejecutarInsert(char* msg,char* buffer, int tamanioBuffer){
 
 	inicio=inicio+tamanioPalabra+1;
 	tamanioPalabra = obtenerProximaPalabra(msg, value, '"', inicio);
-
-	inicio=inicio+tamanioPalabra+1;
-	tamanioPalabra = obtenerProximaPalabra(msg,espacio, ' ', inicio);
-	if(tamanioPalabra!= 0){ return VALUE_INVALIDO; }
-
-	inicio=inicio+tamanioPalabra+1;
-	tamanioPalabra = obtenerProximaPalabra(msg,timestamp, '\0', inicio);
 	if(tamanioPalabra == -1){ return COMANDOS_INVALIDOS; }
-	if(!isConstant(timestamp)){ return CONSTANTE_INVALIDA; }
-	uint64_t nuevoTimestamp = strtoumax(timestamp,NULL,10);
+
+	uint64_t nuevoTimestamp = MIN_64bits;
+	inicio=inicio+tamanioPalabra+1;
+	tamanioPalabra = obtenerProximaPalabra(msg,finDeArchivo, '\0', inicio);
+	if(tamanioPalabra != 0){
+		tamanioPalabra = obtenerProximaPalabra(msg,espacio, ' ', inicio);
+		if(tamanioPalabra!= 0){ return VALUE_INVALIDO; }
+		inicio=inicio+tamanioPalabra+1;
+		tamanioPalabra = obtenerProximaPalabra(msg,timestamp, '\0', inicio);
+		if(tamanioPalabra == -1){ return COMANDOS_INVALIDOS; }
+		if(!isConstant(timestamp)){ return CONSTANTE_INVALIDA; }
+		nuevoTimestamp = strtoumax(timestamp,NULL,10);
+	}
 
 	struct insert_request mensaje;
 	init_insert_request(nombreTabla,nuevaKey,value,nuevoTimestamp,&mensaje);
@@ -120,6 +125,7 @@ int ejecutarInsert(char* msg,char* buffer, int tamanioBuffer){
 	memcpy(buffer, &mensaje, sizeof(struct insert_request));
 	return OK;
 }
+
 int ejecutarCreate(char* msg,char* buffer, int tamanioBuffer){
 	//CREATE + NOMBRE_TABLA + TIPO CONSISTENCIA + NUMERO PARTICIONES + TIEMPO DE COMPACTACION
 	int inicio = 7;

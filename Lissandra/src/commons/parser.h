@@ -2,6 +2,7 @@
 #define PARSER_H_
 
 #define MAX_TOKENS_LENGTH    100
+#define MIN_64bits 0
 
 enum errores{ VALUE_INVALIDO = -7,
 			  CONSISTENCIA_INVALIDA,
