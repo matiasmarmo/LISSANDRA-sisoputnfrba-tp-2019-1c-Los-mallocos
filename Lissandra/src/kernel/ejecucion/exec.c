@@ -70,6 +70,18 @@ int ejecutar_metrics_request(uint8_t *buffer_respuesta, SCB *scb) {
 	return 0;
 }
 
+int ejecutar_run_request(uint8_t *buffer_request, uint8_t *buffer_respuesta) {
+	struct run_request *run_request = (struct run_request*) buffer_request;
+	struct run_response *run_response = (struct run_response*) buffer_respuesta;
+	if (agregar_nuevo_script(false, run_request->path) < 0
+			|| init_run_response(false, run_request->path, run_response) < 0) {
+		run_response->id = RUN_RESPONSE_ID;
+		run_response->fallo = true;
+		run_response->path = NULL;
+	}
+	return 0;
+}
+
 void ejecutar_request(char **request, SCB *scb) {
 	// TODO: loguear representación en string de la respuesta a un archivo con resultados
 	// y loguear errores.
@@ -95,6 +107,9 @@ void ejecutar_request(char **request, SCB *scb) {
 		break;
 	case METRICS_REQUEST_ID:
 		ret = ejecutar_metrics_request(buffer_respuesta, scb);
+		break;
+	case RUN_REQUEST_ID:
+		ret = ejecutar_run_request(buffer_request, buffer_respuesta);
 		break;
 	case EXIT_REQUEST_ID:
 		// Ignoramos la aparición de un exit en un script.
