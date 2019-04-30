@@ -1,9 +1,7 @@
 #ifndef LISSANDRA_THREADS_H_
 #define LISSANDRA_THREADS_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include <stdatomic.h>
 #include <pthread.h>
 
 typedef void *(*lissandra_thread_func)(void*);
@@ -39,6 +37,6 @@ int l_thread_periodic_create(lissandra_thread_periodic_t *lp_thread,
 int l_thread_periodic_set_interval_getter(
 		lissandra_thread_periodic_t *lp_thread,
 		interval_getter_t interval_getter);
-uint32_t l_thread_periodic_get_intervalo(lissandra_thread_periodic_t *lp_thread);
+int l_thread_periodic_get_intervalo(lissandra_thread_periodic_t *lp_thread);
 
 #endif

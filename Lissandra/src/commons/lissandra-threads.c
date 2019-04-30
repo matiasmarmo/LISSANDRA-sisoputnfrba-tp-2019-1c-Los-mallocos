@@ -1,4 +1,3 @@
-#include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
@@ -116,12 +115,12 @@ int l_thread_solicitar_finalizacion(lissandra_thread_t *l_thread) {
 	return setear_valor(l_thread, &setear_debe_finalizar);
 }
 
-uint32_t l_thread_periodic_get_intervalo(lissandra_thread_periodic_t *lp_thread) {
+int l_thread_periodic_get_intervalo(lissandra_thread_periodic_t *lp_thread) {
 	int error;
 	if ((error = pthread_mutex_lock(&lp_thread->l_thread.lock)) != 0) {
-		return -error;
+		return -1;
 	}
-	uint32_t resultado = lp_thread->interval_getter();
+	int resultado = lp_thread->interval_getter();
 	pthread_mutex_unlock(&lp_thread->l_thread.lock);
 	return resultado;
 }
@@ -144,7 +143,7 @@ void *wrapper_periodica(void* entrada) {
 	timer_t timerid;
 	struct sigevent sev;
 	struct itimerspec its, read_its;
-	uint32_t intervalo;
+	int intervalo;
 
 	if ((intervalo = l_thread_periodic_get_intervalo(lp_thread)) < 0) {
 		l_thread_indicar_finalizacion(&lp_thread->l_thread);
