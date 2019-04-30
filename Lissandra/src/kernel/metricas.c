@@ -8,7 +8,9 @@
 #include <time.h>
 #include <commons/collections/list.h>
 #include <commons/string.h>
+#include <commons/log.h>
 
+#include "kernel-logger.h"
 #include "metricas.h"
 
 typedef struct load_memoria {
@@ -380,4 +382,13 @@ char *obtener_metricas() {
 	}
 	pthread_mutex_unlock(&mutex);
 	return string_metricas;
+}
+
+void *log_metricas_threaded(void *entrada) {
+	char *metricas = obtener_metricas();
+	if(metricas != NULL) {
+		kernel_log_to_level(LOG_LEVEL_INFO, false, metricas);
+		free(metricas);
+	}
+	return NULL;
 }

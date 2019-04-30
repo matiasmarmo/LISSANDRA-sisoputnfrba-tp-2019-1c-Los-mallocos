@@ -19,6 +19,10 @@
 pthread_mutex_t kernel_main_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t kernel_main_cond = PTHREAD_COND_INITIALIZER;
 
+int intervalo_log_metricas() {
+	return 30000;
+}
+
 void finalizar_kernel() {
 	pthread_mutex_lock(&kernel_main_mutex);
 	pthread_cond_signal(&kernel_main_cond);
@@ -32,13 +36,15 @@ void inicializar_kernel() {
 		exit(EXIT_FAILURE);
 	}
 	if (inicializar_kernel_config() < 0) {
-		kernel_log_to_level(LOG_LEVEL_ERROR, false, "Error al inicializar archivo de configuración. Abortando.");
+		kernel_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al inicializar archivo de configuración. Abortando.");
 		destruir_metricas();
 		destruir_kernel_logger();
 		exit(EXIT_FAILURE);
 	}
 	if (inicializar_memorias() < 0) {
-		kernel_log_to_level(LOG_LEVEL_ERROR, false, "Error al inicializar el pool de memorias. Abortando.");
+		kernel_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al inicializar el pool de memorias. Abortando.");
 		destruir_metricas();
 		destruir_kernel_config();
 		destruir_kernel_logger();
@@ -67,9 +73,10 @@ void finalizar_thread_si_se_creo(lissandra_thread_t *l_thread, int create_ret) {
 
 int main() {
 	inicializar_kernel();
-	int rets[5];
+	int rets[6];
 	lissandra_thread_t planificador, consola, inotify;
-	lissandra_thread_periodic_t metadata_updater, memorias_updater;
+	lissandra_thread_periodic_t metadata_updater, memorias_updater,
+			metricas_logger;
 	rets[0] = l_thread_create(&planificador, &correr_planificador, NULL);
 	rets[1] = l_thread_create(&consola, &correr_consola, NULL);
 	rets[2] = inicializar_kernel_inotify(&inotify);
@@ -77,20 +84,24 @@ int main() {
 			&actualizar_tablas_threaded, &get_refresh_metadata, NULL);
 	rets[4] = l_thread_periodic_create(&memorias_updater,
 			&actualizar_memorias_threaded, &get_refresh_memorias, NULL);
+	rets[5] = l_thread_periodic_create(&metricas_logger, &log_metricas_threaded,
+			&intervalo_log_metricas, NULL);
 
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 6; i++) {
 		if (rets[i] != 0) {
 			finalizar_thread_si_se_creo(&planificador, rets[0]);
 			finalizar_thread_si_se_creo(&consola, rets[1]);
 			finalizar_thread_si_se_creo(&inotify, rets[2]);
 			finalizar_thread_si_se_creo(&metadata_updater.l_thread, rets[3]);
 			finalizar_thread_si_se_creo(&memorias_updater.l_thread, rets[4]);
+			finalizar_thread_si_se_creo(&metricas_logger.l_thread, rets[5]);
 			liberar_recursos_kernel();
 			exit(EXIT_FAILURE);
 		}
 	}
 
-	kernel_log_to_level(LOG_LEVEL_INFO, false, "Todos los módulos inicializados.");
+	kernel_log_to_level(LOG_LEVEL_INFO, false,
+			"Todos los módulos inicializados.");
 
 	pthread_mutex_lock(&kernel_main_mutex);
 	pthread_cond_wait(&kernel_main_cond, &kernel_main_mutex);
@@ -101,6 +112,7 @@ int main() {
 	finalizar_thread(&inotify);
 	finalizar_thread(&metadata_updater.l_thread);
 	finalizar_thread(&memorias_updater.l_thread);
+	finalizar_thread(&metricas_logger.l_thread);
 	kernel_log_to_level(LOG_LEVEL_INFO, false, "Finalizando.");
 	liberar_recursos_kernel();
 	return 0;

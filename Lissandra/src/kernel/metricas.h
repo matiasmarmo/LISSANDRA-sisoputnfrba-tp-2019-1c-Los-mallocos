@@ -21,4 +21,6 @@ int registrar_operacion(tipo_operacion_t tipo, criterio_t criterio,
 		uint32_t latency, uint16_t id_memoria);
 char *obtener_metricas();
 
+void *log_metricas_threaded(void*);
+
 #endif
