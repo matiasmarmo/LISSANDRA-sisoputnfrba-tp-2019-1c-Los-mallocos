@@ -174,7 +174,6 @@ void replanificar(lissandra_thread_t **runner_thread) {
 	if(*runner_thread != NULL) {
 		l_thread_join(*runner_thread, NULL);
 		despachar_script_detenido((SCB*) (*runner_thread)->entrada);
-		l_thread_destroy(*runner_thread);
 		free(*runner_thread);
 		*runner_thread = NULL;
 	}

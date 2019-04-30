@@ -71,14 +71,18 @@ void ejecutar_nueva_linea(char *linea) {
 }
 
 void iniciar_consola(handler_t handler) {
+	pthread_mutex_lock(&consola_mutex);
 	handler_actual = handler;
 	rl_callback_handler_install("> ", ejecutar_nueva_linea);
 	rl_bind_key('\t', rl_complete);
+	pthread_mutex_unlock(&consola_mutex);
 	iniciar_diccionario();
 }
 
 void leer_siguiente_caracter() {
+	pthread_mutex_lock(&consola_mutex);
 	rl_callback_read_char();
+	pthread_mutex_unlock(&consola_mutex);
 }
 
 void mostrar(void* mensaje) {
@@ -94,10 +98,12 @@ void mostrar_async(void* mensaje) {
 }
 
 void cerrar_consola() {
+	pthread_mutex_lock(&consola_mutex);
 	rl_save_prompt();
 	rl_replace_line("", 0);
 	rl_redisplay();
 	rl_callback_handler_remove();
 	rl_clear_history();
+	pthread_mutex_unlock(&consola_mutex);
 	cerrar_diccionario();
 }

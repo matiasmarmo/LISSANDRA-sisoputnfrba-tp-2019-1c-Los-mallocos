@@ -67,10 +67,6 @@ memoria_t *construir_memoria(char *ip_memoria, uint16_t puerto_memoria) {
 	if (memoria == NULL) {
 		return NULL;
 	}
-	if (pthread_mutex_init(&memoria->mutex, NULL) != 0) {
-		free(memoria);
-		return NULL;
-	}
 	memoria->id_memoria = proximo_id_memoria++;
 	memset(memoria->ip_memoria, 0, 16);
 	memset(memoria->puerto_memoria, 0, 8);
@@ -78,6 +74,10 @@ memoria_t *construir_memoria(char *ip_memoria, uint16_t puerto_memoria) {
 	sprintf(memoria->puerto_memoria, "%d", puerto_memoria);
 	memoria->socket_fd = -1;
 	memoria->conectada = false;
+	if (pthread_mutex_init(&memoria->mutex, NULL) != 0) {
+		free(memoria);
+		return NULL;
+	}
 	return memoria;
 }
 
@@ -290,12 +290,12 @@ int inicializar_memorias() {
 
 int destruir_memorias() {
 	int error;
+	destruir_tablas();
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
 	proximo_id_memoria = 0;
 	destruir_listas();
-	destruir_tablas();
 	pthread_rwlock_unlock(&memorias_rwlock);
 	return 0;
 }
@@ -459,7 +459,13 @@ memoria_t *memoria_random(t_list *lista_memorias) {
 memoria_t *memoria_conectada_random(t_list *lista_memorias) {
 
 	bool _esta_conectada(void *elemento) {
-		return ((memoria_t*) elemento)->conectada;
+		memoria_t *memoria = (memoria_t*) elemento;
+		if(pthread_mutex_lock(&memoria->mutex) != 0) {
+			return false;
+		}
+		bool resultado = ((memoria_t*) elemento)->conectada;
+		pthread_mutex_unlock(&memoria->mutex);
+		return resultado;
 	}
 
 	t_list *memorias_conectadas = list_filter(lista_memorias, &_esta_conectada);
@@ -653,6 +659,9 @@ int enviar_request_a_memoria(void *mensaje, void *respuesta,
 	criterio_t criterio;
 	uint16_t key;
 
+	if(obtener_criterio_y_key(mensaje, &criterio, &key, es_request_unitario) < 0) {
+		return -1;
+	}
 	if (pthread_rwlock_rdlock(&memorias_rwlock) != 0) {
 		return -1;
 	}
@@ -662,11 +671,6 @@ int enviar_request_a_memoria(void *mensaje, void *respuesta,
 		resultado = realizar_journal_a_lista(criterio_ec) < 0 ? -1 : resultado;
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return resultado;
-	}
-	if (obtener_criterio_y_key(mensaje, &criterio, &key, es_request_unitario)
-			< 0) {
-		pthread_rwlock_unlock(&memorias_rwlock);
-		return -1;
 	}
 	switch (criterio) {
 	case CRITERIO_SC:

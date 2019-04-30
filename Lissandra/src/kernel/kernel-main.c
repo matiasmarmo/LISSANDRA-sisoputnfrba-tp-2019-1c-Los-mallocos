@@ -20,7 +20,9 @@ pthread_mutex_t kernel_main_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t kernel_main_cond = PTHREAD_COND_INITIALIZER;
 
 void finalizar_kernel() {
+	pthread_mutex_lock(&kernel_main_mutex);
 	pthread_cond_signal(&kernel_main_cond);
+	pthread_mutex_unlock(&kernel_main_mutex);
 }
 
 void inicializar_kernel() {
