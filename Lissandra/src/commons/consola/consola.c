@@ -15,14 +15,10 @@ handler_t handler_actual;
 pthread_mutex_t consola_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void imprimir(char* linea) {
-	if (pthread_mutex_lock(&consola_mutex) != 0) {
-		return;
-	}
 	rl_save_prompt();
 	rl_redisplay();
 	printf("%s\n", linea);
 	rl_restore_prompt();
-	pthread_mutex_unlock(&consola_mutex);
 }
 
 void imprimir_async(char* linea) {
@@ -48,7 +44,6 @@ void imprimir_async(char* linea) {
 void ejecutar_nueva_linea(char *linea) {
 	if (linea == NULL) {
 		free(linea);
-		cerrar_consola();
 		return;
 	}
 	add_history(linea);
