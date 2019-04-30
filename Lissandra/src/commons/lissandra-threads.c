@@ -147,6 +147,7 @@ void *wrapper_periodica(void* entrada) {
 	uint32_t intervalo;
 
 	if ((intervalo = l_thread_periodic_get_intervalo(lp_thread)) < 0) {
+		l_thread_indicar_finalizacion(&lp_thread->l_thread);
 		pthread_exit(NULL);
 	}
 
@@ -160,11 +161,13 @@ void *wrapper_periodica(void* entrada) {
 	its.it_interval.tv_nsec = 0;
 
 	if (timer_create(CLOCK_REALTIME, &sev, &timerid) == -1) {
+		l_thread_indicar_finalizacion(&lp_thread->l_thread);
 		pthread_exit(NULL);
 	}
 
 	if (timer_settime(timerid, 0, &its, NULL) == -1) {
 		timer_delete(timerid);
+		l_thread_indicar_finalizacion(&lp_thread->l_thread);
 		pthread_exit(NULL);
 	}
 
