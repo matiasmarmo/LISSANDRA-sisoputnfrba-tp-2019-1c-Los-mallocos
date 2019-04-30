@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <stdbool.h>
+#include <sys/select.h>
 
 #include "../commons/comunicacion/protocol.h"
 #include "../commons/consola/consola.h"
@@ -26,9 +27,21 @@ void manejar_nuevo_request(char *linea, void *request) {
 void *correr_consola(void *entrada) {
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) entrada;
 	iniciar_consola(&manejar_nuevo_request);
+
+	fd_set stdin_set, copy_set;
+	struct timespec ts;
+	int select_ret;
+	FD_ZERO(&stdin_set);
+	FD_SET(STDIN_FILENO, &stdin_set);
+	ts.tv_sec = 0;
+	ts.tv_nsec = 1000000;
+
 	while(!l_thread_debe_finalizar(l_thread) && !finalizacion_indicada) {
-		leer_siguiente_caracter();
-		usleep(100);
+		copy_set = stdin_set;
+		select_ret = pselect(STDIN_FILENO + 1, &copy_set, NULL, NULL, &ts, NULL);
+		if(select_ret > 0) {
+			leer_siguiente_caracter();
+		}
 	}
 	cerrar_consola();
 	pthread_exit(NULL);
