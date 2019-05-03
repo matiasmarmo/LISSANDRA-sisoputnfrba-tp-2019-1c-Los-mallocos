@@ -686,7 +686,7 @@ int enviar_request_a_memoria(void *mensaje, void *respuesta,
 				es_request_unitario);
 		break;
 	default:
-		return -1;
+		resultado = -1;
 	}
 	pthread_rwlock_unlock(&memorias_rwlock);
 	return resultado;
