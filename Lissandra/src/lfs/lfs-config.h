@@ -1,6 +1,8 @@
 #ifndef KERNEL_CONFIG_H_
 #define KERNEL_CONFIG_H_
 
+#include "../commons/lissandra-threads.h"
+
 int inicializar_lfs_config();
 int actualizar_lfs_config();
 int inicializar_lfs_inotify(lissandra_thread_t*);
