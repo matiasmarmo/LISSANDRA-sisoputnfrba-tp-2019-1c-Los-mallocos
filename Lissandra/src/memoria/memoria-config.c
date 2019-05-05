@@ -41,7 +41,7 @@ int destruir_memoria_config() {
 	return destruir_configuracion(configuracion_memoria, &memoria_config_lock);
 }
 
-int get_puerto_escucha() {
+int get_puerto_escucha_mem() {
 	return get_int_value(configuracion_memoria, PUERTO, &memoria_config_lock);
 }
 

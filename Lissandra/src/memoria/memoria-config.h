@@ -8,7 +8,7 @@ int inicializar_memoria_inotify(lissandra_thread_t*);
 int actualizar_memoria_config();
 int destruir_memoria_config();
 
-int get_puerto_escucha();
+int get_puerto_escucha_mem();
 char* get_ip_file_system();
 int get_puerto_file_system();
 char** get_ip_seeds();
