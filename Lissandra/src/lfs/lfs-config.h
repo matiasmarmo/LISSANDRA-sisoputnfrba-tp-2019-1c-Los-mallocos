@@ -3,6 +3,7 @@
 
 int inicializar_lfs_config();
 int actualizar_lfs_config();
+int inicializar_lfs_inotify(lissandra_thread_t*);
 int destruir_lfs_config();
 
 int get_puerto_escucha();

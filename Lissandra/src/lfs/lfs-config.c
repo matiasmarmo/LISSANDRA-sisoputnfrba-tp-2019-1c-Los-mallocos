@@ -3,6 +3,7 @@
 
 #include "lfs-config.h"
 #include "../commons/lissandra-config.h"
+#include "../commons/lissandra-inotify.h"
 
 // Path al archivo de configuración
 #define CONFIG_PATH "./lfs.conf"
@@ -23,6 +24,10 @@ int inicializar_lfs_config() {
 
 int actualizar_lfs_config() {
 	return actualizar_configuracion(&configuracion, CONFIG_PATH, &lfs_config_lock);
+}
+
+int inicializar_lfs_inotify(lissandra_thread_t* l_thread){
+	return iniciar_inotify_watch(CONFIG_PATH, &actualizar_lfs_config, l_thread);
 }
 
 int destruir_lfs_config() {
