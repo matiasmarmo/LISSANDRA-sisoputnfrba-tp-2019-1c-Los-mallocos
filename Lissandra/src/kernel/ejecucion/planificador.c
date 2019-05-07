@@ -61,11 +61,13 @@ void destruir_planificador() {
 int agregar_nuevo_script(bool es_request_unitario, char *str) {
 	nuevo_script_t *nuevo_script = malloc(sizeof(nuevo_script_t));
 	if (nuevo_script == NULL) {
+		kernel_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al agregar nuevo script '%s', error en malloc", str);
 		return -1;
 	}
 	nuevo_script->es_request_unitario = es_request_unitario;
-	nuevo_script->str= strdup(str);
+	nuevo_script->str = strdup(str);
 	if (nuevo_script->str == NULL) {
+		kernel_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al agregar nuevo script '%s', error en strdup", str);
 		free(nuevo_script);
 		return -1;
 	}
@@ -104,6 +106,7 @@ int alojar_siguiente_script(lissandra_thread_t **runner_thread) {
 		return -1;
 	}
 	if((*runner_thread = malloc(sizeof(lissandra_thread_t))) == NULL) {
+		kernel_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al alojar script, error en malloc");
 		return -1;
 	}
 	l_thread_create(*runner_thread, &ejecutar_script, primer_script_ready);
@@ -113,6 +116,7 @@ int alojar_siguiente_script(lissandra_thread_t **runner_thread) {
 char *leer_fuente_script(char *path) {
 	FILE *archivo = fopen(path, "r");
 	if (archivo == NULL) {
+		kernel_log_to_level(LOG_LEVEL_ERROR, false, "No se pudo abrir el archivo %s", path);
 		return NULL;
 	}
 	fseek(archivo, 0, SEEK_END);
@@ -120,6 +124,7 @@ char *leer_fuente_script(char *path) {
 	rewind(archivo);
 	char *source = calloc(tamanio_archivo + 1, sizeof(char));
 	if (source == NULL) {
+		kernel_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al leer del fuente script %s, error en calloc", path);
 		fclose(archivo);
 		return NULL;
 	}
@@ -135,6 +140,7 @@ char *leer_fuente_script(char *path) {
 SCB *construir_scb(nuevo_script_t *nuevo_script) {
 	SCB *scb = malloc(sizeof(SCB));
 	if (scb == NULL) {
+		kernel_log_to_level(LOG_LEVEL_TRACE, false, "Construcción de SCB fallido, error en malloc");
 		return NULL;
 	}
 	scb->es_request_unitario = nuevo_script->es_request_unitario;
@@ -144,6 +150,9 @@ SCB *construir_scb(nuevo_script_t *nuevo_script) {
 		scb->source = leer_fuente_script(nuevo_script->str);
 	}
 	if (scb->source == NULL) {
+		if(nuevo_script->es_request_unitario) {
+			kernel_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al construir SCB de request unitario '%s', error en strdup", nuevo_script->str);
+		}
 		free(scb);
 		return NULL;
 	}
@@ -189,17 +198,18 @@ void *correr_planificador(void *entrada) {
 	int cantidad_runner_threads = get_multiprocesamiento();
 	lissandra_thread_t *runner_threads[cantidad_runner_threads];
 	inicializar_planificador(runner_threads, cantidad_runner_threads);
-	kernel_log_to_level(LOG_LEVEL_INFO, false, "Esperando scripts.");
 	while (!l_thread_debe_finalizar(self)) {
 		for (int i = 0; i < cantidad_runner_threads; i++) {
+			// Iteramos los hilos y si uno está desocupado o finalizó,
+			// replanificamos
 			if (runner_threads[i] == NULL || l_thread_finalizo(runner_threads[i])) {
 				replanificar(&runner_threads[i]);
 			}
 		}
 		usleep(200000);
 	}
-	kernel_log_to_level(LOG_LEVEL_INFO, false, "Finalizando planificador.");
 	for(int i = 0; i < cantidad_runner_threads; i++) {
+		// Finalizamos todos los hilos que se encuentren ejecutandose
 		if(runner_threads[i] != NULL) {
 			l_thread_solicitar_finalizacion(runner_threads[i]);
 			l_thread_join(runner_threads[i], NULL);
