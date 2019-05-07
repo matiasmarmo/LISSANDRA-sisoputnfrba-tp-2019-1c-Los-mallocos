@@ -171,19 +171,16 @@ void *wrapper_periodica(void* entrada) {
 	}
 
 	while (!l_thread_debe_finalizar(&lp_thread->l_thread)) {
-		if (timer_gettime(timerid, &read_its) != 0) {
-			break;
-		}
+		timer_gettime(timerid, &read_its);
 		if (read_its.it_value.tv_sec == 0 && read_its.it_value.tv_nsec == 0) {
 			lp_thread->funcion_periodica(&lp_thread->l_thread);
 			if ((intervalo = l_thread_periodic_get_intervalo(lp_thread)) < 0) {
-				break;
+				usleep(200000);
+				continue;
 			}
 			its.it_value.tv_sec = intervalo / 1000;
 			its.it_value.tv_nsec = (intervalo % 1000) * 1000000;
-			if (timer_settime(timerid, 0, &its, NULL) == -1) {
-				break;
-			}
+			timer_settime(timerid, 0, &its, NULL);
 		}
 		usleep(200000);
 	}
