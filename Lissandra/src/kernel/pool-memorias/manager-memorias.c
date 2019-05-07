@@ -65,6 +65,8 @@ void destruir_listas() {
 memoria_t *construir_memoria(char *ip_memoria, uint16_t puerto_memoria) {
 	memoria_t *memoria = malloc(sizeof(memoria_t));
 	if (memoria == NULL) {
+		kernel_log_to_level(LOG_LEVEL_TRACE, false,
+				"Construcción de memoria_t fallida, error en malloc");
 		return NULL;
 	}
 	memoria->id_memoria = proximo_id_memoria++;
@@ -75,6 +77,8 @@ memoria_t *construir_memoria(char *ip_memoria, uint16_t puerto_memoria) {
 	memoria->socket_fd = -1;
 	memoria->conectada = false;
 	if (pthread_mutex_init(&memoria->mutex, NULL) != 0) {
+		kernel_log_to_level(LOG_LEVEL_TRACE, false,
+				"Construcción de memoria_t fallida, error al inicializar mutex");
 		free(memoria);
 		return NULL;
 	}
@@ -162,6 +166,10 @@ int enviar_y_recibir_respuesta(void *mensaje, memoria_t *memoria,
 	if (recibir_mensaje_de_memoria(memoria, respuesta, tamanio_respuesta) < 0) {
 		return -1;
 	}
+	if (get_msg_id(respuesta) == MEMORY_FULL_ID) {
+		kernel_log_to_level(LOG_LEVEL_INFO, false,
+				"Memoria numero %d llena, reintentando", memoria->id_memoria);
+	}
 	while (get_msg_id(respuesta) == MEMORY_FULL_ID) {
 		destroy(respuesta);
 		usleep(100000);
@@ -198,6 +206,9 @@ void agregar_nuevas_memorias(void *buffer) {
 		nueva_memoria = construir_memoria(ip_string,
 				mensaje->puertos_memorias[i]);
 		if (nueva_memoria == NULL) {
+			kernel_log_to_level(LOG_LEVEL_WARNING, false,
+					"No pudo relevarse la información de un memoria (%s, %d), omitiendo",
+					ip_string, mensaje->puertos_memorias[i]);
 			continue;
 		}
 		if (!memoria_ya_conocida(nueva_memoria)) {
@@ -226,6 +237,9 @@ int obtener_memorias_del_pool(memoria_t *memoria_fuente) {
 	}
 	pthread_mutex_unlock(&memoria_fuente->mutex);
 	if (get_msg_id(buffer_local) != GOSSIP_RESPONSE_ID) {
+		kernel_log_to_level(LOG_LEVEL_DEBUG, false,
+				"Respuesta inesperada de memoria. Se esperaba %d (GOSSIP_RESPONSE), pero se recibio %d",
+				GOSSIP_RESPONSE_ID, get_msg_id(buffer_local));
 		destroy(buffer_local);
 		return -1;
 	}
@@ -251,6 +265,7 @@ int actualizar_memorias() {
 	// No se pudo actualizar el pool consultando a
 	// alguna de las memorias ya conocidas
 	pthread_rwlock_unlock(&memorias_rwlock);
+	kernel_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al realizar gossip");
 	return -1;
 }
 
@@ -338,6 +353,9 @@ int realizar_journal_en_memoria(memoria_t *memoria) {
 	}
 	pthread_mutex_unlock(&memoria->mutex);
 	if (get_msg_id(buffer_local) != JOURNAL_RESPONSE_ID) {
+		kernel_log_to_level(LOG_LEVEL_DEBUG, false,
+				"Respuesta inesperada de memoria. Se esperaba %d (JOURNAL_RESPONSE), pero se recibio %d",
+				JOURNAL_RESPONSE_ID, get_msg_id(buffer_local));
 		return -1;
 	}
 	respuesta = (struct journal_response*) buffer_local;
@@ -370,7 +388,7 @@ int realizar_journal_a_todos_los_criterios() {
 	return resultado;
 }
 
-int agregar_memoria_a_sc(uint16_t id_memoria) {
+int agregar_memoria_a_sc(uint16_t id_memoria, int es_request_unitario) {
 	int error;
 	memoria_t *memoria;
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
@@ -378,10 +396,18 @@ int agregar_memoria_a_sc(uint16_t id_memoria) {
 	}
 	if (list_size(criterio_sc) > 0) {
 		pthread_rwlock_unlock(&memorias_rwlock);
+		int id_memoria_ya_asociada =
+				((memoria_t*) list_get(criterio_sc, 0))->id_memoria;
+		if (id_memoria_ya_asociada != id_memoria) {
+			kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario,
+					"No se agregó la memoria %d al criterio SC, la memoria %d ya está asociada a el",
+					id_memoria, id_memoria_ya_asociada);
+		}
 		return -1;
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
+		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario, "Memoria numero %d desconocida", id_memoria);
 		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_sc, memoria);
@@ -389,7 +415,7 @@ int agregar_memoria_a_sc(uint16_t id_memoria) {
 	return 0;
 }
 
-int agregar_memoria_a_shc(uint16_t id_memoria) {
+int agregar_memoria_a_shc(uint16_t id_memoria, int es_request_unitario) {
 	int error;
 	memoria_t *memoria;
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
@@ -406,6 +432,7 @@ int agregar_memoria_a_shc(uint16_t id_memoria) {
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
+		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario, "Memoria numero %d desconocida", id_memoria);
 		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_shc, memoria);
@@ -413,7 +440,7 @@ int agregar_memoria_a_shc(uint16_t id_memoria) {
 	return 0;
 }
 
-int agregar_memoria_a_ec(uint16_t id_memoria) {
+int agregar_memoria_a_ec(uint16_t id_memoria, int es_request_unitario) {
 	int error;
 	memoria_t *memoria;
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
@@ -421,6 +448,7 @@ int agregar_memoria_a_ec(uint16_t id_memoria) {
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
+		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario, "Memoria numero %d desconocida", id_memoria);
 		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_ec, memoria);
@@ -433,13 +461,13 @@ int agregar_memoria_a_criterio(uint16_t id_memoria, uint8_t criterio,
 	int resultado;
 	switch (criterio) {
 	case SC:
-		resultado = agregar_memoria_a_sc(id_memoria);
+		resultado = agregar_memoria_a_sc(id_memoria, es_request_unitario);
 		break;
 	case SHC:
-		resultado = agregar_memoria_a_shc(id_memoria);
+		resultado = agregar_memoria_a_shc(id_memoria, es_request_unitario);
 		break;
 	case EC:
-		resultado = agregar_memoria_a_ec(id_memoria);
+		resultado = agregar_memoria_a_ec(id_memoria, es_request_unitario);
 		break;
 	}
 	if (resultado == MEMORIA_DESCONOCIDA) {
@@ -460,7 +488,7 @@ memoria_t *memoria_conectada_random(t_list *lista_memorias) {
 
 	bool _esta_conectada(void *elemento) {
 		memoria_t *memoria = (memoria_t*) elemento;
-		if(pthread_mutex_lock(&memoria->mutex) != 0) {
+		if (pthread_mutex_lock(&memoria->mutex) != 0) {
 			return false;
 		}
 		bool resultado = ((memoria_t*) elemento)->conectada;
@@ -507,6 +535,8 @@ int realizar_describe(struct global_describe_response *response) {
 	pthread_rwlock_unlock(&memorias_rwlock);
 	if (init_describe_request(true, "", &request) < 0) {
 		pthread_mutex_unlock(&memoria->mutex);
+		kernel_log_to_level(LOG_LEVEL_TRACE, false,
+				"Fallo al inicializar describe request");
 		return -1;
 	}
 	if (enviar_y_recibir_respuesta(&request, memoria, buffer_local,
@@ -518,6 +548,9 @@ int realizar_describe(struct global_describe_response *response) {
 	destroy(&request);
 	pthread_mutex_unlock(&memoria->mutex);
 	if (get_msg_id(buffer_local) != GLOBAL_DESCRIBE_RESPONSE_ID) {
+		kernel_log_to_level(LOG_LEVEL_DEBUG, false,
+				"Respuesta inesperada de memoria. Se esperaba %d (GLOBAL_DESCRIBE_RESPONSE), pero se recibio %d",
+				GLOBAL_DESCRIBE_RESPONSE_ID, get_msg_id(buffer_local));
 		destroy(buffer_local);
 		return -1;
 	}
@@ -648,7 +681,7 @@ int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key,
 	if (*criterio == -1) {
 		kernel_log_to_level(LOG_LEVEL_ERROR, es_request_unitario,
 				"Tabla desconocida: %s. Request fallido.", nombre_tabla);
-		return -1;
+		return TABLA_DESCONOCIDA;
 	}
 	return 0;
 }
@@ -659,13 +692,16 @@ int enviar_request_a_memoria(void *mensaje, void *respuesta,
 	criterio_t criterio;
 	uint16_t key;
 
-	if(obtener_criterio_y_key(mensaje, &criterio, &key, es_request_unitario) < 0) {
-		return -1;
+	if (obtener_criterio_y_key(mensaje, &criterio, &key, es_request_unitario)
+			< 0) {
+		return TABLA_DESCONOCIDA;
 	}
 	if (pthread_rwlock_rdlock(&memorias_rwlock) != 0) {
 		return -1;
 	}
 	if (get_msg_id(mensaje) == JOURNAL_REQUEST_ID) {
+		kernel_log_to_level(LOG_LEVEL_TRACE, false,
+				"Realizando journal en todas las memorias");
 		resultado = realizar_journal_a_lista(criterio_sc);
 		resultado = realizar_journal_a_lista(criterio_shc) < 0 ? -1 : resultado;
 		resultado = realizar_journal_a_lista(criterio_ec) < 0 ? -1 : resultado;

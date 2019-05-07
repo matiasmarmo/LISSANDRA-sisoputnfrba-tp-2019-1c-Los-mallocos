@@ -9,7 +9,7 @@
 #include "../../commons/comunicacion/protocol.h"
 
 typedef enum manager_memorias_error {
-	MEMORIA_DESCONOCIDA = -10, FALLO_BLOQUEO_SEMAFORO
+	MEMORIA_DESCONOCIDA = -10, TABLA_DESCONOCIDA, FALLO_BLOQUEO_SEMAFORO
 } manager_memorias_error_t;
 
 typedef struct memoria {
