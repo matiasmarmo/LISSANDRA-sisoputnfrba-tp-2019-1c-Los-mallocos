@@ -407,7 +407,8 @@ int agregar_memoria_a_sc(uint16_t id_memoria, int es_request_unitario) {
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
-		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario, "Memoria numero %d desconocida", id_memoria);
+		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario,
+				"Memoria numero %d desconocida", id_memoria);
 		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_sc, memoria);
@@ -432,7 +433,8 @@ int agregar_memoria_a_shc(uint16_t id_memoria, int es_request_unitario) {
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
-		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario, "Memoria numero %d desconocida", id_memoria);
+		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario,
+				"Memoria numero %d desconocida", id_memoria);
 		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_shc, memoria);
@@ -448,7 +450,8 @@ int agregar_memoria_a_ec(uint16_t id_memoria, int es_request_unitario) {
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
-		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario, "Memoria numero %d desconocida", id_memoria);
+		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario,
+				"Memoria numero %d desconocida", id_memoria);
 		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_ec, memoria);
@@ -610,6 +613,18 @@ int enviar_request_a_sc(void *mensaje, void *respuesta, int tamanio_respuesta,
 			CRITERIO_SC);
 }
 
+uint16_t hash_key(uint16_t key) {
+	key += (key << 12);
+	key ^= (key >> 6);
+	key += (key << 4);
+	key ^= (key >> 9);
+	key += (key << 10);
+	key ^= (key >> 7);
+	key += (key << 13);
+	key ^= (key >> 2);
+	return key;
+}
+
 int enviar_request_a_shc(void *mensaje, uint16_t key, void *respuesta,
 		int tamanio_respuesta, int es_request_unitario) {
 	if (list_size(criterio_shc) == 0) {
@@ -617,8 +632,8 @@ int enviar_request_a_shc(void *mensaje, uint16_t key, void *respuesta,
 				"Ninguna memoria asociada al criterio SHC");
 		return -1;
 	}
-	// Por el momento usamos módulo como función de hash
-	memoria_t *memoria = list_get(criterio_shc, key % list_size(criterio_shc));
+	uint16_t hash = hash_key(key);
+	memoria_t *memoria = list_get(criterio_shc, hash % list_size(criterio_shc));
 	return enviar_request(memoria, mensaje, respuesta, tamanio_respuesta,
 			CRITERIO_SHC);
 }
