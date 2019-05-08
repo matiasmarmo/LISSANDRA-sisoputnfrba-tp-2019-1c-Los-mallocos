@@ -31,10 +31,11 @@ void *manejar_cliente(void* entrada) {
 		copia = descriptores;
 		select_ret = pselect(cliente + 1, &copia, NULL, NULL, &ts, NULL);
 		if (select_ret == -1) {
-			//logeamos el error
+			lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo en la ejecucion del select del cliente");
 			break;
 		} else if (select_ret > 0) {
 			if (recv_msg(cliente, buffer, tamanio_buffers) < 0) {
+				lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al recibir el mensaje del cliente");
 				// TODO: recv_msg no falla solo si se cerró la conexion
 				// Si recv_msg retorna SOCKET_ERROR o CONN_CLOSED, terminar cliente
 				// Sino hacer continue;
@@ -43,6 +44,7 @@ void *manejar_cliente(void* entrada) {
 			//llamo a lissandra
 			destroy(buffer);
 			if (send_msg(cliente, respuesta) < 0) {
+				lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al enviar el mensaje al cliente");
 				// TODO: idem anterior
 				break;
 			}
@@ -66,7 +68,7 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 
 	if ((cliente = accept(servidor, (struct sockaddr*) &their_addr, &addr_size))
 			== -1) {
-		// Error accept
+		lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al aceptar la conexion del cliente");
 		return;
 	}
 
@@ -76,6 +78,7 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 	if (nuevo_cliente == NULL || nuevo_hilo == NULL) {
 		free(nuevo_cliente);
 		free(nuevo_hilo);
+		lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al alojar al cliente, error en malloc");
 		// Enviar mensaje de error al cliente
 		close(cliente);
 		return;
@@ -84,7 +87,7 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 	*nuevo_cliente = cliente;
 
 	if (l_thread_create(nuevo_hilo, &manejar_cliente, nuevo_cliente) < 0) {
-		// Fallo al crear el hilo
+		lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al crear el hilo del Cliente: %d", cliente);
 		free(nuevo_cliente);
 		free(nuevo_hilo);
 		// Enviar mensaje de error al cliente
@@ -123,7 +126,7 @@ void* correr_servidor(void* entrada) {
 	t_list* hilos_clientes = list_create();
 
 	if (servidor < 0) {
-		// logueo error
+		lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al crear el servidor");
 		// finalizar main
 		pthread_exit(NULL);
 	}
@@ -132,7 +135,7 @@ void* correr_servidor(void* entrada) {
 		copia = descriptores;
 		select_ret = pselect(servidor + 1, &copia, NULL, NULL, &ts, NULL);
 		if (select_ret == -1) {
-			//logeamos el error
+			lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo en la ejecucion del select del servidor");
 			break;
 		} else if (select_ret > 0) {
 			if (FD_ISSET(servidor, &copia)) {
