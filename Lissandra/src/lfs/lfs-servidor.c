@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <commons/collections/list.h>
+#include <commons/log.h>
 
 #include "../commons/comunicacion/protocol.h"
 #include "../commons/comunicacion/sockets.h"
