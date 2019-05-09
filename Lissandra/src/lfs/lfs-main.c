@@ -23,8 +23,6 @@ void finalizar_lfs() {
 
 void inicializar_lfs() {
 	if (inicializar_lfs_logger() < 0) {
-		lfs_log_to_level(LOG_LEVEL_ERROR, false,
-				"Error al inicializar archivo de logger. Abortando.");
 		exit(EXIT_FAILURE);
 	}
 	if (inicializar_lfs_config() < 0) {
