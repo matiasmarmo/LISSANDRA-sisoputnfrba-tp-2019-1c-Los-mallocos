@@ -13,6 +13,8 @@
 #include "../commons/comunicacion/sockets.h"
 #include "../commons/consola/consola.h"
 #include "../commons/lissandra-threads.h"
+#include "../commons/consola/consola.h"
+#include "lfs-logger.h"
 #include "lfs-config.h"
 
 void *manejar_cliente(void* entrada) {
@@ -32,11 +34,13 @@ void *manejar_cliente(void* entrada) {
 		copia = descriptores;
 		select_ret = pselect(cliente + 1, &copia, NULL, NULL, &ts, NULL);
 		if (select_ret == -1) {
-			lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo en la ejecucion del select del cliente");
+			lfs_log_to_level(LOG_LEVEL_TRACE, false,
+					"Fallo en la ejecucion del select del cliente");
 			break;
 		} else if (select_ret > 0) {
 			if (recv_msg(cliente, buffer, tamanio_buffers) < 0) {
-				lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al recibir el mensaje del cliente");
+				lfs_log_to_level(LOG_LEVEL_TRACE, false,
+						"Fallo al recibir el mensaje del cliente");
 				// TODO: recv_msg no falla solo si se cerró la conexion
 				// Si recv_msg retorna SOCKET_ERROR o CONN_CLOSED, terminar cliente
 				// Sino hacer continue;
@@ -45,7 +49,8 @@ void *manejar_cliente(void* entrada) {
 			//llamo a lissandra
 			destroy(buffer);
 			if (send_msg(cliente, respuesta) < 0) {
-				lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al enviar el mensaje al cliente");
+				lfs_log_to_level(LOG_LEVEL_TRACE, false,
+						"Fallo al enviar el mensaje al cliente");
 				// TODO: idem anterior
 				break;
 			}
@@ -69,7 +74,8 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 
 	if ((cliente = accept(servidor, (struct sockaddr*) &their_addr, &addr_size))
 			== -1) {
-		lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al aceptar la conexion del cliente");
+		lfs_log_to_level(LOG_LEVEL_TRACE, false,
+				"Fallo al aceptar la conexion del cliente");
 		return;
 	}
 
@@ -79,7 +85,8 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 	if (nuevo_cliente == NULL || nuevo_hilo == NULL) {
 		free(nuevo_cliente);
 		free(nuevo_hilo);
-		lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al alojar al cliente, error en malloc");
+		lfs_log_to_level(LOG_LEVEL_TRACE, false,
+				"Fallo al alojar al cliente, error en malloc");
 		// Enviar mensaje de error al cliente
 		close(cliente);
 		return;
@@ -88,7 +95,8 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 	*nuevo_cliente = cliente;
 
 	if (l_thread_create(nuevo_hilo, &manejar_cliente, nuevo_cliente) < 0) {
-		lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al crear el hilo del Cliente: %d", cliente);
+		lfs_log_to_level(LOG_LEVEL_TRACE, false,
+				"Fallo al crear el hilo del Cliente: %d", cliente);
 		free(nuevo_cliente);
 		free(nuevo_hilo);
 		// Enviar mensaje de error al cliente
@@ -103,11 +111,16 @@ bool termino_cliente(void *elemento) {
 	return (bool) l_thread_finalizo(l_thread);
 }
 
-void fin_cliente(void* elemento) {
+void finalizar_hilo(void* elemento) {
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) elemento;
 	l_thread_solicitar_finalizacion(l_thread);
 	l_thread_join(l_thread, NULL);
 	free(elemento);
+}
+
+void manejar_consola(char* linea, void* request) {
+	//llamar a lissandra(request)
+	//manejar error (si tira error)
 }
 
 void* correr_servidor(void* entrada) {
@@ -117,36 +130,45 @@ void* correr_servidor(void* entrada) {
 	char puerto[6];
 	sprintf(puerto, "%d", get_puerto_escucha());
 	int servidor = create_socket_server(puerto, 10);
+
+	if (servidor < 0) {
+			// memory leak
+			lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al crear el servidor");
+			pthread_exit(NULL);
+	}
+
+	iniciar_consola(&manejar_consola);
+
 	fd_set descriptores, copia;
 	FD_ZERO(&descriptores);
 	FD_SET(servidor, &descriptores);
+	FD_SET(STDIN_FILENO, &descriptores);
+
 	int select_ret;
 	struct timespec ts;
 	ts.tv_sec = 0;
 	ts.tv_nsec = 250000000;
 	t_list* hilos_clientes = list_create();
 
-	if (servidor < 0) {
-		lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al crear el servidor");
-		// finalizar main
-		pthread_exit(NULL);
-	}
-
 	while (!l_thread_debe_finalizar(l_thread)) {
 		copia = descriptores;
 		select_ret = pselect(servidor + 1, &copia, NULL, NULL, &ts, NULL);
 		if (select_ret == -1) {
-			lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo en la ejecucion del select del servidor");
+			lfs_log_to_level(LOG_LEVEL_TRACE, false,
+					"Fallo en la ejecucion del select del servidor");
 			break;
 		} else if (select_ret > 0) {
 			if (FD_ISSET(servidor, &copia)) {
 				crear_hilo_cliente(hilos_clientes, servidor);
+			} else if (FD_ISSET(STDIN_FILENO, &copia)) {
+				leer_siguiente_caracter();
 			}
 		}
 		list_remove_and_destroy_by_condition(hilos_clientes, &termino_cliente,
-				&fin_cliente);
+				&finalizar_hilo);
 	}
-	list_destroy_and_destroy_elements(hilos_clientes, &fin_cliente);
+	list_destroy_and_destroy_elements(hilos_clientes, &finalizar_hilo);
+	cerrar_consola();
 	close(servidor);
 	l_thread_indicar_finalizacion(l_thread);
 	pthread_exit(NULL);

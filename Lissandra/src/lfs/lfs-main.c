@@ -35,6 +35,8 @@ void inicializar_lfs() {
 
 void liberar_recursos_lfs() {
 	destruir_lfs_config();
+
+	// segmentation fault
 	destruir_lfs_logger();
 }
 
