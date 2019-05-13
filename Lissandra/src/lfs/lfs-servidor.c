@@ -92,7 +92,6 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 		free(nuevo_hilo);
 		lfs_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo al alojar al cliente, error en malloc");
-		// Enviar mensaje de error al cliente
 		close(cliente);
 		return;
 	}
@@ -104,7 +103,8 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 				"Fallo al crear el hilo del Cliente: %d", cliente);
 		free(nuevo_cliente);
 		free(nuevo_hilo);
-		// Enviar mensaje de error al cliente
+		send_error_msg(INTERNAL_SERVER_ERROR,
+				"Error al inicializar estructuras", cliente);
 		close(cliente);
 		return;
 	}
