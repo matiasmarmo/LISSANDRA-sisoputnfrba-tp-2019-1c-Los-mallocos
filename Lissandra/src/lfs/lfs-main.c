@@ -35,8 +35,6 @@ void inicializar_lfs() {
 
 void liberar_recursos_lfs() {
 	destruir_lfs_config();
-
-	// segmentation fault
 	destruir_lfs_logger();
 }
 
@@ -55,6 +53,7 @@ void finalizar_thread_si_se_creo(lissandra_thread_t *l_thread, int create_ret) {
 int main() {
 	// inicio lissandra
 	int rets[CANTIDAD_PROCESOS];
+	inicializar_lfs();
 	lissandra_thread_t servidor, inotify;
 
 	rets[0] = l_thread_create(&servidor, &correr_servidor, NULL);

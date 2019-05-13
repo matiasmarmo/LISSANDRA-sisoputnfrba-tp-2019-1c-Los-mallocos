@@ -16,6 +16,7 @@
 #include "../commons/consola/consola.h"
 #include "lfs-logger.h"
 #include "lfs-config.h"
+#include "lfs-main.h"
 
 void *manejar_cliente(void* entrada) {
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) entrada;
@@ -23,7 +24,7 @@ void *manejar_cliente(void* entrada) {
 	fd_set descriptores, copia;
 	FD_ZERO(&descriptores);
 	FD_SET(cliente, &descriptores);
-	int select_ret;
+	int select_ret, error;
 	struct timespec ts;
 	ts.tv_sec = 0;
 	ts.tv_nsec = 250000000;
@@ -38,21 +39,25 @@ void *manejar_cliente(void* entrada) {
 					"Fallo en la ejecucion del select del cliente");
 			break;
 		} else if (select_ret > 0) {
-			if (recv_msg(cliente, buffer, tamanio_buffers) < 0) {
+			if ((error = recv_msg(cliente, buffer, tamanio_buffers) < 0)) {
 				lfs_log_to_level(LOG_LEVEL_TRACE, false,
 						"Fallo al recibir el mensaje del cliente");
-				// TODO: recv_msg no falla solo si se cerró la conexion
-				// Si recv_msg retorna SOCKET_ERROR o CONN_CLOSED, terminar cliente
-				// Sino hacer continue;
-				break;
+				if (error == SOCKET_ERROR || error == CONN_CLOSED) {
+					break;
+				} else {
+					continue;
+				}
 			}
 			//llamo a lissandra
 			destroy(buffer);
-			if (send_msg(cliente, respuesta) < 0) {
+			if ((error = send_msg(cliente, respuesta) < 0)) {
 				lfs_log_to_level(LOG_LEVEL_TRACE, false,
 						"Fallo al enviar el mensaje al cliente");
-				// TODO: idem anterior
-				break;
+				if (error == SOCKET_ERROR || error == CONN_CLOSED) {
+					break;
+				} else {
+					continue;
+				}
 			}
 		}
 		memset(buffer, 0, tamanio_buffers);
@@ -119,8 +124,12 @@ void finalizar_hilo(void* elemento) {
 }
 
 void manejar_consola(char* linea, void* request) {
+	if (get_msg_id(request) == EXIT_REQUEST_ID) {
+		finalizar_lfs();
+	}
 	//llamar a lissandra(request)
 	//manejar error (si tira error)
+	destroy(request);
 }
 
 void* correr_servidor(void* entrada) {
@@ -132,9 +141,8 @@ void* correr_servidor(void* entrada) {
 	int servidor = create_socket_server(puerto, 10);
 
 	if (servidor < 0) {
-			// memory leak
-			lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al crear el servidor");
-			pthread_exit(NULL);
+		lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al crear el servidor");
+		pthread_exit(NULL);
 	}
 
 	iniciar_consola(&manejar_consola);
@@ -160,7 +168,8 @@ void* correr_servidor(void* entrada) {
 		} else if (select_ret > 0) {
 			if (FD_ISSET(servidor, &copia)) {
 				crear_hilo_cliente(hilos_clientes, servidor);
-			} else if (FD_ISSET(STDIN_FILENO, &copia)) {
+			}
+			if (FD_ISSET(STDIN_FILENO, &copia)) {
 				leer_siguiente_caracter();
 			}
 		}
