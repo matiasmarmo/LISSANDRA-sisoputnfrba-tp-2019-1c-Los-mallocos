@@ -18,8 +18,6 @@
 #include "metadata-tablas.h"
 #include "manager-memorias.h"
 
-uint16_t proximo_id_memoria = 0;
-
 pthread_rwlock_t memorias_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 t_list *pool_memorias;
@@ -62,14 +60,15 @@ void destruir_listas() {
 	list_destroy(criterio_ec);
 }
 
-memoria_t *construir_memoria(char *ip_memoria, uint16_t puerto_memoria) {
+memoria_t *construir_memoria(char *ip_memoria, uint16_t puerto_memoria,
+		uint8_t numero_memoria) {
 	memoria_t *memoria = malloc(sizeof(memoria_t));
 	if (memoria == NULL) {
 		kernel_log_to_level(LOG_LEVEL_TRACE, false,
 				"Construcción de memoria_t fallida, error en malloc");
 		return NULL;
 	}
-	memoria->id_memoria = proximo_id_memoria++;
+	memoria->id_memoria = numero_memoria;
 	memset(memoria->ip_memoria, 0, 16);
 	memset(memoria->puerto_memoria, 0, 8);
 	strcpy(memoria->ip_memoria, ip_memoria);
@@ -204,7 +203,7 @@ void agregar_nuevas_memorias(void *buffer) {
 		memset(ip_string, 0, 16);
 		uint32_a_ipv4_string(mensaje->ips_memorias[i], ip_string, 16);
 		nueva_memoria = construir_memoria(ip_string,
-				mensaje->puertos_memorias[i]);
+				mensaje->puertos_memorias[i], mensaje->numeros_memorias[i]);
 		if (nueva_memoria == NULL) {
 			kernel_log_to_level(LOG_LEVEL_WARNING, false,
 					"No pudo relevarse la información de un memoria (%s, %d), omitiendo",
@@ -280,7 +279,7 @@ int inicializar_memorias() {
 		return -error;
 	}
 	memoria_t *memoria_principal = construir_memoria(get_ip_memoria(),
-			get_puerto_memoria());
+			get_puerto_memoria(), get_numero_memoria());
 	if (memoria_principal == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
@@ -292,7 +291,6 @@ int inicializar_memorias() {
 		// la cual se encuentra dentros, por lo que no necesitamos
 		// hacerlo acá a mano
 		pthread_rwlock_unlock(&memorias_rwlock);
-		proximo_id_memoria = 0;
 		destruir_listas();
 		kernel_log_to_level(LOG_LEVEL_ERROR, false,
 				"Fallo al realizar gossip inicial");
@@ -309,7 +307,6 @@ int destruir_memorias() {
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return -error;
 	}
-	proximo_id_memoria = 0;
 	destruir_listas();
 	pthread_rwlock_unlock(&memorias_rwlock);
 	return 0;
