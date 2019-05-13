@@ -6,6 +6,7 @@ enum errors { UNKNOWN_ID = -20, BAD_DATA,
 	ALLOC_ERROR, BUFFER_TOO_SMALL, PTR_FIELD_TOO_LONG,
 	MESSAGE_TOO_BIG, CONN_CLOSED, SOCKET_ERROR = -1 };
 enum consistencias { SC, SHC, EC };
+enum error_codes { INTERNAL_SERVER_ERROR };
 
 #define SELECT_REQUEST_ID 0
 #define SELECT_REQUEST_SIZE sizeof(struct select_request)
@@ -373,14 +374,17 @@ struct gossip_response {
 	
 	uint8_t puertos_memorias_len; 
 	uint16_t* puertos_memorias;
+	
+	uint8_t numeros_memorias_len; 
+	uint8_t* numeros_memorias;
 };
 
 int decode_gossip_response(void*, void*, int);
 int encode_gossip_response(void*, uint8_t*, int);
-int init_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, struct gossip_response*);
+int init_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, uint8_t numeros_memorias_len, uint8_t* numeros_memorias, struct gossip_response*);
 void destroy_gossip_response(void*);
-int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, uint8_t *, int);
-int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, int);
+int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, uint8_t numeros_memorias_len, uint8_t* numeros_memorias, uint8_t *, int);
+int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, uint8_t numeros_memorias_len, uint8_t* numeros_memorias, int);
 
 #define MEMORY_FULL_ID 22
 #define MEMORY_FULL_SIZE sizeof(struct memory_full)
@@ -396,6 +400,22 @@ int init_memory_full( struct memory_full*);
 void destroy_memory_full(void*);
 int pack_memory_full( uint8_t *, int);
 int send_memory_full( int);
+
+#define ERROR_MSG_ID 23
+#define ERROR_MSG_SIZE sizeof(struct error_msg)
+
+struct error_msg {
+	uint8_t id;
+	uint8_t error_code;
+	char* description;
+};
+
+int decode_error_msg(void*, void*, int);
+int encode_error_msg(void*, uint8_t*, int);
+int init_error_msg(uint8_t error_code, char* description, struct error_msg*);
+void destroy_error_msg(void*);
+int pack_error_msg(uint8_t error_code, char* description, uint8_t *, int);
+int send_error_msg(uint8_t error_code, char* description, int);
 
 int decode(void*, void*, int);
 int destroy(void*);

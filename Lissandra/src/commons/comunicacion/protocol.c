@@ -3124,6 +3124,13 @@ int encoded_gossip_response_size(void* buffer) {
 	encoded_size += 2;
 	encoded_size += msg->puertos_memorias_len * sizeof(uint16_t);
 
+
+	if(msg->numeros_memorias == NULL) {
+		return BAD_DATA;
+	}
+	encoded_size += 2;
+	encoded_size += msg->numeros_memorias_len * sizeof(uint8_t);
+
 	if(encoded_size > MAX_ENCODED_SIZE) {
 		return MESSAGE_TOO_BIG;
 	}
@@ -3160,6 +3167,17 @@ int decode_gossip_response (void *recv_data, void* decoded_data, int max_decoded
 	}
 	memcpy(msg.puertos_memorias, byte_data + current, msg.puertos_memorias_len * sizeof(uint16_t));
 	current += msg.puertos_memorias_len * sizeof(uint16_t);
+
+	msg.numeros_memorias_len = ntohs(*((uint16_t*)(byte_data + current)));
+	current += 2;
+	msg.numeros_memorias = malloc(msg.numeros_memorias_len * sizeof(uint8_t));
+	if(msg.numeros_memorias == NULL) {
+		free(msg.ips_memorias);
+free(msg.puertos_memorias);
+		return ALLOC_ERROR;
+	}
+	memcpy(msg.numeros_memorias, byte_data + current, msg.numeros_memorias_len * sizeof(uint8_t));
+	current += msg.numeros_memorias_len * sizeof(uint8_t);
 
 	
 	for(int i = 0; i < msg.ips_memorias_len; i++) {
@@ -3210,6 +3228,14 @@ int encode_gossip_response(void* msg_buffer, uint8_t* buff, int max_size) {
 	current += 2;
 	memcpy(buff + current, msg.puertos_memorias, msg.puertos_memorias_len * sizeof(uint16_t));
 	current += msg.puertos_memorias_len * sizeof(uint16_t);
+
+	if(msg.numeros_memorias_len > MAX_PTR_COUNT) {
+		return PTR_FIELD_TOO_LONG;
+	}
+	*((uint16_t*)(buff + current)) = htons(msg.numeros_memorias_len);
+	current += 2;
+	memcpy(buff + current, msg.numeros_memorias, msg.numeros_memorias_len * sizeof(uint8_t));
+	current += msg.numeros_memorias_len * sizeof(uint8_t);
 	
 	for(int i = 0; i < msg.ips_memorias_len; i++) {
 		msg.ips_memorias[i] = ntohl(msg.ips_memorias[i]);
@@ -3220,7 +3246,7 @@ int encode_gossip_response(void* msg_buffer, uint8_t* buff, int max_size) {
 	return encoded_size;
 }
 
-int init_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, struct gossip_response* msg) {
+int init_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, uint8_t numeros_memorias_len, uint8_t* numeros_memorias, struct gossip_response* msg) {
 	msg->id = GOSSIP_RESPONSE_ID;
 	
 	if(ips_memorias == NULL) {
@@ -3248,6 +3274,24 @@ int init_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8
 		return BAD_DATA;
 	}
 	memcpy(msg->puertos_memorias, puertos_memorias, puertos_memorias_len * sizeof(uint16_t));
+
+	if(numeros_memorias == NULL) {
+		free(msg->ips_memorias);
+	msg->ips_memorias = NULL;
+free(msg->puertos_memorias);
+	msg->puertos_memorias = NULL;
+		return BAD_DATA;
+	}
+	msg->numeros_memorias_len = numeros_memorias_len;
+	msg->numeros_memorias = malloc(numeros_memorias_len * sizeof(uint8_t));
+	if(msg->numeros_memorias == NULL) {
+		free(msg->ips_memorias);
+	msg->ips_memorias = NULL;
+free(msg->puertos_memorias);
+	msg->puertos_memorias = NULL;
+		return BAD_DATA;
+	}
+	memcpy(msg->numeros_memorias, numeros_memorias, numeros_memorias_len * sizeof(uint8_t));
 	return 0;
 }
 
@@ -3257,13 +3301,15 @@ void destroy_gossip_response(void* buffer) {
 	msg->ips_memorias = NULL;
 	free(msg->puertos_memorias);
 	msg->puertos_memorias = NULL;
+	free(msg->numeros_memorias);
+	msg->numeros_memorias = NULL;
 }
 
-int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, uint8_t *buff, int max_size) {
+int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, uint8_t numeros_memorias_len, uint8_t* numeros_memorias, uint8_t *buff, int max_size) {
 	uint8_t local_buffer[max_size - 2];
 	struct gossip_response msg;
 	int error, encoded_size;
-	if((error = init_gossip_response(ips_memorias_len, ips_memorias, puertos_memorias_len, puertos_memorias, &msg)) < 0) {
+	if((error = init_gossip_response(ips_memorias_len, ips_memorias, puertos_memorias_len, puertos_memorias, numeros_memorias_len, numeros_memorias, &msg)) < 0) {
 		return error;
 	}
 	if((encoded_size = encode_gossip_response(&msg, local_buffer, max_size - 2)) < 0) {
@@ -3274,7 +3320,7 @@ int pack_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8
 	return pack_msg(encoded_size, local_buffer, buff);
 }
 
-int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, int socket_fd) {
+int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8_t puertos_memorias_len, uint16_t* puertos_memorias, uint8_t numeros_memorias_len, uint8_t* numeros_memorias, int socket_fd) {
 
 	int bytes_to_send, ret;
 	int current_buffer_size = sizeof(struct gossip_response);
@@ -3283,7 +3329,7 @@ int send_gossip_response(uint8_t ips_memorias_len, uint32_t* ips_memorias, uint8
 		return ALLOC_ERROR;
 	}
 
-	while((bytes_to_send = pack_gossip_response(ips_memorias_len, ips_memorias, puertos_memorias_len, puertos_memorias, local_buffer, current_buffer_size)) == BUFFER_TOO_SMALL) {
+	while((bytes_to_send = pack_gossip_response(ips_memorias_len, ips_memorias, puertos_memorias_len, puertos_memorias, numeros_memorias_len, numeros_memorias, local_buffer, current_buffer_size)) == BUFFER_TOO_SMALL) {
 		current_buffer_size *= 2;
 		local_buffer = realloc(local_buffer, current_buffer_size);
 		if(local_buffer == NULL) {
@@ -3383,6 +3429,148 @@ int send_memory_full( int socket_fd) {
 	}
 
 	while((bytes_to_send = pack_memory_full( local_buffer, current_buffer_size)) == BUFFER_TOO_SMALL) {
+		current_buffer_size *= 2;
+		local_buffer = realloc(local_buffer, current_buffer_size);
+		if(local_buffer == NULL) {
+			return ALLOC_ERROR;
+		}
+	}
+
+	if(bytes_to_send < 0) {
+		return bytes_to_send;
+	}
+
+	ret = _send_full_msg(socket_fd, local_buffer, bytes_to_send);
+	free(local_buffer);
+	return ret;
+}
+
+int encoded_error_msg_size(void* buffer) {
+	struct error_msg* msg = (struct error_msg*) buffer;
+	int encoded_size = 1;
+		encoded_size += sizeof(uint8_t);
+
+	if(msg->description == NULL) {
+		return BAD_DATA;
+	}
+	encoded_size += 2;
+	encoded_size += strlen(msg->description);
+
+	if(encoded_size > MAX_ENCODED_SIZE) {
+		return MESSAGE_TOO_BIG;
+	}
+	return encoded_size;
+}
+
+int decode_error_msg (void *recv_data, void* decoded_data, int max_decoded_size) {
+    
+	if(max_decoded_size < sizeof(struct error_msg)) {
+		return BUFFER_TOO_SMALL;
+	}
+
+	uint8_t* byte_data = (uint8_t*) recv_data;
+	int current = 0;
+	struct error_msg msg;
+	msg.id = byte_data[current++];
+	
+	msg.error_code = *((uint8_t*) (byte_data + current));
+	current += sizeof(uint8_t);
+	int description_len = ntohs(*((uint16_t*)(byte_data + current)));
+	current += 2;
+	msg.description = malloc(description_len + 1);
+	if(msg.description == NULL){
+		
+		return ALLOC_ERROR;
+	}
+	memcpy(msg.description, byte_data + current, description_len);
+	msg.description[description_len] = '\0';
+	current += description_len;
+	
+	memcpy(decoded_data, &msg, sizeof(struct error_msg));
+	return 0;
+}
+
+int encode_error_msg(void* msg_buffer, uint8_t* buff, int max_size) {
+	
+	int encoded_size = 0;
+	struct error_msg msg = *((struct error_msg*) msg_buffer);
+
+	if((encoded_size = encoded_error_msg_size(&msg)) < 0) {
+		return encoded_size;
+	}
+	if(encoded_size > max_size) {
+		return BUFFER_TOO_SMALL;
+	}
+
+	
+
+	int current = 0;
+	buff[current++] = msg.id;
+	
+	*((uint8_t*)(buff + current)) = msg.error_code;
+	current += sizeof(uint8_t);
+
+	int description_len = strlen(msg.description);
+	if(description_len > MAX_STRING_SIZE) {
+		return PTR_FIELD_TOO_LONG;
+	}
+	*((uint16_t*)(buff + current)) = htons(description_len);
+	current += 2;
+	memcpy(buff + current, msg.description, description_len);
+	current += description_len;
+	
+	return encoded_size;
+}
+
+int init_error_msg(uint8_t error_code, char* description, struct error_msg* msg) {
+	msg->id = ERROR_MSG_ID;
+		msg->error_code = error_code;
+
+	if(description == NULL) {
+		
+		return BAD_DATA;
+	}
+	msg->description = malloc(strlen(description) + 1);
+	if(msg->description == NULL) {
+		
+		return ALLOC_ERROR; 
+	}
+	strcpy(msg->description, description);
+
+	return 0;
+}
+
+void destroy_error_msg(void* buffer) {
+	struct error_msg* msg = (struct error_msg*) buffer;
+	free(msg->description);
+	msg->description = NULL;
+}
+
+int pack_error_msg(uint8_t error_code, char* description, uint8_t *buff, int max_size) {
+	uint8_t local_buffer[max_size - 2];
+	struct error_msg msg;
+	int error, encoded_size;
+	if((error = init_error_msg(error_code, description, &msg)) < 0) {
+		return error;
+	}
+	if((encoded_size = encode_error_msg(&msg, local_buffer, max_size - 2)) < 0) {
+		destroy_error_msg(&msg);
+		return encoded_size;
+	}
+	destroy_error_msg(&msg);
+	return pack_msg(encoded_size, local_buffer, buff);
+}
+
+int send_error_msg(uint8_t error_code, char* description, int socket_fd) {
+
+	int bytes_to_send, ret;
+	int current_buffer_size = sizeof(struct error_msg);
+	uint8_t* local_buffer = malloc(current_buffer_size);
+	if(local_buffer == NULL) {
+		return ALLOC_ERROR;
+	}
+
+	while((bytes_to_send = pack_error_msg(error_code, description, local_buffer, current_buffer_size)) == BUFFER_TOO_SMALL) {
 		current_buffer_size *= 2;
 		local_buffer = realloc(local_buffer, current_buffer_size);
 		if(local_buffer == NULL) {
@@ -3530,6 +3718,11 @@ int decode(void *data, void *buff, int max_size) {
 			decoder = &decode_memory_full;
 			body_size = sizeof(struct memory_full);
 			break;
+	
+		case ERROR_MSG_ID:
+			decoder = &decode_error_msg;
+			body_size = sizeof(struct error_msg);
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -3642,6 +3835,10 @@ int destroy(void* buffer) {
 		case MEMORY_FULL_ID:
 			destroyer = &destroy_memory_full;
 			break;
+	
+		case ERROR_MSG_ID:
+			destroyer = &destroy_error_msg;
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -3749,6 +3946,10 @@ int bytes_needed_to_pack(void* buffer) {
 		case MEMORY_FULL_ID:
 			size_getter = &encoded_memory_full_size;
 			break;
+	
+		case ERROR_MSG_ID:
+			size_getter = &encoded_error_msg_size;
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -3854,6 +4055,10 @@ int send_msg(int socket_fd, void* buffer) {
 	
 		case MEMORY_FULL_ID:
 			encoder = &encode_memory_full;
+			break;
+	
+		case ERROR_MSG_ID:
+			encoder = &encode_error_msg;
 			break;
 		default:
 			return UNKNOWN_ID;
@@ -3966,6 +4171,10 @@ int struct_size_from_id(uint8_t msg_id) {
 		case MEMORY_FULL_ID:
 			size = sizeof(struct memory_full);
 			break;
+	
+		case ERROR_MSG_ID:
+			size = sizeof(struct error_msg);
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -4038,7 +4247,7 @@ int _send_full_msg(int socket_fd, uint8_t* buffer, int bytes_to_send) {
 }
 
 int get_max_msg_size() {
-	int sizes[23] = { sizeof(struct select_request),
+	int sizes[24] = { sizeof(struct select_request),
 					sizeof(struct select_response),
 					sizeof(struct insert_request),
 					sizeof(struct insert_response),
@@ -4060,9 +4269,10 @@ int get_max_msg_size() {
 					sizeof(struct exit_request),
 					sizeof(struct gossip),
 					sizeof(struct gossip_response),
-					sizeof(struct memory_full) };
+					sizeof(struct memory_full),
+					sizeof(struct error_msg) };
 	int max = -1;
-	for(int i = 0; i < 23; i++) {
+	for(int i = 0; i < 24; i++) {
 		if(sizes[i] > max) {
 			max = sizes[i];
 		}
