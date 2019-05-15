@@ -401,7 +401,22 @@ void destroy_memory_full(void*);
 int pack_memory_full( uint8_t *, int);
 int send_memory_full( int);
 
-#define ERROR_MSG_ID 23
+#define LFS_HANDSHAKE_ID 23
+#define LFS_HANDSHAKE_SIZE sizeof(struct lfs_handshake)
+
+struct lfs_handshake {
+	uint8_t id;
+	uint16_t tamanio_max_value;
+};
+
+int decode_lfs_handshake(void*, void*, int);
+int encode_lfs_handshake(void*, uint8_t*, int);
+int init_lfs_handshake(uint16_t tamanio_max_value, struct lfs_handshake*);
+void destroy_lfs_handshake(void*);
+int pack_lfs_handshake(uint16_t tamanio_max_value, uint8_t *, int);
+int send_lfs_handshake(uint16_t tamanio_max_value, int);
+
+#define ERROR_MSG_ID 24
 #define ERROR_MSG_SIZE sizeof(struct error_msg)
 
 struct error_msg {

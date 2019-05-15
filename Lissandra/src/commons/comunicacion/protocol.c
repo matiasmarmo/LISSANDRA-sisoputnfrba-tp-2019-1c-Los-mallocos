@@ -3445,6 +3445,112 @@ int send_memory_full( int socket_fd) {
 	return ret;
 }
 
+int encoded_lfs_handshake_size(void* buffer) {
+	
+	int encoded_size = 1;
+		encoded_size += sizeof(uint16_t);
+	if(encoded_size > MAX_ENCODED_SIZE) {
+		return MESSAGE_TOO_BIG;
+	}
+	return encoded_size;
+}
+
+int decode_lfs_handshake (void *recv_data, void* decoded_data, int max_decoded_size) {
+    
+	if(max_decoded_size < sizeof(struct lfs_handshake)) {
+		return BUFFER_TOO_SMALL;
+	}
+
+	uint8_t* byte_data = (uint8_t*) recv_data;
+	int current = 0;
+	struct lfs_handshake msg;
+	msg.id = byte_data[current++];
+	
+	msg.tamanio_max_value = *((uint16_t*) (byte_data + current));
+	current += sizeof(uint16_t);
+	
+	msg.tamanio_max_value = ntohs(msg.tamanio_max_value);
+	memcpy(decoded_data, &msg, sizeof(struct lfs_handshake));
+	return 0;
+}
+
+int encode_lfs_handshake(void* msg_buffer, uint8_t* buff, int max_size) {
+	
+	int encoded_size = 0;
+	struct lfs_handshake msg = *((struct lfs_handshake*) msg_buffer);
+
+	if((encoded_size = encoded_lfs_handshake_size(&msg)) < 0) {
+		return encoded_size;
+	}
+	if(encoded_size > max_size) {
+		return BUFFER_TOO_SMALL;
+	}
+
+	
+	msg.tamanio_max_value = htons(msg.tamanio_max_value);
+
+	int current = 0;
+	buff[current++] = msg.id;
+	
+	*((uint16_t*)(buff + current)) = msg.tamanio_max_value;
+	current += sizeof(uint16_t);
+	
+	msg.tamanio_max_value = ntohs(msg.tamanio_max_value);
+	return encoded_size;
+}
+
+int init_lfs_handshake(uint16_t tamanio_max_value, struct lfs_handshake* msg) {
+	msg->id = LFS_HANDSHAKE_ID;
+		msg->tamanio_max_value = tamanio_max_value;
+	return 0;
+}
+
+void destroy_lfs_handshake(void* buffer) {
+	
+	
+}
+
+int pack_lfs_handshake(uint16_t tamanio_max_value, uint8_t *buff, int max_size) {
+	uint8_t local_buffer[max_size - 2];
+	struct lfs_handshake msg;
+	int error, encoded_size;
+	if((error = init_lfs_handshake(tamanio_max_value, &msg)) < 0) {
+		return error;
+	}
+	if((encoded_size = encode_lfs_handshake(&msg, local_buffer, max_size - 2)) < 0) {
+		destroy_lfs_handshake(&msg);
+		return encoded_size;
+	}
+	destroy_lfs_handshake(&msg);
+	return pack_msg(encoded_size, local_buffer, buff);
+}
+
+int send_lfs_handshake(uint16_t tamanio_max_value, int socket_fd) {
+
+	int bytes_to_send, ret;
+	int current_buffer_size = sizeof(struct lfs_handshake);
+	uint8_t* local_buffer = malloc(current_buffer_size);
+	if(local_buffer == NULL) {
+		return ALLOC_ERROR;
+	}
+
+	while((bytes_to_send = pack_lfs_handshake(tamanio_max_value, local_buffer, current_buffer_size)) == BUFFER_TOO_SMALL) {
+		current_buffer_size *= 2;
+		local_buffer = realloc(local_buffer, current_buffer_size);
+		if(local_buffer == NULL) {
+			return ALLOC_ERROR;
+		}
+	}
+
+	if(bytes_to_send < 0) {
+		return bytes_to_send;
+	}
+
+	ret = _send_full_msg(socket_fd, local_buffer, bytes_to_send);
+	free(local_buffer);
+	return ret;
+}
+
 int encoded_error_msg_size(void* buffer) {
 	struct error_msg* msg = (struct error_msg*) buffer;
 	int encoded_size = 1;
@@ -3719,6 +3825,11 @@ int decode(void *data, void *buff, int max_size) {
 			body_size = sizeof(struct memory_full);
 			break;
 	
+		case LFS_HANDSHAKE_ID:
+			decoder = &decode_lfs_handshake;
+			body_size = sizeof(struct lfs_handshake);
+			break;
+	
 		case ERROR_MSG_ID:
 			decoder = &decode_error_msg;
 			body_size = sizeof(struct error_msg);
@@ -3836,6 +3947,10 @@ int destroy(void* buffer) {
 			destroyer = &destroy_memory_full;
 			break;
 	
+		case LFS_HANDSHAKE_ID:
+			destroyer = &destroy_lfs_handshake;
+			break;
+	
 		case ERROR_MSG_ID:
 			destroyer = &destroy_error_msg;
 			break;
@@ -3947,6 +4062,10 @@ int bytes_needed_to_pack(void* buffer) {
 			size_getter = &encoded_memory_full_size;
 			break;
 	
+		case LFS_HANDSHAKE_ID:
+			size_getter = &encoded_lfs_handshake_size;
+			break;
+	
 		case ERROR_MSG_ID:
 			size_getter = &encoded_error_msg_size;
 			break;
@@ -4055,6 +4174,10 @@ int send_msg(int socket_fd, void* buffer) {
 	
 		case MEMORY_FULL_ID:
 			encoder = &encode_memory_full;
+			break;
+	
+		case LFS_HANDSHAKE_ID:
+			encoder = &encode_lfs_handshake;
 			break;
 	
 		case ERROR_MSG_ID:
@@ -4172,6 +4295,10 @@ int struct_size_from_id(uint8_t msg_id) {
 			size = sizeof(struct memory_full);
 			break;
 	
+		case LFS_HANDSHAKE_ID:
+			size = sizeof(struct lfs_handshake);
+			break;
+	
 		case ERROR_MSG_ID:
 			size = sizeof(struct error_msg);
 			break;
@@ -4247,7 +4374,7 @@ int _send_full_msg(int socket_fd, uint8_t* buffer, int bytes_to_send) {
 }
 
 int get_max_msg_size() {
-	int sizes[24] = { sizeof(struct select_request),
+	int sizes[25] = { sizeof(struct select_request),
 					sizeof(struct select_response),
 					sizeof(struct insert_request),
 					sizeof(struct insert_response),
@@ -4270,9 +4397,10 @@ int get_max_msg_size() {
 					sizeof(struct gossip),
 					sizeof(struct gossip_response),
 					sizeof(struct memory_full),
+					sizeof(struct lfs_handshake),
 					sizeof(struct error_msg) };
 	int max = -1;
-	for(int i = 0; i < 24; i++) {
+	for(int i = 0; i < 25; i++) {
 		if(sizes[i] > max) {
 			max = sizes[i];
 		}
