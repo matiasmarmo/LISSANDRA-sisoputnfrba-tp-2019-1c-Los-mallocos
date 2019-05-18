@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <inttypes.h>
 #include <time.h>
+#include <sys/file.h>
 #include <commons/config.h>
 
 #include "../lfs-config.h"
@@ -50,7 +51,54 @@ int path_a_bloque(char *numero_bloque, char *buffer, int tamanio_buffer) {
     return 0;
 }
 
+FILE *_abrir_archivo_con_lock(char *path, char *modo, int tipo_lock) {
+
+    // Abre el archivo con dirección 'path', en el modo de lectura
+    // 'modo' ("r", "w", etc) y aplica un lock del tipo 'tipo_lock'.
+    // El tipo de lock puede ser:
+    //      LOCK_SH: lock compartido (el que usamos para lectura)
+    //      LOCK_EX: lock exclusivo (el que usamos para escritura)
+
+    FILE *archivo;
+    int file_descriptor;
+    if((archivo = fopen(path, modo)) == NULL) {
+        return NULL;
+    }
+    file_descriptor = fileno(archivo);
+    if(file_descriptor == -1 || flock(file_descriptor, tipo_lock) < 0) {
+        fclose(archivo);
+        return NULL;
+    }
+    return archivo;
+}
+
+FILE *abrir_archivo_para_lectura(char *path) {
+
+    // Abre el archivo 'path' para lectura con un lock compartido
+
+    return _abrir_archivo_con_lock(path, "r", LOCK_SH);
+}
+
+FILE *abrir_archivo_para_escritura(char *path) {
+
+    // Abre el archivo 'path' para escritura con un lock exclusivo
+
+    return _abrir_archivo_con_lock(path, "w", LOCK_EX);
+}
+
+FILE *abrir_archivo_para_agregar(char *path) {
+
+    // Abre el archivo 'path' para agregar datos al final con un lock exclusivo
+
+    return _abrir_archivo_con_lock(path, "a", LOCK_EX);
+}
+
 int parsear_registro(char *string_registro, registro_t *registro) {
+
+    // Recibe el string de un registro con el formato "TIMESTAMP;KEY;VALUE"
+    // y un puntero a un registro_t.
+    // Parsea el string y carga en el registro los valores.
+
     char buffer[get_tamanio_string_registro()];
     int indice_string_registro = 0, indice_buffer = 0;
 
@@ -64,9 +112,9 @@ int parsear_registro(char *string_registro, registro_t *registro) {
     }
 
     _siguiente_substring();
-    registro->key = (uint16_t) strtoumax(buffer, NULL, 10);
-    _siguiente_substring();
     registro->timestamp = (time_t) strtoumax(buffer, NULL, 10);
+    _siguiente_substring();
+    registro->key = (uint16_t) strtoumax(buffer, NULL, 10);
     _siguiente_substring();
     registro->value = malloc(strlen(buffer) + 1);
     if(registro->value == NULL) {
@@ -77,6 +125,15 @@ int parsear_registro(char *string_registro, registro_t *registro) {
 }
 
 int leer_hasta_siguiente_token(FILE *archivo, char *resultado, char token) {
+
+    // Recibe un archivo, un string 'resultado' y un caracter 'token'.
+    // Le el archivo hasta encontrar el token y graba lo que lee en
+    // 'resultado' sin incluir el token.
+    // Retorna:
+    //      * -1 en caso de error
+    //      * 0 si se llegó al EOF
+    //      * 1 si salió todo bien
+
     char caracter_leido, buffer_cat[2] = { 0 };
     if(fread(&caracter_leido, 1, 1, archivo) != 1) {
         // Retornamos 0 si termino el archivo, -1 ante un error
@@ -94,7 +151,18 @@ int leer_hasta_siguiente_token(FILE *archivo, char *resultado, char token) {
 }
 
 int iterar_bloque(char *path_bloque, char *registro_truncado, operacion_t operacion) {
-    FILE *archivo_bloque = fopen(path_bloque, "r");
+
+    // Recibe la dirección de un bloque en 'path_bloque' y por cada
+    // registro del bloque ejecuta 'operación' con el registro_t
+    // correspondiente como parámetro. En caso de que la operación
+    // retorne algo distínto de CONTINUAR, se cortará la iteración.
+
+    // Por medio de 'registro_truncado' recibe el posible registro
+    // que haya quedado incompleto por una iteración a un bloque
+    // anterior para así completarlo. A su vez, si hay un registro
+    // cortado al final de este bloque, se almacena en 'registro_truncado'
+
+    FILE *archivo_bloque = abrir_archivo_para_lectura(path_bloque);
     char string_registro[get_tamanio_string_registro()];
     int resultado;
     registro_t registro;
@@ -127,6 +195,13 @@ int iterar_bloque(char *path_bloque, char *registro_truncado, operacion_t operac
 }
 
 int iterar_archivo_de_datos(char *path, operacion_t operacion) {
+
+    // Itera todos los bloques asociados al archivo de datos
+    // (partición o temporal) 'path' usando la función
+    // 'iterar_bloque' en cada uno y ejecutando 'operacion'
+    // por cada registro. También maneja los registros truncados
+    // entre bloques.
+
     t_config *archivo_datos = config_create(path);
     if(archivo_datos == NULL) {
         return -1;
@@ -161,6 +236,11 @@ int iterar_archivo_de_datos(char *path, operacion_t operacion) {
 }
 
 int leer_archivo_de_datos(char *path, registro_t **resultado) {
+
+    // Recibe un archivo de datos 'path' y un doble puntero
+    // a registro. Aloca memoria al puntero y graba en él
+    // todos los registros del archivo de datos.
+
     // Arrancamos con lugar para 10 registros
     int tamanio_actual = 10 * sizeof(registro_t), registros_cargados = 0;
     bool hubo_error = false;
