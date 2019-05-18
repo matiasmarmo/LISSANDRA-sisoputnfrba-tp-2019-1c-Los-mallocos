@@ -1,5 +1,5 @@
-#ifndef LECTURA_ARCHIVOS_H_
-#define LECTURA_ARCHIVOS_H_
+#ifndef MANEJO_DATOS_H_
+#define MANEJO_DATOS_H_
 
 int path_a_bloque(char *numero_bloque, char *buffer, int tamanio_buffer);
 

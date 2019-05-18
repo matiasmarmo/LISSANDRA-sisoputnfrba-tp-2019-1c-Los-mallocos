@@ -10,7 +10,7 @@
 
 #include "../lfs-config.h"
 #include "filesystem.h"
-#include "lectura-archivos.h"
+#include "manejo-datos.h"
 
 #define TIMESTAMP_STR_LEN 20
 
