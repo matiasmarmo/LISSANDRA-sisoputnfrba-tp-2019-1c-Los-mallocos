@@ -18,4 +18,6 @@ typedef struct registro {
 
 typedef int (*operacion_t)(registro_t);
 
+int inicializar_filesystem();
+
 #endif
