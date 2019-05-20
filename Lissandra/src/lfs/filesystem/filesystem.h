@@ -5,6 +5,8 @@
 #include <time.h>
 
 #define TAMANIO_PATH 256
+#define TAMANIO_NOMBRE_ARCHIVO 50
+#define NOMBRE_DIRECTORIO_TABLAS "tablas"
 
 enum resultados_operaciones { CONTINUAR, FINALIZAR };
 
