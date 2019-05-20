@@ -20,6 +20,13 @@
 int tamanio_bloque = -1;
 int cantidad_bloques = -1;
 
+int get_tamanio_bloque() {
+	return tamanio_bloque;
+}
+
+int get_cantidad_bloques() {
+	return cantidad_bloques;
+}
 
 int inicializar_filesystem(){
 	char metadata_path[256];

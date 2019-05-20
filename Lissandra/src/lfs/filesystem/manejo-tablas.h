@@ -3,10 +3,6 @@
 
 #include <stdint.h>
 
-#define BLOCK_SIZE 64 	// El tamanio de cada bloque debe ser leido del archivo
-						// metadata.bin de la carpeta metadata mediante alguna funcion.
-						// Se definio aca porque todavia no existe dicha funcion
-
 typedef struct metadata {
 	uint8_t consistencia;
 	uint8_t n_particiones;

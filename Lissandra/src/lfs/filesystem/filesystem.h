@@ -5,8 +5,7 @@
 #include <time.h>
 
 #define TAMANIO_PATH 256
-#define TAMANIO_NOMBRE_ARCHIVO 50
-#define NOMBRE_DIRECTORIO_TABLAS "tablas"
+#define NOMBRE_DIRECTORIO_TABLAS "Tables/"
 
 enum resultados_operaciones { CONTINUAR, FINALIZAR };
 
@@ -20,4 +19,7 @@ typedef int (*operacion_t)(registro_t);
 
 int inicializar_filesystem();
 
+int get_tamanio_bloque();
+
+int get_cantidad_bloques();
 #endif
