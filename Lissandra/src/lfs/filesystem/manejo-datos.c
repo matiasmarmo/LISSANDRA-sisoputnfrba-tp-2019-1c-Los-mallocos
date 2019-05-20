@@ -76,7 +76,7 @@ FILE *abrir_archivo_para_lectura(char *path) {
 
     // Abre el archivo 'path' para lectura con un lock compartido
 
-    return _abrir_archivo_con_lock(path, "r", LOCK_SH);
+    return _abrir_archivo_con_lock(path, "r+", LOCK_SH);
 }
 
 FILE *abrir_archivo_para_escritura(char *path) {
@@ -84,6 +84,10 @@ FILE *abrir_archivo_para_escritura(char *path) {
     // Abre el archivo 'path' para escritura con un lock exclusivo
 
     return _abrir_archivo_con_lock(path, "w", LOCK_EX);
+}
+
+FILE *abrir_archivo_para_lectoescritura(char *path) {
+	return _abrir_archivo_con_lock(path, "r+", LOCK_EX);
 }
 
 FILE *abrir_archivo_para_agregar(char *path) {

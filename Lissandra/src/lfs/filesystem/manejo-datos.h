@@ -9,6 +9,8 @@ FILE *abrir_archivo_para_lectura(char *path);
 
 FILE *abrir_archivo_para_escritura(char *path);
 
+FILE *abrir_archivo_para_lectoescritura(char *path);
+
 FILE *abrir_archivo_para_agregar(char *path);
 
 int iterar_archivo_de_datos(char *path, operacion_t operacion);
