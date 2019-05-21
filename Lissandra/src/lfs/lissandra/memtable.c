@@ -106,6 +106,7 @@ int insertar_en_memtable(registro_t registro, char *tabla) {
 
 t_dictionary *obtener_datos_para_dumpear() {
     t_dictionary *resultado = dictionary_create();
+    t_dictionary *nueva_memtable = dictionary_create();
 
     void _copiar_entrada(char *tabla, void *elemento) {
         entrada_memtable_t *entrada = (entrada_memtable_t*) elemento;
@@ -113,24 +114,35 @@ t_dictionary *obtener_datos_para_dumpear() {
         if(res_data == NULL) {
             // Si falla el malloc, se mantienen los datos de esa tabla
             // en la memtable hasta el proximo dump
+            dictionary_put(nueva_memtable, tabla, entrada);
             return;
         }
         res_data->data = entrada->data;
         res_data->cantidad_registros = entrada->cantidad_registros;
         dictionary_put(resultado, tabla, res_data);
         pthread_mutex_destroy(&entrada->lock);
-    }
-
-    void _liberar_entrada_memtable(void *entrada) {
         free(entrada);
     }
 
     if(pthread_rwlock_wrlock(&memtable_lock) != 0) {
         dictionary_destroy(resultado);
+        dictionary_destroy(nueva_memtable);
         return NULL;
     }
     dictionary_iterator(memtable, &_copiar_entrada);
-    dictionary_clean_and_destroy_elements(memtable, &_liberar_entrada_memtable);
+    dictionary_destroy(memtable);
+    memtable = nueva_memtable;
     pthread_rwlock_unlock(&memtable_lock);
     return resultado;
+}
+
+void destruir_datos_dumpeados(t_dictionary *datos) {
+
+    void _destruir(void *elem) {
+        memtable_data_t *data = (memtable_data_t*) elem;
+        free(data->data);
+        free(data);
+    }
+
+    dictionary_destroy_and_destroy_elements(datos, &_destruir);
 }
