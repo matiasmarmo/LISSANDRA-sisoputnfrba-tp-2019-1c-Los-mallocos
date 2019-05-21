@@ -22,4 +22,13 @@ int inicializar_filesystem();
 int get_tamanio_bloque();
 
 int get_cantidad_bloques();
+
+void obtener_path_particion(int numero, char* nombre_tabla, char* path);
+
+void obtener_path_tabla(char *nombre_tabla, char *path);
+
+void obtener_path_temporal(int numero, char* nombre_tabla, char* path);
+
+void campo_entero_a_string(int entero, char* string);
+
 #endif

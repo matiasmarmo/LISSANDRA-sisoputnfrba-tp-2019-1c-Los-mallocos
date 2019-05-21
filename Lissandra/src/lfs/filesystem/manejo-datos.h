@@ -17,4 +17,8 @@ int iterar_archivo_de_datos(char *path, operacion_t operacion);
 
 int leer_archivo_de_datos(char *path, registro_t **resultado);
 
+int iterar_particion(char* nombre_tabla, int numero_particion, operacion_t operacion);
+
+int iterar_archivo_temporal(char *nombre_tabla, int numero_temporal, operacion_t operacion);
+
 #endif

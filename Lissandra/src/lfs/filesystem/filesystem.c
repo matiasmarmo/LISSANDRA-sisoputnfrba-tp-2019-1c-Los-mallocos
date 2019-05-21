@@ -51,3 +51,51 @@ int inicializar_filesystem(){
 	return 0;
 }
 
+void obtener_path_tabla(char *nombre_tabla, char *path) {
+	char temporal[TAMANIO_PATH];
+
+	strcpy(temporal, get_punto_montaje());
+	strcat(temporal, NOMBRE_DIRECTORIO_TABLAS);
+	strcat(temporal, nombre_tabla);
+	strcat(temporal, "/");
+	strcpy(path, temporal);
+}
+
+void obtener_path_particion(int numero, char* nombre_tabla, char* path) {
+	char temporal[TAMANIO_PATH];
+	char path_tabla[TAMANIO_PATH];
+	char numero_string[10];
+
+	obtener_path_tabla(nombre_tabla, path_tabla);
+	strcpy(temporal, path_tabla);
+	strcat(temporal, nombre_tabla);
+	strcat(temporal, "-");
+	campo_entero_a_string(numero, numero_string);
+	strcat(temporal, numero_string);
+	strcat(temporal, ".bin");
+	strcpy(path, temporal);
+}
+
+void obtener_path_temporal(int numero, char* nombre_tabla, char* path){
+	char temporal[TAMANIO_PATH];
+	char path_tabla[TAMANIO_PATH];
+	char numero_string[10];
+
+	obtener_path_tabla(nombre_tabla, path_tabla);
+	strcpy(temporal, path_tabla);
+	strcat(temporal, nombre_tabla);
+	strcat(temporal, "-T");
+	campo_entero_a_string(numero, numero_string);
+	strcat(temporal, numero_string);
+	strcat(temporal, ".tmp");
+	strcpy(path, temporal);
+}
+
+void campo_entero_a_string(int entero, char* string) {
+	sprintf(string, "%d", entero);
+}
+
+
+
+
+

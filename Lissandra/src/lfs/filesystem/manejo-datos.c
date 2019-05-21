@@ -239,6 +239,18 @@ int iterar_archivo_de_datos(char *path, operacion_t operacion) {
     return resultado < 0 ? -1 : 0;
 }
 
+int iterar_particion(char* nombre_tabla, int numero_particion, operacion_t operacion){
+	char path_particion[TAMANIO_PATH];
+	obtener_path_particion(numero_particion, nombre_tabla, path_particion);
+	return iterar_archivo_de_datos(path_particion, operacion);
+}
+
+int iterar_archivo_temporal(char *nombre_tabla, int numero_temporal, operacion_t operacion){
+	char path_particion[TAMANIO_PATH];
+	obtener_path_temporal(numero_temporal, nombre_tabla, path_particion);
+	return iterar_archivo_de_datos(path_particion, operacion);
+}
+
 int leer_archivo_de_datos(char *path, registro_t **resultado) {
 
     // Recibe un archivo de datos 'path' y un doble puntero
