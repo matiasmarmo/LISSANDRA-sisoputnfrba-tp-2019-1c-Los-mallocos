@@ -6,6 +6,8 @@
 
 int path_a_bloque(char *numero_bloque, char *buffer, int tamanio_buffer);
 
+void obtener_path_bloque(int nro_bloque, char* path_bloque);
+
 FILE *abrir_archivo_para_lectura(char *path);
 
 FILE *abrir_archivo_para_escritura(char *path);
@@ -23,5 +25,7 @@ int iterar_particion(char* nombre_tabla, int numero_particion, operacion_t opera
 int iterar_archivo_temporal(char *nombre_tabla, int numero_temporal, operacion_t operacion);
 
 int escribir_en_archivo_de_datos(char *path, registro_t *registros, int cantidad_registros);
+
+int pisar_particion(char* tabla, int nro_particion, registro_t* registros, int cantidad);
 
 #endif

@@ -17,6 +17,8 @@ typedef struct registro {
 
 typedef int (*operacion_t)(registro_t);
 
+typedef int (*operacion_bloque_t)(int);
+
 int inicializar_filesystem();
 
 int get_tamanio_bloque();
