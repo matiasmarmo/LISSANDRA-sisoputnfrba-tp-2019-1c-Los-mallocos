@@ -57,7 +57,10 @@ int crear_metadata_tabla(metadata_t metadata, char* nombre_tabla) {
 	campo_entero_a_string(metadata.t_compactaciones, t_compactaciones_string);
 	strcat(escritura, t_compactaciones_string);
 
-	fwrite(escritura, strlen(escritura), 1, metadata_tabla_f);
+	if (fwrite(escritura, strlen(escritura), 1, metadata_tabla_f) < 0) {
+		fclose(metadata_tabla_f);
+		return -1;
+	}
 
 	fclose(metadata_tabla_f);
 	return 0;
