@@ -4,8 +4,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <dirent.h>
 #include <ftw.h>
 #include <commons/config.h>
+#include <commons/string.h>
+#include <commons/collections/list.h>
 
 #include "../../commons/comunicacion/protocol.h"
 #include "../lfs-config.h"
@@ -13,7 +16,6 @@
 #include "filesystem.h"
 #include "bitmap.h"
 #include "manejo-datos.h"
-#include <dirent.h>
 
 int crear_directorio_tabla(char* nombre_tabla) {
 	int res_mkdir;
@@ -179,4 +181,56 @@ int borrar_tabla(char *tabla) {
     obtener_path_tabla(tabla, path_tabla);
     ftw(path_tabla, &_borrar_archivo, 10);
     return rmdir(path_tabla);
+}
+
+int dar_metadata_tablas(t_list* nombre_tablas, t_list* metadatas) {
+	int hubo_error = 0;
+	DIR *directorio;
+	struct dirent *directorio_datos;
+
+	char directorio_path[TAMANIO_PATH];
+	char* punto_montaje = get_punto_montaje();
+	sprintf(directorio_path, "%sTables/", punto_montaje);
+
+	directorio = opendir(directorio_path);
+
+	if (directorio == NULL) {
+		return -1;
+	}
+
+	metadata_t *metadata_temp;
+	char *nombre_temp;
+	while ((directorio_datos = readdir(directorio)) != NULL && !string_starts_with(directorio_datos->d_name, ".")) {
+		if((nombre_temp = strdup(directorio_datos->d_name)) == NULL) {
+			hubo_error = 1;
+			break;
+		}
+		if((metadata_temp = malloc(sizeof(metadata_t))) == NULL) {
+			free(nombre_temp);
+			hubo_error = 1;
+			break;
+		}
+		if(obtener_metadata_tabla(directorio_datos->d_name, metadata_temp) < 0) {
+			free(nombre_temp);
+			free(metadata_temp);
+			hubo_error = 1;
+			break;
+		}
+		list_add(nombre_tablas, nombre_temp);
+		list_add(metadatas, metadata_temp);
+	}
+
+	closedir(directorio);
+
+	void _destruir(void *elemento) {
+		free(elemento);
+	}
+
+	if(hubo_error) {
+		list_clean_and_destroy_elements(nombre_tablas, &_destruir);
+		list_clean_and_destroy_elements(metadatas, &_destruir);
+		return -1;
+	}
+
+	return 0;
 }

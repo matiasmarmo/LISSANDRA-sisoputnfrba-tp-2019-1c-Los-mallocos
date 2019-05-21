@@ -2,6 +2,7 @@
 #define LFS_FILE_SYSTEM_MANEJO_TABLAS_H_
 
 #include <stdint.h>
+#include <commons/collections/list.h>
 
 typedef struct metadata {
 	uint8_t consistencia;
@@ -24,5 +25,7 @@ int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla);
 void obtener_path_particion(int numero, char* nombre_tabla, char* path);
 
 int borrar_tabla(char *tabla);
+
+int dar_metadata_tablas(t_list *nombre_tablas, t_list *metadatas);
 
 #endif
