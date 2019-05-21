@@ -13,6 +13,7 @@
 #include "filesystem.h"
 #include "bitmap.h"
 #include "manejo-datos.h"
+#include <dirent.h>
 
 int crear_directorio_tabla(char* nombre_tabla) {
 	int res_mkdir;
@@ -116,10 +117,12 @@ int crear_tabla(char* nombre_tabla, metadata_t metadata) {
 		return -1;
 	}
 	if ((res_tabla = crear_metadata_tabla(metadata, nombre_tabla)) == -1) {
+		borrar_tabla(nombre_tabla);
 		return -1;
 	}
 	if ((res_tabla = crear_particiones(metadata.n_particiones, nombre_tabla))
 			== -1) {
+		borrar_tabla(nombre_tabla);
 		return -1;
 	}
 
