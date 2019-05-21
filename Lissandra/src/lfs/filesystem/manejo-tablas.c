@@ -63,10 +63,10 @@ int crear_metadata_tabla(metadata_t metadata, char* nombre_tabla) {
 	return 0;
 }
 
-int crear_particion(int numero, char* nombre_tabla, int tamanio) {
+int crear_particion(int numero, char* nombre_tabla) {
 	FILE* binario_f;
 	char nombre_binario[TAMANIO_PATH] = { 0 }, escritura[200] = { 0 };
-	char size_string[15], block_string[10];
+	char block_string[10];
 	int bloque;
 
 	bloque = pedir_bloque_bitmap();
@@ -80,10 +80,7 @@ int crear_particion(int numero, char* nombre_tabla, int tamanio) {
 		return -1;
 	}
 
-	strcpy(escritura, "SIZE=");
-	campo_entero_a_string(tamanio, size_string);
-	strcat(escritura, size_string);
-
+	strcpy(escritura, "SIZE=0");
 	strcat(escritura, "\nBLOCKS=[");
 	campo_entero_a_string(bloque, block_string);
 	strcat(escritura, block_string);
@@ -99,10 +96,9 @@ int crear_particion(int numero, char* nombre_tabla, int tamanio) {
 }
 
 int crear_particiones(int n_particiones, char* nombre_tabla) {
-	int tamanio_binario = get_tamanio_bloque();
 
 	for (int numero = 0; numero < n_particiones; numero++) {
-		if (crear_particion(numero, nombre_tabla, tamanio_binario) < 0) {
+		if (crear_particion(numero, nombre_tabla) < 0) {
 			return -1;
 		}
 	}
