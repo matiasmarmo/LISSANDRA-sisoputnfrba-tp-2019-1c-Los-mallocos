@@ -21,4 +21,8 @@ int existe_tabla(char* nombre_tabla);
 
 int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla);
 
+void obtener_path_particion(int numero, char* nombre_tabla, char* path);
+
+int borrar_tabla(char *tabla);
+
 #endif

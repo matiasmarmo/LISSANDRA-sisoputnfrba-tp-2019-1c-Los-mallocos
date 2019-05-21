@@ -4,8 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <errno.h>
+#include <ftw.h>
 #include <commons/config.h>
 
 #include "../../commons/comunicacion/protocol.h"
@@ -166,3 +165,15 @@ int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla) {
 	return 0;
 }
 
+int borrar_tabla(char *tabla) {
+
+    int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
+    	remove(path);
+    	return 0;
+    }
+
+    char path_tabla[TAMANIO_PATH] = { 0 };
+    obtener_path_tabla(tabla, path_tabla);
+    ftw(path_tabla, &_borrar_archivo, 10);
+    return rmdir(path_tabla);
+}
