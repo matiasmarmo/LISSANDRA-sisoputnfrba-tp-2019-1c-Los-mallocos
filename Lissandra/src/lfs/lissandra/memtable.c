@@ -110,6 +110,7 @@ t_dictionary *obtener_datos_para_dumpear() {
 
     void _copiar_entrada(char *tabla, void *elemento) {
         entrada_memtable_t *entrada = (entrada_memtable_t*) elemento;
+        pthread_mutex_lock(&entrada->lock);
         memtable_data_t *res_data = malloc(sizeof(memtable_data_t));
         if(res_data == NULL) {
             // Si falla el malloc, se mantienen los datos de esa tabla
@@ -120,7 +121,7 @@ t_dictionary *obtener_datos_para_dumpear() {
         res_data->data = entrada->data;
         res_data->cantidad_registros = entrada->cantidad_registros;
         dictionary_put(resultado, tabla, res_data);
-        pthread_mutex_destroy(&entrada->lock);
+        pthread_mutex_unlock(&entrada->lock);
         free(entrada);
     }
 
