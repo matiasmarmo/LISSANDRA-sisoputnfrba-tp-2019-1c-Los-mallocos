@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #include "../../commons/comunicacion/protocol.h"
 #include "../lfs-config.h"
@@ -153,3 +155,19 @@ int crear_tabla(char* nombre_tabla, metadata_t metadata) {
 
 	return 0;
 }
+
+int existe_tabla(char* nombre_tabla) {
+	char path_tabla[TAMANIO_PATH];
+	struct stat buffer;
+
+	obtener_path_tabla(nombre_tabla, path_tabla);
+
+	if (stat(path_tabla, &buffer) < 0) {
+		if (errno == ENOENT) {
+			return 1;
+		}
+		return -1;
+	}
+	return 0;
+}
+

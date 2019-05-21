@@ -17,4 +17,6 @@ int crear_tabla(char* nombre, metadata_t metadata);
  * Crea los archivos binarios asociados a cada particion de la tabla y asigna a cada uno un bloque.
  */
 
+int existe_tabla(char* nombre_tabla);
+
 #endif
