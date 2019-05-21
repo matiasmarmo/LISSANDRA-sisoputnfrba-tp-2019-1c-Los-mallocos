@@ -5,12 +5,15 @@
 #include <stdbool.h>
 #include <inttypes.h>
 #include <time.h>
+#include <errno.h>
 #include <sys/file.h>
 #include <commons/config.h>
 
 #include "../lfs-config.h"
 #include "filesystem.h"
 #include "manejo-datos.h"
+#include "bitmap.h"
+#include "config-with-locks.h"
 
 #define TIMESTAMP_STR_LEN 20
 
@@ -87,7 +90,12 @@ FILE *abrir_archivo_para_escritura(char *path) {
 }
 
 FILE *abrir_archivo_para_lectoescritura(char *path) {
-	return _abrir_archivo_con_lock(path, "r+", LOCK_EX);
+	FILE *archivo = _abrir_archivo_con_lock(path, "r+", LOCK_EX);
+    if(archivo == NULL && errno == ENOENT) {
+        // No existe, lo creamos
+        archivo = _abrir_archivo_con_lock(path, "w+", LOCK_EX);
+    }
+    return archivo;
 }
 
 FILE *abrir_archivo_para_agregar(char *path) {
@@ -291,4 +299,205 @@ int leer_archivo_de_datos(char *path, registro_t **resultado) {
     }
 
     return registros_cargados;
+}
+
+void registro_a_string(registro_t registro, char *buffer) {
+    sprintf(buffer, "%lu;%d;%s", registro.timestamp, registro.key, registro.value);
+}
+
+char *array_de_registros_a_string(registro_t *registros, int cantidad) {
+    char buffer[get_tamanio_string_registro()];
+    int tamanio_actual = 10 * get_tamanio_string_registro();
+    char *resultado = malloc(tamanio_actual);
+    int registro_siguiente = 0;
+    if(resultado == NULL) {
+        return NULL;
+    }
+    memset(buffer, 0, get_tamanio_string_registro());
+    memset(resultado, 0, tamanio_actual);
+    for(int i = 0; i < cantidad; i++) {
+        registro_a_string(registros[registro_siguiente++], buffer);
+        if(strlen(resultado) + strlen(buffer) + 1 > tamanio_actual) {
+            tamanio_actual *= 2;
+            char *realocado = realloc(resultado, tamanio_actual);
+            if(realocado == NULL) {
+                free(resultado);
+                return NULL;
+            }
+            resultado = realocado;
+        }
+        strcat(resultado, buffer);
+        strcat(resultado, "\n");
+    }
+
+    return resultado;
+}
+
+int cantidad_bytes_a_escribir(registro_t *registros, int cantidad_registros) {
+    int resultado = 0;
+    char buffer[get_tamanio_string_registro()];
+    for(int i = 0; i < cantidad_registros; i++) {
+        registro_a_string(registros[i], buffer);
+        // Agregamos un caracter extra por el '\n'
+        resultado += strlen(buffer) + 1;
+    }
+    return resultado;
+}
+
+int bytes_disponibles_en_bloque_from_file(FILE *archivo) {
+    long bytes_actuales;
+    if(fseek(archivo, 0, SEEK_END) < 0) {
+        fclose(archivo);
+        return -1;
+    }
+
+    if((bytes_actuales = ftell(archivo)) < 0) {
+        fclose(archivo);
+        return -1;
+    }
+
+    return (int)(get_tamanio_bloque() - bytes_actuales);
+}
+
+int bytes_disponibles_en_bloque(char *numero_bloque) {
+    char path_bloque[TAMANIO_PATH] = { 0 };
+    path_a_bloque(numero_bloque, path_bloque, TAMANIO_PATH);
+
+    int resultado;
+    FILE *archivo = abrir_archivo_para_lectura(path_bloque);
+    printf("Path bloque: %s\n", path_bloque);
+    if(archivo == NULL) {
+        return errno == ENOENT ? get_tamanio_bloque() : -1;
+    }
+
+    resultado = bytes_disponibles_en_bloque_from_file(archivo);
+    
+    fclose(archivo);
+    return resultado;
+}
+
+int ultimo_bloque_de_archivo_de_datos(char *path, FILE *file) {
+    t_config *archivo_datos = lfs_config_create_from_file(path, file);
+    char **i;
+    char numero_bloque[10];
+    if(archivo_datos == NULL) {
+        return -1;
+    }
+    char **bloques = config_get_array_value(archivo_datos, "BLOCKS");
+    if(bloques == NULL) {
+        config_destroy(archivo_datos);
+        return -1;
+    }
+
+    for(i = bloques; *i != NULL; i++);
+    strcpy(numero_bloque, *(--i));
+
+    for(i = bloques; *i != NULL; i++) {
+        free(*i);
+    }
+    free(bloques);
+    config_destroy(archivo_datos);
+
+    return (int) (strtoumax(numero_bloque, NULL, 10));
+}
+
+int bytes_disponibles_en_ultimo_bloque(int numero_bloque) {
+    char numero_str[10];
+    sprintf(numero_str, "%d", numero_bloque);
+    return bytes_disponibles_en_bloque(numero_str);
+}
+
+int escribir_en_bloque(int numero_bloque, char *string_datos, int desde) {
+    char numero_bloque_str[10], path_bloque[TAMANIO_PATH];
+    sprintf(numero_bloque_str, "%d", numero_bloque);
+    path_a_bloque(numero_bloque_str, path_bloque, TAMANIO_PATH);
+
+    FILE *archivo_bloque = abrir_archivo_para_lectoescritura(path_bloque);
+    if(archivo_bloque == NULL) {
+        return -1;
+    }
+
+    int bytes_disponibles = bytes_disponibles_en_bloque_from_file(archivo_bloque);
+    char *string_a_escribir = &(string_datos[desde]);
+    int bytes_a_escribir;
+    if(bytes_disponibles < 0 || fseek(archivo_bloque, 0, SEEK_SET) < 0) {
+        fclose(archivo_bloque);
+        return -1;
+    }
+    bytes_a_escribir = strlen(string_a_escribir) > bytes_disponibles ? bytes_disponibles : strlen(string_a_escribir);
+    if(fseek(archivo_bloque, 0, SEEK_END) < 0) {
+        fclose(archivo_bloque);
+        return -1;
+    }
+    if(fwrite(&(string_datos[desde]), bytes_a_escribir, 1, archivo_bloque) != 1) {
+        fclose(archivo_bloque);
+        return -1;
+    }
+    fclose(archivo_bloque);
+    return bytes_a_escribir;
+}
+
+int escribir_datos_en_bloques(int *bloques, int cant_bloques,
+        char *string_a_escribir) {
+    int caracteres_escritos = 0, ret_escritura;
+    for(int i = 0; i < cant_bloques; i++) {
+        ret_escritura = escribir_en_bloque(bloques[i], string_a_escribir, caracteres_escritos);
+        if(ret_escritura == -1) {
+            return -1;
+        }
+        caracteres_escritos += ret_escritura;
+    }
+    return 0;
+}
+
+int escribir_en_archivo_de_datos(char *path, registro_t *registros, int cantidad_registros) {
+    FILE *archivo = abrir_archivo_para_lectoescritura(path);
+    if(archivo == NULL) {
+        return -1;
+    }
+    printf("Abierto\n");
+    int cantidad_de_bytes = cantidad_bytes_a_escribir(registros, cantidad_registros);
+    printf("Cantidad bytes a escibir: %d\n", cantidad_de_bytes);
+    int ultimo_bloque = ultimo_bloque_de_archivo_de_datos(path, archivo);
+    printf("Ultimo bloque: %d\n", ultimo_bloque);
+    int restante_ultimo_bloque = bytes_disponibles_en_ultimo_bloque(ultimo_bloque);
+    printf("Llego a restante ultimo bloque: %d\n", restante_ultimo_bloque);
+    int cantidad_bloques_que_pedir;
+    if(cantidad_de_bytes < restante_ultimo_bloque) {
+        cantidad_bloques_que_pedir = 0;
+    } else {
+        cantidad_bloques_que_pedir = (cantidad_de_bytes - restante_ultimo_bloque) / get_tamanio_bloque() + 1;
+        if((cantidad_de_bytes - restante_ultimo_bloque) % get_tamanio_bloque() == 0) {
+            cantidad_bloques_que_pedir--;
+        }
+    }
+    printf("Cantidad de bloques a pedir: %d\n", cantidad_bloques_que_pedir);
+    int bloques_a_escribir[cantidad_bloques_que_pedir + 1];
+    bloques_a_escribir[0] = ultimo_bloque;
+    for(int i = 1; i < cantidad_bloques_que_pedir + 1; i++) {
+        int bloque = pedir_bloque_bitmap();
+        if(bloque == -1) {
+            for(int j = 1; j < i + 1; j++) {
+                liberar_bloque_bitmap(bloques_a_escribir[j]);
+            }
+            fclose(archivo);
+            return -1;
+        }
+        bloques_a_escribir[i] = bloque;
+    }
+    char *string_a_escribir = array_de_registros_a_string(registros, cantidad_registros);
+    if(string_a_escribir == NULL) {
+        // Devolver bloques
+        fclose(archivo);
+        return -1;
+    }
+    if(escribir_datos_en_bloques(bloques_a_escribir, cantidad_bloques_que_pedir + 1, string_a_escribir) < 0) {
+        // Devolver bloques
+        free(string_a_escribir);
+        fclose(archivo);
+        return -1;
+    }
+    free(string_a_escribir);
+    fclose(archivo);
+    return 0;
 }
