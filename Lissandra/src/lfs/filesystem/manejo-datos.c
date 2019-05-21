@@ -365,7 +365,6 @@ int bytes_disponibles_en_bloque(char *numero_bloque) {
 
     int resultado;
     FILE *archivo = abrir_archivo_para_lectura(path_bloque);
-    printf("Path bloque: %s\n", path_bloque);
     if(archivo == NULL) {
         return errno == ENOENT ? get_tamanio_bloque() : -1;
     }
@@ -437,16 +436,53 @@ int escribir_en_bloque(int numero_bloque, char *string_datos, int desde) {
     return bytes_a_escribir;
 }
 
-int escribir_datos_en_bloques(int *bloques, int cant_bloques,
-        char *string_a_escribir) {
+char *agregar_string_a_lista_strings_y_aplanar(char **lista_strings, char *nuevo_string) {
+    char *buffer = malloc(100);
+
+    if(buffer == NULL) {
+        return NULL;
+    }
+
+    strcpy(buffer, "[");
+    for(char **i = lista_strings; *i != NULL; i++) {
+        strcat(buffer, *i);
+        strcat(buffer, ", ");
+    }
+    strcat(buffer, nuevo_string);
+    strcat(buffer, "]");
+    return buffer;
+}
+
+int escribir_datos_en_bloques(char *path, FILE *archivo_datos, int *bloques,
+        int cant_bloques, char *string_a_escribir) {
     int caracteres_escritos = 0, ret_escritura;
+    t_config *config_datos = lfs_config_create_from_file(path, archivo_datos);
+    char numero[10];
+    if(config_datos == NULL) {
+        return -1;
+    }
     for(int i = 0; i < cant_bloques; i++) {
         ret_escritura = escribir_en_bloque(bloques[i], string_a_escribir, caracteres_escritos);
         if(ret_escritura == -1) {
+            config_destroy(config_datos);
             return -1;
         }
         caracteres_escritos += ret_escritura;
+        if(i == 0) {
+            continue;
+        }
+        sprintf(numero, "%d", bloques[i]);
+        char **bloques_actuales = config_get_array_value(config_datos, "BLOCKS");
+        char *nuevo_valor = agregar_string_a_lista_strings_y_aplanar(bloques_actuales, numero);
+        config_set_value(config_datos, "BLOCKS", nuevo_valor);
+        for(char **i = bloques_actuales; *i != NULL; i++) {
+            free(*i);
+        }
+        free(bloques_actuales);
+        free(nuevo_valor);
     }
+    lfs_config_save_in_file(config_datos, archivo_datos);
+    config_destroy(config_datos);
     return 0;
 }
 
@@ -455,13 +491,9 @@ int escribir_en_archivo_de_datos(char *path, registro_t *registros, int cantidad
     if(archivo == NULL) {
         return -1;
     }
-    printf("Abierto\n");
     int cantidad_de_bytes = cantidad_bytes_a_escribir(registros, cantidad_registros);
-    printf("Cantidad bytes a escibir: %d\n", cantidad_de_bytes);
     int ultimo_bloque = ultimo_bloque_de_archivo_de_datos(path, archivo);
-    printf("Ultimo bloque: %d\n", ultimo_bloque);
     int restante_ultimo_bloque = bytes_disponibles_en_ultimo_bloque(ultimo_bloque);
-    printf("Llego a restante ultimo bloque: %d\n", restante_ultimo_bloque);
     int cantidad_bloques_que_pedir;
     if(cantidad_de_bytes < restante_ultimo_bloque) {
         cantidad_bloques_que_pedir = 0;
@@ -471,7 +503,6 @@ int escribir_en_archivo_de_datos(char *path, registro_t *registros, int cantidad
             cantidad_bloques_que_pedir--;
         }
     }
-    printf("Cantidad de bloques a pedir: %d\n", cantidad_bloques_que_pedir);
     int bloques_a_escribir[cantidad_bloques_que_pedir + 1];
     bloques_a_escribir[0] = ultimo_bloque;
     for(int i = 1; i < cantidad_bloques_que_pedir + 1; i++) {
@@ -491,7 +522,7 @@ int escribir_en_archivo_de_datos(char *path, registro_t *registros, int cantidad
         fclose(archivo);
         return -1;
     }
-    if(escribir_datos_en_bloques(bloques_a_escribir, cantidad_bloques_que_pedir + 1, string_a_escribir) < 0) {
+    if(escribir_datos_en_bloques(path, archivo, bloques_a_escribir, cantidad_bloques_que_pedir + 1, string_a_escribir) < 0) {
         // Devolver bloques
         free(string_a_escribir);
         fclose(archivo);
