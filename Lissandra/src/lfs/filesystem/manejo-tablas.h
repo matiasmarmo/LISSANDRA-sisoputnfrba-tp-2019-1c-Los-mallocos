@@ -19,4 +19,6 @@ int crear_tabla(char* nombre, metadata_t metadata);
 
 int existe_tabla(char* nombre_tabla);
 
+int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla);
+
 #endif

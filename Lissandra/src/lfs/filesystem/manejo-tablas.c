@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <commons/config.h>
 
 #include "../../commons/comunicacion/protocol.h"
 #include "../lfs-config.h"
@@ -138,6 +139,30 @@ int existe_tabla(char* nombre_tabla) {
 		}
 		return -1;
 	}
+	return 0;
+}
+
+int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla) {
+	char buffer[TAMANIO_PATH];
+
+	obtener_path_tabla(nombre_tabla, buffer);
+	strcat(buffer, nombre_tabla);
+	strcat(buffer, "-metadata.bin");
+
+	t_config* metadata_config_tabla = config_create(buffer);
+	if (metadata_config_tabla == NULL) {
+		return -1;
+	}
+
+	metadata_tabla->consistencia = config_get_int_value(metadata_config_tabla,
+			"CONSISTENCY");
+	metadata_tabla->n_particiones = config_get_int_value(metadata_config_tabla,
+			"PARTITIONS");
+	metadata_tabla->t_compactaciones = config_get_int_value(
+			metadata_config_tabla, "COMPACTION_TIME");
+
+	config_destroy(metadata_config_tabla);
+
 	return 0;
 }
 
