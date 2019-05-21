@@ -32,11 +32,11 @@ struct pagina{
 //pthread_mutex_t memoria_main_mutex = PTHREAD_MUTEX_INITIALIZER;
 //pthread_cond_t memoria_main_cond = PTHREAD_COND_INITIALIZER;
 
-/*
+
 void inicializar_memoria() {
 
 }
-
+/*
 void liberar_recursos_memoria() {
 
 }
@@ -48,6 +48,11 @@ void finalizar_memoria(){
 
 int main() {
 	//inicializar_memoria();
+	int tamanio_memoria = get_tamanio_memoria();
+	char* memoria = calloc(tamanio_memoria, sizeof(char));
+
+	t_list* TABLA_DE_SEGMENTOS = list_create();
+	t_list* TABLA_DE_PAGINAS = list_create();
 
 	// inicializo hilos
 
