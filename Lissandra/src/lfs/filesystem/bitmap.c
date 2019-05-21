@@ -11,7 +11,7 @@
 #include "manejo-datos.h"
 #include "../lfs-logger.h"
 
-char bitmap_path[256];
+char bitmap_path[TAMANIO_PATH];
 int cantidad_bytes_bitmap = -1;
 int _cantidad_bloques = -1;
 
