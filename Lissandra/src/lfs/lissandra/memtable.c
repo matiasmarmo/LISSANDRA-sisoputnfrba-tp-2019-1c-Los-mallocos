@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include <stdlib.h>
+#include <string.h>
 #include <commons/collections/dictionary.h>
 
 #include "../filesystem/filesystem.h"
@@ -60,12 +61,14 @@ int insertar_en_entrada(entrada_memtable_t *entrada, registro_t registro) {
         return -1;
     }
     if(entrada->cantidad_registros >= entrada->tamanio_actual_data) {
-        entrada->tamanio_actual_data = entrada->data == NULL ? 10 : entrada->tamanio_actual_data * 2;
-        registro_t *data_realocado = realloc(entrada->data, entrada->tamanio_actual_data);
+        entrada->tamanio_actual_data = entrada->tamanio_actual_data * 2;
+        registro_t *data_realocado = malloc(entrada->tamanio_actual_data * sizeof(registro_t));
         if(data_realocado == NULL) {
             pthread_mutex_unlock(&entrada->lock);
             return -1;
         }
+        memcpy(data_realocado, entrada->data, entrada->cantidad_registros * sizeof(registro_t));
+        free(entrada->data);
         entrada->data = data_realocado;
     }
     entrada->data[(entrada->cantidad_registros)++] = registro;
