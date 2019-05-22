@@ -109,6 +109,29 @@ int insertar_en_memtable(registro_t registro, char *tabla) {
 	return 0;
 }
 
+int iterar_entrada_memtable(char *tabla, operacion_t operacion) {
+	if(pthread_rwlock_rdlock(&memtable_lock) != 0) {
+		return -1;
+	}
+	if(!dictionary_has_key(memtable, tabla)) {
+		pthread_rwlock_unlock(&memtable_lock);
+		return -1;
+	}
+	entrada_memtable_t *entrada = dictionary_get(memtable, tabla);
+	if(pthread_mutex_lock(&entrada->lock) != 0) {
+		pthread_rwlock_unlock(&memtable_lock);
+		return -1;
+	}
+	for(int i = 0; i < entrada->cantidad_registros; i++) {
+		if(operacion(entrada->data[i]) != CONTINUAR) {
+			break;
+		}
+	}
+	pthread_mutex_unlock(&entrada->lock);
+	pthread_rwlock_unlock(&memtable_lock);
+	return 0;
+}
+
 t_dictionary *obtener_datos_para_dumpear() {
 	t_dictionary *resultado = dictionary_create();
 	t_dictionary *nueva_memtable = dictionary_create();

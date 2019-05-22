@@ -15,6 +15,8 @@ void destruir_memtable();
 
 int insertar_en_memtable(registro_t registro, char *tabla);
 
+int iterar_entrada_memtable(char *tabla, operacion_t operacion);
+
 t_dictionary *obtener_datos_para_dumpear();
 
 void destruir_datos_dumpeados(t_dictionary *datos);
