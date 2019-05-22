@@ -1,3 +1,4 @@
+#include <string.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <commons/collections/dictionary.h>
@@ -122,8 +123,18 @@ int iterar_entrada_memtable(char *tabla, operacion_t operacion) {
 		pthread_rwlock_unlock(&memtable_lock);
 		return -1;
 	}
+	// Duplicamos el registro para poder utilizar la misma función
+	// al iterar la memtable o archivos de datos.
+	registro_t registro_duplicado;
 	for(int i = 0; i < entrada->cantidad_registros; i++) {
-		if(operacion(entrada->data[i]) != CONTINUAR) {
+		registro_duplicado = entrada->data[i];
+		registro_duplicado.value = strdup((entrada->data[i]).value);
+		if(registro_duplicado.value == NULL) {
+			pthread_mutex_unlock(&entrada->lock);
+			pthread_rwlock_unlock(&memtable_lock);
+			return -1;
+		}
+		if(operacion(registro_duplicado) != CONTINUAR) {
 			break;
 		}
 	}
