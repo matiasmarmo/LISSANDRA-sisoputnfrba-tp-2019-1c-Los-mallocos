@@ -226,8 +226,13 @@ int iterar_archivo_de_datos(char *path, operacion_t operacion) {
 	// por cada registro. También maneja los registros truncados
 	// entre bloques.
 
-	t_config *archivo_datos = config_create(path);
+    FILE *archivo = abrir_archivo_para_lectura(path);
+    if(archivo == NULL){
+        return -1;
+    }
+	t_config *archivo_datos = lfs_config_create_from_file(path, archivo);
 	if (archivo_datos == NULL) {
+        fclose(archivo);
 		return -1;
 	}
 
@@ -240,6 +245,7 @@ int iterar_archivo_de_datos(char *path, operacion_t operacion) {
 	char **bloques = config_get_array_value(archivo_datos, "BLOCKS");
 	if (bloques == NULL) {
 		config_destroy(archivo_datos);
+        fclose(archivo);
 		return -1;
 	}
 
@@ -250,6 +256,8 @@ int iterar_archivo_de_datos(char *path, operacion_t operacion) {
 			break;
 		}
 	}
+
+    fclose(archivo);
 
 	for (char **bloque_num = bloques; *bloque_num != NULL; bloque_num++) {
 		free(*bloque_num);
