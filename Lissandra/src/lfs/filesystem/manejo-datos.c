@@ -543,36 +543,104 @@ char *agregar_string_a_lista_strings_y_aplanar(char **lista_strings, char *nuevo
     return buffer;
 }
 
+int agregar_bloque_a_config(t_config *config, int bloque) {
+
+    char numero[10];
+    sprintf(numero, "%d", bloque);
+    char *bloques_actuales = config_get_string_value(config, "BLOCKS");
+    char *nuevo_valor = malloc(strlen(bloques_actuales) + 10);
+    if(nuevo_valor == NULL) {
+        free(bloques_actuales);
+        return -1;
+    }
+    strcpy(nuevo_valor, bloques_actuales);
+    int indice = 0;
+    while(nuevo_valor[indice++] != ']');
+    nuevo_valor[indice - 1] = ',';
+    nuevo_valor[indice] =  ' ';
+    nuevo_valor[indice + 1] = '\0';
+    strcat(nuevo_valor, numero);
+    strcat(nuevo_valor, "]");
+    config_set_value(config, "BLOCKS", nuevo_valor);
+    free(nuevo_valor);
+    return 0;
+
+    /*char numero[10];
+    sprintf(numero, "%d", bloque);
+    char **bloques_actuales = config_get_array_value(config, "BLOCKS");
+    char *nuevo_valor = agregar_string_a_lista_strings_y_aplanar(bloques_actuales, numero);
+    config_set_value(config, "BLOCKS", nuevo_valor);
+    for(char **i = bloques_actuales; *i != NULL; i++) {
+        free(*i);
+    }
+    free(bloques_actuales);
+    free(nuevo_valor);*/
+}
+
 int escribir_datos_en_bloques(char *path, FILE *archivo_datos, int *bloques,
         int cant_bloques, char *string_a_escribir) {
     int caracteres_escritos = 0, ret_escritura;
     t_config *config_datos = lfs_config_create_from_file(path, archivo_datos);
-    char numero[10];
     if(config_datos == NULL) {
         return -1;
     }
-    for(int i = 0; i < cant_bloques; i++) {
+
+    ret_escritura = escribir_en_bloque(bloques[0], string_a_escribir, caracteres_escritos);
+    if(ret_escritura == -1) {
+        config_destroy(config_datos);
+        return -1;
+    }
+    caracteres_escritos += ret_escritura;
+    for(int i = 1; i < cant_bloques; i++) {
         ret_escritura = escribir_en_bloque(bloques[i], string_a_escribir, caracteres_escritos);
         if(ret_escritura == -1) {
             config_destroy(config_datos);
             return -1;
         }
         caracteres_escritos += ret_escritura;
-        if(i == 0) {
-            continue;
+        if(agregar_bloque_a_config(config_datos, bloques[i]) < 0) {
+            config_destroy(config_datos);
+            return -1;
         }
-        sprintf(numero, "%d", bloques[i]);
-        char **bloques_actuales = config_get_array_value(config_datos, "BLOCKS");
-        char *nuevo_valor = agregar_string_a_lista_strings_y_aplanar(bloques_actuales, numero);
-        config_set_value(config_datos, "BLOCKS", nuevo_valor);
-        for(char **i = bloques_actuales; *i != NULL; i++) {
-            free(*i);
-        }
-        free(bloques_actuales);
-        free(nuevo_valor);
     }
     lfs_config_save_in_file(config_datos, archivo_datos);
     config_destroy(config_datos);
+    return 0;
+}
+
+int liberar_bloques_bitmap(int *bloques, int cantidad) {
+    int hubo_error = 0;
+    for(int i = 0; i < cantidad; i++) {
+        if(liberar_bloque_bitmap(bloques[i]) < 0) {
+            hubo_error = -1;
+        }
+    }
+    return hubo_error;
+}
+
+int cantidad_de_bloques_a_pedir(int cantiadad_bytes_a_escribir, int restante_ultimo_bloque) {
+    int res;
+    if(cantiadad_bytes_a_escribir < restante_ultimo_bloque) {
+        res = 0;
+    } else {
+        res = (cantiadad_bytes_a_escribir - restante_ultimo_bloque) / get_tamanio_bloque() + 1;
+        if((cantiadad_bytes_a_escribir - restante_ultimo_bloque) % get_tamanio_bloque() == 0) {
+            res--;
+        }
+    }
+    return res;
+}
+
+int pedir_bloques(int *bloques, int cantidad, int ultimo_bloque) {
+    bloques[0] = ultimo_bloque;
+    for(int i = 1; i < cantidad; i++) {
+        int bloque = pedir_bloque_bitmap();
+        if(bloque == -1) {
+            liberar_bloques_bitmap(bloques + 1, i - 1);
+            return -1;
+        }
+        bloques[i] = bloque;
+    }
     return 0;
 }
 
@@ -584,36 +652,23 @@ int escribir_en_archivo_de_datos(char *path, registro_t *registros, int cantidad
     int cantidad_de_bytes = cantidad_bytes_a_escribir(registros, cantidad_registros);
     int ultimo_bloque = ultimo_bloque_de_archivo_de_datos(path, archivo);
     int restante_ultimo_bloque = bytes_disponibles_en_ultimo_bloque(ultimo_bloque);
-    int cantidad_bloques_que_pedir;
-    if(cantidad_de_bytes < restante_ultimo_bloque) {
-        cantidad_bloques_que_pedir = 0;
-    } else {
-        cantidad_bloques_que_pedir = (cantidad_de_bytes - restante_ultimo_bloque) / get_tamanio_bloque() + 1;
-        if((cantidad_de_bytes - restante_ultimo_bloque) % get_tamanio_bloque() == 0) {
-            cantidad_bloques_que_pedir--;
-        }
-    }
+    int cantidad_bloques_que_pedir = cantidad_de_bloques_a_pedir(
+        cantidad_de_bytes, restante_ultimo_bloque);
+    
     int bloques_a_escribir[cantidad_bloques_que_pedir + 1];
-    bloques_a_escribir[0] = ultimo_bloque;
-    for(int i = 1; i < cantidad_bloques_que_pedir + 1; i++) {
-        int bloque = pedir_bloque_bitmap();
-        if(bloque == -1) {
-            for(int j = 1; j < i + 1; j++) {
-                liberar_bloque_bitmap(bloques_a_escribir[j]);
-            }
-            fclose(archivo);
-            return -1;
-        }
-        bloques_a_escribir[i] = bloque;
+    if(pedir_bloques(bloques_a_escribir, cantidad_bloques_que_pedir + 1, ultimo_bloque) < 0) {
+        fclose(archivo);
+        return -1;
     }
+
     char *string_a_escribir = array_de_registros_a_string(registros, cantidad_registros);
     if(string_a_escribir == NULL) {
-        // Devolver bloques
+        liberar_bloques_bitmap(bloques_a_escribir + 1, cantidad_bloques_que_pedir);
         fclose(archivo);
         return -1;
     }
     if(escribir_datos_en_bloques(path, archivo, bloques_a_escribir, cantidad_bloques_que_pedir + 1, string_a_escribir) < 0) {
-        // Devolver bloques
+        liberar_bloques_bitmap(bloques_a_escribir + 1, cantidad_bloques_que_pedir);
         free(string_a_escribir);
         fclose(archivo);
         return -1;
