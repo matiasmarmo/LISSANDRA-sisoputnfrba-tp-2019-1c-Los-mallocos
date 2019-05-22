@@ -26,6 +26,8 @@ void obtener_path_particion(int numero, char* nombre_tabla, char* path);
 
 int borrar_tabla(char *tabla);
 
+void borrar_todos_los_tmpc(char *tabla);
+
 int dar_metadata_tablas(t_list *nombre_tablas, t_list *metadatas);
 
 #endif

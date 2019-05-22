@@ -79,7 +79,6 @@ int crear_particion(int numero, char* nombre_tabla) {
 	if (bloque < 0) {
 		return -1;
 	}
-
 	obtener_path_particion(numero, nombre_tabla, nombre_binario);
 
 	if ((binario_f = abrir_archivo_para_escritura(nombre_binario)) == NULL) {
@@ -170,17 +169,39 @@ int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla) {
 	return 0;
 }
 
+int iterar_directorio_tabla(char *tabla, int (funcion)(const char*, const struct stat*, int)) {
+
+	char path_tabla[TAMANIO_PATH] = { 0 };
+    obtener_path_tabla(tabla, path_tabla);
+    return ftw(path_tabla, funcion, 10);
+
+}
+
 int borrar_tabla(char *tabla) {
 
     int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
+    	// Falta liberar los bloques que las particiones y archivos temporales
+    	// tienen asignados
     	remove(path);
     	return 0;
     }
 
     char path_tabla[TAMANIO_PATH] = { 0 };
     obtener_path_tabla(tabla, path_tabla);
-    ftw(path_tabla, &_borrar_archivo, 10);
+    iterar_directorio_tabla(tabla, &_borrar_archivo);
     return rmdir(path_tabla);
+}
+
+void borrar_todos_los_tmpc(char *tabla) {
+
+	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
+    	if(string_ends_with((char*)path, ".tmpc") || string_ends_with((char*)path, ".tmpc/")) {
+    		remove(path);
+    	}
+    	return 0;
+    }
+
+    iterar_directorio_tabla(tabla, &_borrar_archivo);
 }
 
 int dar_metadata_tablas(t_list* nombre_tablas, t_list* metadatas) {
