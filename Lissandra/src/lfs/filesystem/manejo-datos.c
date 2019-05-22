@@ -526,23 +526,6 @@ int escribir_en_bloque(int numero_bloque, char *string_datos, int desde) {
     return bytes_a_escribir;
 }
 
-char *agregar_string_a_lista_strings_y_aplanar(char **lista_strings, char *nuevo_string) {
-    char *buffer = malloc(100);
-
-    if(buffer == NULL) {
-        return NULL;
-    }
-
-    strcpy(buffer, "[");
-    for(char **i = lista_strings; *i != NULL; i++) {
-        strcat(buffer, *i);
-        strcat(buffer, ", ");
-    }
-    strcat(buffer, nuevo_string);
-    strcat(buffer, "]");
-    return buffer;
-}
-
 int agregar_bloque_a_config(t_config *config, int bloque) {
 
     char numero[10];
@@ -564,17 +547,6 @@ int agregar_bloque_a_config(t_config *config, int bloque) {
     config_set_value(config, "BLOCKS", nuevo_valor);
     free(nuevo_valor);
     return 0;
-
-    /*char numero[10];
-    sprintf(numero, "%d", bloque);
-    char **bloques_actuales = config_get_array_value(config, "BLOCKS");
-    char *nuevo_valor = agregar_string_a_lista_strings_y_aplanar(bloques_actuales, numero);
-    config_set_value(config, "BLOCKS", nuevo_valor);
-    for(char **i = bloques_actuales; *i != NULL; i++) {
-        free(*i);
-    }
-    free(bloques_actuales);
-    free(nuevo_valor);*/
 }
 
 int escribir_datos_en_bloques(char *path, FILE *archivo_datos, int *bloques,
