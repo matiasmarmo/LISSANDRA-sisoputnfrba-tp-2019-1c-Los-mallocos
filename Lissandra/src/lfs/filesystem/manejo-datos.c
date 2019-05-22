@@ -318,10 +318,20 @@ int leer_archivo_de_datos(char *path, registro_t **resultado) {
 int borrar_bloque(int bloque) {
 	char path_bloque[TAMANIO_PATH];
 	obtener_path_bloque(bloque, path_bloque);
-	if (remove(path_bloque)) {
-		//No existe el archivo
+    int fd;
+    FILE *archivo_bloque = abrir_archivo_para_lectoescritura(path_bloque);
+
+    if(archivo_bloque == NULL) {
+        return -1;
+    }
+
+    fd = fileno(archivo_bloque);
+
+	if (ftruncate(fd, 0) < 0) {
+		fclose(archivo_bloque);
 		return -1;
 	}
+    fclose(archivo_bloque);
 
 	if (liberar_bloque_bitmap(bloque) < 0) {
 		return -1;
@@ -330,12 +340,13 @@ int borrar_bloque(int bloque) {
 }
 
 int iterar_bloques(char** bloques, operacion_bloque_t operacion_bloque) {
+    int hubo_error = 0;
 	for (char **i = bloques; *i != NULL; i++) {
 		if (operacion_bloque((int) strtoumax(*i, NULL, 10)) < 0) {
-			return -1;
+			hubo_error = -1;
 		}
 	}
-	return 0;
+	return hubo_error;
 }
 
 int pisar_particion(char* tabla, int nro_particion, registro_t* registros,
@@ -350,16 +361,28 @@ int pisar_particion(char* tabla, int nro_particion, registro_t* registros,
 
 	char** buffer = config_get_array_value(config_particion, "BLOCKS");
 	if (iterar_bloques(buffer, &borrar_bloque) < 0) {
+        config_destroy(config_particion);
+        fclose(archivo);
 		return -1;
 	}
 
+    for(char **i = buffer; *i != NULL; i++) {
+        free(*i);
+    }
+    free(buffer);
+
 	int bloque_temp = pedir_bloque_bitmap();
 	if (bloque_temp < 0) {
+        config_destroy(config_particion);
+        fclose(archivo);
 		return -1;
 	}
 	sprintf(blocks_str, "[%d]", bloque_temp);
 	config_set_value(config_particion, "BLOCKS", blocks_str);
 	lfs_config_save_in_file(config_particion, archivo);
+
+    config_destroy(config_particion);
+    fclose(archivo);
 
 	if(escribir_en_archivo_de_datos(path_particion, registros, cantidad) < 0){
 		return -1;
