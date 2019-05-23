@@ -402,6 +402,7 @@ int pisar_particion(char* tabla, int nro_particion, registro_t* registros,
     }
 	sprintf(blocks_str, "[%d]", bloque_temp);
 	config_set_value(config_particion, "BLOCKS", blocks_str);
+    config_set_value(config_particion, "SIZE", "0");
 	lfs_config_save_in_file(config_particion, archivo);
 
     config_destroy(config_particion);
@@ -572,6 +573,12 @@ int agregar_bloque_a_config(t_config *config, int bloque) {
     return 0;
 }
 
+void sumar_bytes_escritos_a_config(t_config *config, int cantidad) {
+    char valor[10] = { 0 };
+    sprintf(valor, "%d", cantidad + config_get_int_value(config, "SIZE"));
+    config_set_value(config, "SIZE", valor);
+}
+
 int escribir_datos_en_bloques(char *path, FILE *archivo_datos, int *bloques,
         int cant_bloques, char *string_a_escribir) {
     int caracteres_escritos = 0, ret_escritura;
@@ -598,6 +605,7 @@ int escribir_datos_en_bloques(char *path, FILE *archivo_datos, int *bloques,
             return -1;
         }
     }
+    sumar_bytes_escritos_a_config(config_datos, caracteres_escritos);
     lfs_config_save_in_file(config_datos, archivo_datos);
     config_destroy(config_datos);
     return 0;
