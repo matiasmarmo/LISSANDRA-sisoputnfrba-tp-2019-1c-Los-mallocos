@@ -169,39 +169,67 @@ int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla) {
 	return 0;
 }
 
-int iterar_directorio_tabla(char *tabla, int (funcion)(const char*, const struct stat*, int)) {
+int iterar_directorio_tabla(char *tabla,
+		int (funcion)(const char*, const struct stat*, int)) {
 
 	char path_tabla[TAMANIO_PATH] = { 0 };
-    obtener_path_tabla(tabla, path_tabla);
-    return ftw(path_tabla, funcion, 10);
+	obtener_path_tabla(tabla, path_tabla);
+	return ftw(path_tabla, funcion, 10);
 
 }
 
 int borrar_tabla(char *tabla) {
 
-    int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
-    	// Falta liberar los bloques que las particiones y archivos temporales
-    	// tienen asignados
-    	remove(path);
-    	return 0;
-    }
+	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
+		// Falta liberar los bloques que las particiones y archivos temporales
+		// tienen asignados
+		remove(path);
+		return 0;
+	}
 
-    char path_tabla[TAMANIO_PATH] = { 0 };
-    obtener_path_tabla(tabla, path_tabla);
-    iterar_directorio_tabla(tabla, &_borrar_archivo);
-    return rmdir(path_tabla);
+	char path_tabla[TAMANIO_PATH] = { 0 };
+	obtener_path_tabla(tabla, path_tabla);
+	iterar_directorio_tabla(tabla, &_borrar_archivo);
+	return rmdir(path_tabla);
 }
 
 void borrar_todos_los_tmpc(char *tabla) {
 
-	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
-    	if(string_ends_with((char*)path, ".tmpc") || string_ends_with((char*)path, ".tmpc/")) {
-    		remove(path);
-    	}
-    	return 0;
-    }
+	if (existe_tabla(tabla) != 1) {
+		//log no existe tabla o hubo error
+	}
 
-    iterar_directorio_tabla(tabla, &_borrar_archivo);
+	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
+		if (string_ends_with((char*) path, ".tmpc")
+				|| string_ends_with((char*) path, ".tmpc/")) {
+			remove(path);
+		}
+		return 0;
+	}
+
+	iterar_directorio_tabla(tabla, &_borrar_archivo);
+}
+
+void convertir_todos_tmp_a_tmpc(char* tabla) {
+
+	if (existe_tabla(tabla) != 1) {
+		//log no existe tabla o hubo error
+	}
+
+	int _renombrar_archivo_a_tmpc(const char *path, const struct stat *stat,
+			int flag) {
+		printf("%s", path);
+		if (string_ends_with((char*) path, ".tmp")
+				|| string_ends_with((char*) path, ".tmp/")) {
+
+			char path_nuevo_temp[TAMANIO_PATH];
+			strcpy(path_nuevo_temp, path);
+			strcat(path_nuevo_temp, "c");
+			rename(path, path_nuevo_temp);
+		}
+		return 0;
+	}
+	iterar_directorio_tabla(tabla, &_renombrar_archivo_a_tmpc);
 }
 
 int dar_metadata_tablas(t_list* nombre_tablas, t_list* metadatas) {
@@ -221,17 +249,19 @@ int dar_metadata_tablas(t_list* nombre_tablas, t_list* metadatas) {
 
 	metadata_t *metadata_temp;
 	char *nombre_temp;
-	while ((directorio_datos = readdir(directorio)) != NULL && !string_starts_with(directorio_datos->d_name, ".")) {
-		if((nombre_temp = strdup(directorio_datos->d_name)) == NULL) {
+	while ((directorio_datos = readdir(directorio)) != NULL
+			&& !string_starts_with(directorio_datos->d_name, ".")) {
+		if ((nombre_temp = strdup(directorio_datos->d_name)) == NULL) {
 			hubo_error = 1;
 			break;
 		}
-		if((metadata_temp = malloc(sizeof(metadata_t))) == NULL) {
+		if ((metadata_temp = malloc(sizeof(metadata_t))) == NULL) {
 			free(nombre_temp);
 			hubo_error = 1;
 			break;
 		}
-		if(obtener_metadata_tabla(directorio_datos->d_name, metadata_temp) < 0) {
+		if (obtener_metadata_tabla(directorio_datos->d_name, metadata_temp)
+				< 0) {
 			free(nombre_temp);
 			free(metadata_temp);
 			hubo_error = 1;
@@ -247,7 +277,7 @@ int dar_metadata_tablas(t_list* nombre_tablas, t_list* metadatas) {
 		free(elemento);
 	}
 
-	if(hubo_error) {
+	if (hubo_error) {
 		list_clean_and_destroy_elements(nombre_tablas, &_destruir);
 		list_clean_and_destroy_elements(metadatas, &_destruir);
 		return -1;

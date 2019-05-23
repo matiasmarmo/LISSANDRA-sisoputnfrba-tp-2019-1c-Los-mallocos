@@ -28,6 +28,8 @@ int borrar_tabla(char *tabla);
 
 void borrar_todos_los_tmpc(char *tabla);
 
+void convertir_todos_tmp_a_tmpc(char* tabla);
+
 int dar_metadata_tablas(t_list *nombre_tablas, t_list *metadatas);
 
 #endif
