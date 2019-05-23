@@ -195,8 +195,9 @@ int borrar_tabla(char *tabla) {
 
 void borrar_todos_los_tmpc(char *tabla) {
 
-	if (existe_tabla(tabla) != 1) {
+	if (existe_tabla(tabla) != 0) {
 		//log no existe tabla o hubo error
+		return;
 	}
 
 	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
@@ -212,13 +213,13 @@ void borrar_todos_los_tmpc(char *tabla) {
 
 void convertir_todos_tmp_a_tmpc(char* tabla) {
 
-	if (existe_tabla(tabla) != 1) {
+	if (existe_tabla(tabla) != 0) {
 		//log no existe tabla o hubo error
+		return;
 	}
 
 	int _renombrar_archivo_a_tmpc(const char *path, const struct stat *stat,
 			int flag) {
-		printf("%s", path);
 		if (string_ends_with((char*) path, ".tmp")
 				|| string_ends_with((char*) path, ".tmp/")) {
 
