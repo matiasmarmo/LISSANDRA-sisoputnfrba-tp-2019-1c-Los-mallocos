@@ -357,6 +357,21 @@ int iterar_bloques(char** bloques, operacion_bloque_t operacion_bloque) {
 	return hubo_error;
 }
 
+int liberar_bloques_de_archivo(t_config *config_archivo) {
+    char** buffer = config_get_array_value(config_archivo, "BLOCKS");
+    int hubo_error = 0;
+    if (iterar_bloques(buffer, &borrar_bloque) < 0) {
+        hubo_error = -1;
+    }
+
+    for(char **i = buffer; *i != NULL; i++) {
+        free(*i);
+    }
+    free(buffer);
+
+    return hubo_error;
+}
+
 int pisar_particion(char* tabla, int nro_particion, registro_t* registros,
 		int cantidad) {
 
@@ -367,24 +382,24 @@ int pisar_particion(char* tabla, int nro_particion, registro_t* registros,
 	t_config* config_particion = lfs_config_create_from_file(path_particion,
 			archivo);
 
-	char** buffer = config_get_array_value(config_particion, "BLOCKS");
-	if (iterar_bloques(buffer, &borrar_bloque) < 0) {
-        config_destroy(config_particion);
-        fclose(archivo);
-		return -1;
-	}
+    // No chequeamos el error de liberar_bloques_particion
+    // porque, incluso si falla, igual debemos
+    // continuar con la misma ejecución
+	liberar_bloques_de_archivo(config_particion);
 
-    for(char **i = buffer; *i != NULL; i++) {
-        free(*i);
+    int bloque_temp = pedir_bloque_bitmap();
+    if(bloque_temp < 0) {
+        // Esto no debería pasar porque acabamos de liberar
+        // nosotros bloques y siempre debiera haber alguno
+        // disponible.
+        // Pero, en caso de que falle, estamos dejando
+        // al archivo en un estado inconsistente (tiene
+        // los bloques que le liberamos)
+        // Por el momento, asumimos que no va a fallar.
+        fclose(archivo);
+        config_destroy(config_particion);
+        return -1;
     }
-    free(buffer);
-
-	int bloque_temp = pedir_bloque_bitmap();
-	if (bloque_temp < 0) {
-        config_destroy(config_particion);
-        fclose(archivo);
-		return -1;
-	}
 	sprintf(blocks_str, "[%d]", bloque_temp);
 	config_set_value(config_particion, "BLOCKS", blocks_str);
 	lfs_config_save_in_file(config_particion, archivo);

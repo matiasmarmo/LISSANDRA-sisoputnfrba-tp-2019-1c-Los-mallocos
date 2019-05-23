@@ -15,6 +15,7 @@
 #include "manejo-tablas.h"
 #include "filesystem.h"
 #include "bitmap.h"
+#include "config-with-locks.h"
 #include "manejo-datos.h"
 
 int crear_directorio_tabla(char* nombre_tabla) {
@@ -181,8 +182,22 @@ int iterar_directorio_tabla(char *tabla,
 int borrar_tabla(char *tabla) {
 
 	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
-		// Falta liberar los bloques que las particiones y archivos temporales
-		// tienen asignados
+		if(string_ends_with((char*)path, ".bin") && 
+				!string_ends_with((char*)path, "metadata.bin")) {
+			FILE *archivo = abrir_archivo_para_lectoescritura((char*)path);
+			if(archivo == NULL)  {
+				// Retornamos 0 porque ftw corta la iteración en otro caso
+				return 0;
+			}
+			t_config *config = lfs_config_create_from_file((char*)path, archivo);
+			if(config == NULL) {
+				fclose(archivo);
+				return 0;
+			}
+			liberar_bloques_de_archivo(config);
+			config_destroy(config);
+			fclose(archivo);
+		}
 		remove(path);
 		return 0;
 	}
