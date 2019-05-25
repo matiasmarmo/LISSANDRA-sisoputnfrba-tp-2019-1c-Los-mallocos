@@ -15,19 +15,19 @@
 
 struct segmento{
 	char* tabla;
-	void* registro_base;
-	void* registro_limite;
+	t_list* registro_base;
+	int registro_limite;
 };
 struct registro_tabla_pagina{
 	uint16_t numero_pagina;
 	void* puntero_a_pagina; //MARCO
 	uint8_t flag_modificado;
 };
-struct pagina{
+typedef struct pagina_t{
 	uint64_t timestamp;
 	uint16_t key;
 	char* value;
-};
+}pagina;
 
 
 //pthread_mutex_t memoria_main_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -46,15 +46,51 @@ void liberar_recursos_memoria() {
 void finalizar_memoria(){
 
 }
+void crear_segmento_nuevo(t_list* tabla_segmentos,char* nombre_tabla_nueva){
+	struct segmento nuevo_segmento;
+	nuevo_segmento.tabla = nombre_tabla_nueva;
+	nuevo_segmento.registro_base = list_create();
+	nuevo_segmento.registro_limite = 0;
+	list_add(tabla_segmentos, &nuevo_segmento);
+}
+int encontrar_pagina_vacia(pagina* memoria,int tamanio_memoria,int tamanio_maximo_pagina){
+	int numero_pagina = 0;
+	int paginas = tamanio_memoria / tamanio_maximo_pagina;
+	while(paginas != numero_pagina){
+		if(	memoria[numero_pagina].key == 0){
+			return numero_pagina;
+		}
+		numero_pagina++;
+	}
+	return -1;
+}
 
 int main() {
 	//inicializar_memoria();
-	int tamanio_memoria = get_tamanio_memoria();
-	char* memoria = calloc(tamanio_memoria, sizeof(char));
+	int tamanio_memoria = 35; //int tamanio_memoria = get_tamanio_memoria();
+	pagina* memoria = calloc(tamanio_memoria, sizeof(char));
+	// inserto 2 paginas para chequear si funciona OK
+	pagina nueva_pagina;
+	nueva_pagina.key=5;
+	nueva_pagina.timestamp = 1;
+	nueva_pagina.value = "abc";
 
-	t_list* TABLA_DE_SEGMENTOS = list_create();
-	t_list* TABLA_DE_PAGINAS = list_create();
+	pagina nueva_pagina2;
+	nueva_pagina.key=3;
+	nueva_pagina.timestamp = 1;
+	nueva_pagina.value = "abc";
 
+	int tamanio_maximo_pagina = sizeof(pagina); //BYTES
+
+	memoria[0] = nueva_pagina;
+	memoria[1] = nueva_pagina2;
+
+	int lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
+	printf("lugar_pagina_vacia: %d",lugar_pagina_vacia);
+
+	free(memoria);
+
+	// t_list* TABLA_DE_SEGMENTOS = list_create();
 	//	int tamanio_memoria = 1000;//get_tamanio_memoria();
 		//struct pagina pagina;
 	//	t_list* TABLA_DE_SEGMENTOS = list_create();
@@ -63,20 +99,18 @@ int main() {
 	//	a.tabla = "tabla1";
 	//	a.registro_base = NULL;
 	//	a.registro_limite = NULL;
-
+/*
 		int j;
 		j=list_size(TABLA_DE_SEGMENTOS);
 		printf("inicial %d",j);
-		crear_segmento_nuevo(TABLA_DE_SEGMENTOS,"tabla1",5);
+		//crear_segmento_nuevo(TABLA_DE_SEGMENTOS,"tabla1");
+		//printf("%d     ",nuevo.registro_limite);
 		//list_add(TABLA_DE_SEGMENTOS, &a);
 		j=list_size(TABLA_DE_SEGMENTOS);
-		printf("final %d",j);
+		printf("final %d",j);*/
 	//char* memoria = calloc(tamanio_memoria, sizeof(char));
 
-	t_list* TABLA_DE_SEGMENTOS = list_create();
-	t_list* TABLA_DE_PAGINAS = list_create();
-
-	inicializar_memoria_logger();
+	/*inicializar_memoria_logger();
 	inicializar_memoria_config();
 	lissandra_thread_t l_thread;
 	l_thread_create(&l_thread, &correr_servidor_memoria, NULL);
@@ -84,8 +118,7 @@ int main() {
 	l_thread_solicitar_finalizacion(&l_thread);
 	l_thread_join(&l_thread, NULL);
 	destruir_memoria_logger();
-	destruir_memoria_config();
-	return 0;
+	destruir_memoria_config();*/
 
 	// inicializo hilos
 
@@ -109,14 +142,7 @@ void crear_todas_las_paginas_del_segmento_vacias(t_list* tabla_paginas,int canti
 		list_add(tabla_paginas, &nuevo_registro_pagina);
 	}
 }
-void crear_segmento_nuevo(t_list* tabla_segmentos,t_list* tabla_paginas,char* nombre_tabla_nueva,int tamanio){
-	int inicio_segmento_en_tabla_paginas = list_size(tabla_paginas) + 1;
-	struct segmento nuevo_segmento;
-	nuevo_segmento.tabla = nombre_tabla_nueva;
-	nuevo_segmento.registro_base = inicio_segmento_en_tabla_paginas;
-	nuevo_segmento.registro_limite = tamanio;
-	list_add(tabla_segmentos, &nuevo_segmento);
-}
+
 
 
 
