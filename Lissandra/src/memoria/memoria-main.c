@@ -51,6 +51,15 @@ void liberar_recursos_memoria() {
 void finalizar_memoria(){
 
 }
+
+void crear_registro_nuevo_en_tabla_de_paginas(uint8_t* memoria, int lugar_pagina_vacia, segmento* segmento, int flag_modificado){
+	registro_tabla_pagina* nuevo_registro_pagina = malloc(sizeof(registro_tabla_pagina));
+	nuevo_registro_pagina->numero_pagina = list_size(segmento->registro_base) + 1;
+	nuevo_registro_pagina->puntero_a_pagina = memoria + lugar_pagina_vacia;
+	nuevo_registro_pagina->flag_modificado = flag_modificado;
+	list_add(segmento->registro_base, nuevo_registro_pagina);
+}
+
 void crear_pagina_nueva(uint8_t* memoria,int lugar_pagina_vacia, uint16_t key, uint64_t timestamp, char* value){
 	pagina nueva_pagina;
 	nueva_pagina.key = (uint16_t*)(memoria + 0 + lugar_pagina_vacia);
@@ -116,30 +125,43 @@ int main() {
 	// le agrego a ese segmento 1 pagina
 	cantidad_paginas_de_un_segmento(segmento_buscado);
 
-	int lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
-	if(lugar_pagina_vacia == -1){
-		printf("no hay mas paginas libres");
-	}
-	registro_tabla_pagina* nuevo_registro_pagina = malloc(sizeof(registro_tabla_pagina));
-		nuevo_registro_pagina->numero_pagina = list_size(segmento_buscado->registro_base) + 1;
-		nuevo_registro_pagina->puntero_a_pagina = memoria + lugar_pagina_vacia;
-		nuevo_registro_pagina->flag_modificado = 0;
-		list_add(segmento_buscado->registro_base, nuevo_registro_pagina);
-	cantidad_paginas_de_un_segmento(segmento_buscado);
-	//-------------------------------------------
-	crear_pagina_nueva(memoria,lugar_pagina_vacia, 25, 123456, "martin");
+	int lugar_pagina_vacia;
+
+	/*registro_tabla_pagina* nuevo_registro_pagina = malloc(sizeof(registro_tabla_pagina));
+	nuevo_registro_pagina->numero_pagina = list_size(segmento_buscado->registro_base) + 1;
+	nuevo_registro_pagina->puntero_a_pagina = memoria + lugar_pagina_vacia;
+	nuevo_registro_pagina->flag_modificado = 0;
+	list_add(segmento_buscado->registro_base, nuevo_registro_pagina);*/
+	//--------------------------------------------------------------
 	lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
-	registro_tabla_pagina* nuevo_registro_pagina3 = malloc(sizeof(registro_tabla_pagina));
-		nuevo_registro_pagina3->numero_pagina = list_size(segmento_buscado->registro_base) + 1;
-		nuevo_registro_pagina3->puntero_a_pagina = memoria + lugar_pagina_vacia;
-		nuevo_registro_pagina3->flag_modificado = 0;
-		list_add(segmento_buscado->registro_base, nuevo_registro_pagina3);
-	cantidad_paginas_de_un_segmento(segmento_buscado);
 	if(lugar_pagina_vacia == -1){
 		printf("no hay mas paginas libres");
 	}else{
+		crear_registro_nuevo_en_tabla_de_paginas(memoria, lugar_pagina_vacia, segmento_buscado, 0);
+		crear_pagina_nueva(memoria,lugar_pagina_vacia, 25, 123456, "martin");
+	}
+	cantidad_paginas_de_un_segmento(segmento_buscado);
+	//--------------------------------------------------------------
+	lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
+	if(lugar_pagina_vacia == -1){
+		printf("no hay mas paginas libres");
+	}else{
+		crear_registro_nuevo_en_tabla_de_paginas(memoria, lugar_pagina_vacia, segmento_buscado, 0);
 		crear_pagina_nueva(memoria,lugar_pagina_vacia, 12, 8976, "carlos");
 	}
+	cantidad_paginas_de_un_segmento(segmento_buscado);
+	//--------------------------------------------------------------
+	/*registro_tabla_pagina* nuevo_registro_pagina3 = malloc(sizeof(registro_tabla_pagina));
+		nuevo_registro_pagina3->numero_pagina = list_size(segmento_buscado->registro_base) + 1;
+		nuevo_registro_pagina3->puntero_a_pagina = memoria + lugar_pagina_vacia;
+		nuevo_registro_pagina3->flag_modificado = 0;
+		list_add(segmento_buscado->registro_base, nuevo_registro_pagina3);*/
+	//cantidad_paginas_de_un_segmento(segmento_buscado);
+	/*if(lugar_pagina_vacia == -1){
+		printf("no hay mas paginas libres");
+	}else{
+		crear_pagina_nueva(memoria,lugar_pagina_vacia, 12, 8976, "carlos");
+	}*/
 
 	registro_tabla_pagina* a = list_get(segmento_buscado->registro_base,0);
 
