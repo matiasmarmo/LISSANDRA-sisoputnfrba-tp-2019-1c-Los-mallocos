@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <commons/collections/list.h>
 #include <commons/log.h>
+#include <string.h>
 
 #include "../commons/lissandra-threads.h"
 #include "memoria-logger.h"
@@ -24,8 +25,8 @@ struct registro_tabla_pagina{
 	uint8_t flag_modificado;
 };
 typedef struct pagina_t{
-	uint64_t timestamp;
-	uint16_t key;
+	uint64_t* timestamp;
+	uint16_t* key;
 	char* value;
 }pagina;
 
@@ -53,37 +54,48 @@ void crear_segmento_nuevo(t_list* tabla_segmentos,char* nombre_tabla_nueva){
 	nuevo_segmento.registro_limite = 0;
 	list_add(tabla_segmentos, &nuevo_segmento);
 }
-int encontrar_pagina_vacia(pagina* memoria,int tamanio_memoria,int tamanio_maximo_pagina){
+int encontrar_pagina_vacia(uint8_t* memoria,int tamanio_memoria,int tamanio_maximo_pagina){
 	int numero_pagina = 0;
-	int paginas = tamanio_memoria / tamanio_maximo_pagina;
-	while(paginas != numero_pagina){
-		if(	memoria[numero_pagina].key == 0){
+	//int paginas = tamanio_memoria / tamanio_maximo_pagina;
+	while(tamanio_memoria >= tamanio_maximo_pagina + numero_pagina){
+		if(	*(memoria + numero_pagina) == 0){
 			return numero_pagina;
 		}
-		numero_pagina++;
+		numero_pagina += tamanio_maximo_pagina;
 	}
 	return -1;
 }
 
 int main() {
 	//inicializar_memoria();
-	int tamanio_memoria = 35; //int tamanio_memoria = get_tamanio_memoria();
-	pagina* memoria = calloc(tamanio_memoria, sizeof(char));
+	int tamanio_memoria = 45; //int tamanio_memoria = get_tamanio_memoria();
+	int tamanio_maximo_value = 10; // PEDIRSELO AL FS
+	uint8_t* memoria = calloc(tamanio_memoria, sizeof(char));
+
 	// inserto 2 paginas para chequear si funciona OK
 	pagina nueva_pagina;
-	nueva_pagina.key=5;
-	nueva_pagina.timestamp = 1;
-	nueva_pagina.value = "abc";
+	nueva_pagina.key = (uint16_t*)(memoria + 0);
+	nueva_pagina.timestamp = (uint64_t*)(memoria + 2);
+	nueva_pagina.value = (char*)(memoria + 10);
+	*(nueva_pagina.key) = 10;
+	*(nueva_pagina.timestamp) = 1;
+	strcpy(nueva_pagina.value,"matias");
 
 	pagina nueva_pagina2;
-	nueva_pagina.key=3;
-	nueva_pagina.timestamp = 1;
-	nueva_pagina.value = "abc";
+	nueva_pagina2.key = (uint16_t*)(memoria + 21);
+	nueva_pagina2.timestamp = (uint64_t*)(memoria + 23);
+	nueva_pagina2.value = (char*)(memoria + 31);
+	*(nueva_pagina2.key)=3;
+	*(nueva_pagina2.timestamp) = 1;
+	strcpy(nueva_pagina2.value,"matias");
 
-	int tamanio_maximo_pagina = sizeof(pagina); //BYTES
+	int tamanio_maximo_pagina = sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
 
-	memoria[0] = nueva_pagina;
-	memoria[1] = nueva_pagina2;
+	//memcpy(&memoria[0] , &nueva_pagina , tamanio_maximo_pagina );
+
+	//memoria[0] = nueva_pagina.key;
+	//memoria[2] = nueva_pagina.timestamp;
+	//memoria[1] = nueva_pagina2;
 
 	int lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
 	printf("lugar_pagina_vacia: %d",lugar_pagina_vacia);
