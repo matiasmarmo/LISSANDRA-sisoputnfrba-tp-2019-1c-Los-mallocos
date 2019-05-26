@@ -32,4 +32,8 @@ void convertir_todos_tmp_a_tmpc(char* tabla);
 
 int dar_metadata_tablas(t_list *nombre_tablas, t_list *metadatas);
 
+int crear_particion(int numero, char* nombre_tabla);
+
+int crear_temporal(int numero, char* nombre_tabla);
+
 #endif

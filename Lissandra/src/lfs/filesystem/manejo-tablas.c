@@ -101,6 +101,37 @@ int crear_particion(int numero, char* nombre_tabla) {
 	return 0;
 }
 
+int crear_temporal(int numero, char* nombre_tabla) {
+	FILE* tmp_f;
+	char nombre_tmp[TAMANIO_PATH] = { 0 }, escritura[200] = { 0 };
+	char block_string[10];
+	int bloque;
+
+	bloque = pedir_bloque_bitmap();
+	if (bloque < 0) {
+		return -1;
+	}
+	obtener_path_temporal(numero, nombre_tabla, nombre_tmp);
+
+	if ((tmp_f = abrir_archivo_para_escritura(nombre_tmp)) == NULL) {
+		return -1;
+	}
+
+	strcpy(escritura, "SIZE=0");
+	strcat(escritura, "\nBLOCKS=[");
+	campo_entero_a_string(bloque, block_string);
+	strcat(escritura, block_string);
+	strcat(escritura, "]");
+
+	if (fwrite(escritura, strlen(escritura), 1, tmp_f) < 0) {
+		fclose(tmp_f);
+		return -1;
+	}
+	fclose(tmp_f);
+
+	return 0;
+}
+
 int crear_particiones(int n_particiones, char* nombre_tabla) {
 
 	for (int numero = 0; numero < n_particiones; numero++) {

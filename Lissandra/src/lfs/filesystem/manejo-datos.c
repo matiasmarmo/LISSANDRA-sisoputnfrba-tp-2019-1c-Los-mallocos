@@ -680,3 +680,46 @@ int escribir_en_archivo_de_datos(char *path, registro_t *registros, int cantidad
     fclose(archivo);
     return 0;
 }
+
+int bajar_archivo_temporal(char* tabla, registro_t* registros, int cantidad_registros){
+	char path_tmp[TAMANIO_PATH];
+	int numero;
+	FILE* temp_f;
+	int cantidad = 1;
+
+	int cantidad_tmp_en_tabla(const char* path_tpm, const struct stat* stat, int flag){
+		if (string_ends_with((char*) path_tmp, ".tmp") || string_ends_with((char*) path_tmp, ".tmp/")) {
+			cantidad += 1;
+		}
+		return 0;
+	}
+
+	if((iterar_directorio_tabla(tabla, &cantidad_tmp_en_tabla)) == -1){
+		return -1;
+	}
+
+	if((temp_f = crear_temporal(numero, tabla)) == -1){
+		return -1;
+	}
+
+	if((escribir_en_archivo_de_datos(path_tmp, registros, cantidad_registros)) == -1){
+		return -1;
+	}
+
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
