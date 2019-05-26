@@ -14,11 +14,14 @@
 #include "memoria-server.h"
 #include "memoria-main.h"
 
-struct segmento{
-	char* tabla;
+#define MAX_TAM_NOMBRE_TABLA 50
+
+typedef struct segmento_t{
+	char tabla[MAX_TAM_NOMBRE_TABLA];
 	t_list* registro_base;
 	int registro_limite;
-};
+}segmento;
+
 struct registro_tabla_pagina{
 	uint16_t numero_pagina;
 	void* puntero_a_pagina; //MARCO
@@ -47,16 +50,26 @@ void liberar_recursos_memoria() {
 void finalizar_memoria(){
 
 }
+
 void crear_segmento_nuevo(t_list* tabla_segmentos,char* nombre_tabla_nueva){
-	struct segmento nuevo_segmento;
-	nuevo_segmento.tabla = nombre_tabla_nueva;
-	nuevo_segmento.registro_base = list_create();
-	nuevo_segmento.registro_limite = 0;
-	list_add(tabla_segmentos, &nuevo_segmento);
+	segmento* nuevo_segmento = malloc(sizeof(segmento));
+	strcpy(nuevo_segmento->tabla , nombre_tabla_nueva);
+	nuevo_segmento->registro_base = list_create();
+	nuevo_segmento->registro_limite = 0;
+	list_add(tabla_segmentos, nuevo_segmento);
 }
+
+segmento* encontrar_segmento_en_memoria(t_list* tabla_segmentos, char* nombre_tabla_buscada){
+	bool _buscar_segmento_en_memoria(void *elemento) {
+		segmento *b = (segmento*) elemento;
+		return !strcmp(b->tabla , nombre_tabla_buscada);
+	}
+	segmento *segmento = list_find(tabla_segmentos, &_buscar_segmento_en_memoria);
+	return segmento;
+}
+
 int encontrar_pagina_vacia(uint8_t* memoria,int tamanio_memoria,int tamanio_maximo_pagina){
 	int numero_pagina = 0;
-	//int paginas = tamanio_memoria / tamanio_maximo_pagina;
 	while(tamanio_memoria >= tamanio_maximo_pagina + numero_pagina){
 		if(	*(memoria + numero_pagina) == 0){
 			return numero_pagina;
@@ -71,7 +84,19 @@ int main() {
 	int tamanio_memoria = 45; //int tamanio_memoria = get_tamanio_memoria();
 	int tamanio_maximo_value = 10; // PEDIRSELO AL FS
 	uint8_t* memoria = calloc(tamanio_memoria, sizeof(char));
-
+	t_list* TABLA_DE_SEGMENTOS = list_create();
+	// creo 2 segmentos para probar
+	crear_segmento_nuevo(TABLA_DE_SEGMENTOS,"tabla1");
+	crear_segmento_nuevo(TABLA_DE_SEGMENTOS,"tabla2");
+	// pruebo si hay o no segmento en memoria
+	segmento* segmento_buscado = encontrar_segmento_en_memoria(TABLA_DE_SEGMENTOS, "tabla1");
+	if(segmento_buscado==NULL){
+		printf("segmento no esta en memoria\n");
+	}
+	else{
+		printf("reg_lim: %d\n",segmento_buscado->registro_limite);
+		printf("nombre: %s\n",segmento_buscado->tabla);
+	}
 	// inserto 2 paginas para chequear si funciona OK
 	pagina nueva_pagina;
 	nueva_pagina.key = (uint16_t*)(memoria + 0);
@@ -91,17 +116,12 @@ int main() {
 
 	int tamanio_maximo_pagina = sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
 
-	//memcpy(&memoria[0] , &nueva_pagina , tamanio_maximo_pagina );
-
-	//memoria[0] = nueva_pagina.key;
-	//memoria[2] = nueva_pagina.timestamp;
-	//memoria[1] = nueva_pagina2;
-
 	int lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
 	printf("lugar_pagina_vacia: %d",lugar_pagina_vacia);
 
 	free(memoria);
-
+	list_destroy(TABLA_DE_SEGMENTOS);
+	//int paginas = tamanio_memoria / tamanio_maximo_pagina;
 	// t_list* TABLA_DE_SEGMENTOS = list_create();
 	//	int tamanio_memoria = 1000;//get_tamanio_memoria();
 		//struct pagina pagina;
