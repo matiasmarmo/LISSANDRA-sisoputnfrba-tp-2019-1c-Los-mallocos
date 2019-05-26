@@ -22,11 +22,12 @@ typedef struct segmento_t{
 	int registro_limite;
 }segmento;
 
-struct registro_tabla_pagina{
+typedef struct registro_tabla_pagina_t{
 	uint16_t numero_pagina;
-	void* puntero_a_pagina; //MARCO
+	uint8_t* puntero_a_pagina; //MARCO
 	uint8_t flag_modificado;
-};
+}registro_tabla_pagina;
+
 typedef struct pagina_t{
 	uint64_t* timestamp;
 	uint16_t* key;
@@ -49,6 +50,15 @@ void liberar_recursos_memoria() {
 
 void finalizar_memoria(){
 
+}
+void crear_pagina_nueva(uint8_t* memoria,int lugar_pagina_vacia, uint16_t key, uint64_t timestamp, char* value){
+	pagina nueva_pagina;
+	nueva_pagina.key = (uint16_t*)(memoria + 0 + lugar_pagina_vacia);
+	nueva_pagina.timestamp = (uint64_t*)(memoria + 2 + lugar_pagina_vacia);
+	nueva_pagina.value = (char*)(memoria + 10 + lugar_pagina_vacia);
+	*(nueva_pagina.key) = key;
+	*(nueva_pagina.timestamp) = timestamp;
+	strcpy(nueva_pagina.value,value);
 }
 
 void crear_segmento_nuevo(t_list* tabla_segmentos,char* nombre_tabla_nueva){
@@ -97,26 +107,67 @@ int main() {
 		printf("reg_lim: %d\n",segmento_buscado->registro_limite);
 		printf("nombre: %s\n",segmento_buscado->tabla);
 	}
+	//-------------------------------------------
+	printf("cant_paginas: %d\n", list_size(segmento_buscado->registro_base));
+	int tamanio_maximo_pagina = sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
+	int lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
+	if(lugar_pagina_vacia == -1){
+		printf("no hay mas paginas libres");
+	}
+	registro_tabla_pagina* nuevo_registro_pagina = malloc(sizeof(registro_tabla_pagina));
+		nuevo_registro_pagina->numero_pagina = list_size(segmento_buscado->registro_base) + 1;
+		nuevo_registro_pagina->puntero_a_pagina = memoria + lugar_pagina_vacia;
+		nuevo_registro_pagina->flag_modificado = 0;
+		list_add(segmento_buscado->registro_base, nuevo_registro_pagina);
+	printf("cant_paginas: %d\n", list_size(segmento_buscado->registro_base));
+	//-------------------------------------------
+	crear_pagina_nueva(memoria,lugar_pagina_vacia, 25, 123456, "martin");
+	lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
+	registro_tabla_pagina* nuevo_registro_pagina3 = malloc(sizeof(registro_tabla_pagina));
+		nuevo_registro_pagina3->numero_pagina = list_size(segmento_buscado->registro_base) + 1;
+		nuevo_registro_pagina3->puntero_a_pagina = memoria + lugar_pagina_vacia;
+		nuevo_registro_pagina3->flag_modificado = 0;
+		list_add(segmento_buscado->registro_base, nuevo_registro_pagina3);
+	printf("cant_paginas: %d\n", list_size(segmento_buscado->registro_base));
+	if(lugar_pagina_vacia == -1){
+		printf("no hay mas paginas libres");
+	}else{
+		crear_pagina_nueva(memoria,lugar_pagina_vacia, 12, 8976, "carlos");
+	}
 	// inserto 2 paginas para chequear si funciona OK
-	pagina nueva_pagina;
+	/*pagina nueva_pagina;
 	nueva_pagina.key = (uint16_t*)(memoria + 0);
 	nueva_pagina.timestamp = (uint64_t*)(memoria + 2);
 	nueva_pagina.value = (char*)(memoria + 10);
 	*(nueva_pagina.key) = 10;
 	*(nueva_pagina.timestamp) = 1;
-	strcpy(nueva_pagina.value,"matias");
+	strcpy(nueva_pagina.value,"matias");*/
 
+	registro_tabla_pagina* a = list_get(segmento_buscado->registro_base,0);
+
+	printf("numero de pagina: %d\n", a->numero_pagina);
+	printf("puntero a pagina: %p\n", a->puntero_a_pagina);
+	printf("flag  modificado: %d\n", a->flag_modificado);
+	printf("puntero a pagina: %p\n", &memoria[0]);
+	pagina final1;
+	pagina final2;
+	final1.key = (uint16_t*)(memoria + 0);
+	final2.key = (uint16_t*)(memoria + 21);
+	printf("key1: %d\n", *(final1.key));
+	printf("key2: %d\n", *(final2.key));
+	printf("cant_paginas: %d\n", list_size(segmento_buscado->registro_base));
+/*
 	pagina nueva_pagina2;
 	nueva_pagina2.key = (uint16_t*)(memoria + 21);
 	nueva_pagina2.timestamp = (uint64_t*)(memoria + 23);
 	nueva_pagina2.value = (char*)(memoria + 31);
 	*(nueva_pagina2.key)=3;
 	*(nueva_pagina2.timestamp) = 1;
-	strcpy(nueva_pagina2.value,"matias");
+	strcpy(nueva_pagina2.value,"matias");*/
 
-	int tamanio_maximo_pagina = sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
+	//int tamanio_maximo_pagina = sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
 
-	int lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
+	//int lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
 	printf("lugar_pagina_vacia: %d",lugar_pagina_vacia);
 
 	free(memoria);
@@ -164,7 +215,7 @@ int main() {
 	return 0;
 }
 
-void crear_todas_las_paginas_del_segmento_vacias(t_list* tabla_paginas,int cantidad_paginas){
+/*void crear_todas_las_paginas_del_segmento_vacias(t_list* tabla_paginas,int cantidad_paginas){
 	struct registro_tabla_pagina nuevo_registro_pagina;
 	nuevo_registro_pagina.numero_pagina=0;
 	nuevo_registro_pagina.puntero_a_pagina=NULL;
@@ -173,7 +224,7 @@ void crear_todas_las_paginas_del_segmento_vacias(t_list* tabla_paginas,int canti
 		nuevo_registro_pagina.numero_pagina=i;
 		list_add(tabla_paginas, &nuevo_registro_pagina);
 	}
-}
+}*/
 
 
 
