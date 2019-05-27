@@ -16,26 +16,6 @@
 #include "memoria-server.h"
 #include "memoria-main.h"
 
-/*
-typedef struct segmento_t{
-	char tabla[MAX_TAM_NOMBRE_TABLA];
-	t_list* registro_base;
-	int registro_limite;
-}segmento;
-
-typedef struct registro_tabla_pagina_t{
-	uint16_t numero_pagina;
-	uint8_t* puntero_a_pagina; //MARCO
-	uint8_t flag_modificado;
-}registro_tabla_pagina;
-
-typedef struct pagina_t{
-	uint64_t* timestamp;
-	uint16_t* key;
-	char* value;
-}pagina;*/
-
-
 //pthread_mutex_t memoria_main_mutex = PTHREAD_MUTEX_INITIALIZER;
 //pthread_cond_t memoria_main_cond = PTHREAD_COND_INITIALIZER;
 
@@ -43,35 +23,32 @@ typedef struct pagina_t{
 void inicializar_memoria() {
 
 }
-/*
+
 void liberar_recursos_memoria() {
 
 }
-*/
+
 
 void finalizar_memoria(){
 
 }
-/*
-void manejar_select(struct select_request* mensaje){
-	segmento* segmento_buscado = encontrar_segmento_en_memoria(TABLA_DE_SEGMENTOS, mensaje->tabla);
-	if(segmento_buscado==NULL){
-		printf("segmento no esta en memoria\n");
-	}
-	else{
-		printf("segmento_buscado -> reg_lim: %d\n",segmento_buscado->registro_limite);
-		printf("segmento_buscado -> nombre: %s\n",segmento_buscado->tabla);
-	}
-}*/
+uint8_t* memoria;
+int tamanio_maximo_value;
 
+uint8_t* get_memoria(){
+	return memoria;
+}
 
+int get_tamanio_maximo_pagina(){
+	return sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
+}
 
 int main() {
 	//inicializar_memoria();
 	int tamanio_memoria = 45; //int tamanio_memoria = get_tamanio_memoria();
-	int tamanio_maximo_value = 10; // PEDIRSELO AL FS (BYTES)
+	tamanio_maximo_value = 10; // PEDIRSELO AL FS (BYTES)
 	int tamanio_maximo_pagina = sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
-	uint8_t* memoria = calloc(tamanio_memoria, sizeof(char));
+	memoria = calloc(tamanio_memoria, sizeof(char));
 	inicializacion_tabla_segmentos();
 	// creo 2 segmentos para probar
 	crear_segmento_nuevo("tabla1");
@@ -128,7 +105,7 @@ int main() {
 	}
 	else{
 		printf("   Pagina buscada -> key: %d\n",*((uint16_t*)(reg_pagina->puntero_a_pagina)));
-		printf("   Pagina buscada -> timestamp: %d\n",*((uint64_t*)(reg_pagina->puntero_a_pagina + 2)));
+		printf("   Pagina buscada -> timestamp: %llu\n",*((uint64_t*)(reg_pagina->puntero_a_pagina + 2)));
 		int h=0;
 		while(*((char*)(reg_pagina->puntero_a_pagina + 10 + h)) != '\0'){
 			printf("   Pagina buscada -> value: %c\n",*((char*)(reg_pagina->puntero_a_pagina + 10 + h)));
