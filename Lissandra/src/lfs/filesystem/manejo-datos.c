@@ -194,7 +194,7 @@ int iterar_bloque(char *path_bloque, char *registro_truncado,
 	strcpy(string_registro, registro_truncado);
 	memset(registro_truncado, 0, get_tamanio_string_registro());
 	if (archivo_bloque == NULL) {
-		return -1;
+		return errno == ENOENT ? FINALIZAR : -1;
 	}
 
 	while ((resultado = leer_hasta_siguiente_token(archivo_bloque,
