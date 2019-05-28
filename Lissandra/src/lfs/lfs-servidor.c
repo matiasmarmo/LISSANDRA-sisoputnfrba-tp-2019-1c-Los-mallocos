@@ -108,6 +108,16 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 		close(cliente);
 		return;
 	}
+
+	if(send_lfs_handshake(get_tamanio_value(), cliente) < 0) {
+		l_thread_solicitar_finalizacion(nuevo_hilo);
+		l_thread_join(nuevo_hilo, NULL);
+		free(nuevo_cliente);
+		free(nuevo_hilo);
+		close(cliente);
+		return;
+	}
+
 	list_add(lista_clientes, nuevo_hilo);
 }
 
