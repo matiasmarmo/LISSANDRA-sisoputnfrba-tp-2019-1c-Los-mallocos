@@ -47,6 +47,17 @@ void liberar_array_registros(registro_t *array, int cantidad) {
 }
 
 int concatenar_a_registros(registro_t **registros, int *cant_actual, int *maximo, registro_t nuevo_registro) {
+    for(int i = 0; i < *cant_actual; i++) {
+        if((*registros)[i].key == nuevo_registro.key) {
+            if((*registros)[i].timestamp < nuevo_registro.timestamp) {
+                free((*registros)[i].value);
+                (*registros)[i] = nuevo_registro;
+            } else {
+                free(nuevo_registro.value);
+            }
+            return 0;
+        }
+    }
     if(*cant_actual >= *maximo) {
         *maximo = *maximo == 0 ? 10 : *maximo * 2;
         registro_t *nuevos_registros = realloc(*registros, *maximo * sizeof(registro_t));
