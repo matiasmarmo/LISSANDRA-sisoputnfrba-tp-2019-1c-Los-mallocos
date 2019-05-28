@@ -2,6 +2,7 @@
 #define LFS_FILE_SYSTEM_MANEJO_TABLAS_H_
 
 #include <stdint.h>
+#include <sys/stat.h>
 #include <commons/collections/list.h>
 
 typedef struct metadata {
@@ -35,5 +36,8 @@ int dar_metadata_tablas(t_list *nombre_tablas, t_list *metadatas);
 int crear_particion(int numero, char* nombre_tabla);
 
 int crear_temporal(int numero, char* nombre_tabla);
+
+int iterar_directorio_tabla(char *tabla,
+        int (funcion)(const char*, const struct stat*, int));
 
 #endif

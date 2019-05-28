@@ -3,12 +3,13 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <inttypes.h>
 #include <time.h>
 #include <errno.h>
 #include <sys/file.h>
 #include <commons/config.h>
-#include <unistd.h>
+#include <commons/string.h>
 
 #include "../lfs-config.h"
 #include "filesystem.h"
@@ -681,15 +682,13 @@ int escribir_en_archivo_de_datos(char *path, registro_t *registros, int cantidad
     return 0;
 }
 
-int bajar_archivo_temporal(char* tabla, registro_t* registros, int cantidad_registros){
-	char path_tmp[TAMANIO_PATH];
-	int numero;
-	FILE* temp_f;
-	int cantidad = 1;
+int bajar_a_archivo_temporal(char* tabla, registro_t* registros, int cantidad_registros){
+	char path_tmp[TAMANIO_PATH] = { 0 };
+	int numero = 0;
 
 	int cantidad_tmp_en_tabla(const char* path_tpm, const struct stat* stat, int flag){
 		if (string_ends_with((char*) path_tmp, ".tmp") || string_ends_with((char*) path_tmp, ".tmp/")) {
-			cantidad += 1;
+			numero++;
 		}
 		return 0;
 	}
@@ -698,9 +697,11 @@ int bajar_archivo_temporal(char* tabla, registro_t* registros, int cantidad_regi
 		return -1;
 	}
 
-	if((temp_f = crear_temporal(numero, tabla)) == -1){
+	if(crear_temporal(numero, tabla) < -1){
 		return -1;
 	}
+
+    obtener_path_temporal(numero, tabla, path_tmp);
 
 	if((escribir_en_archivo_de_datos(path_tmp, registros, cantidad_registros)) == -1){
 		return -1;
@@ -708,18 +709,3 @@ int bajar_archivo_temporal(char* tabla, registro_t* registros, int cantidad_regi
 
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -31,6 +31,6 @@ int liberar_bloques_de_archivo(t_config *config_archivo);
 
 int pisar_particion(char* tabla, int nro_particion, registro_t* registros, int cantidad);
 
-int bajar_archivo_temporal(char* tabla, registro_t* registros, int cantidad_registros);
+int bajar_a_archivo_temporal(char* tabla, registro_t* registros, int cantidad_registros);
 
 #endif
