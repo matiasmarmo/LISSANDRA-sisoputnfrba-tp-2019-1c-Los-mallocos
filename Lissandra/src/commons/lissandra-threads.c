@@ -120,7 +120,8 @@ int l_thread_periodic_get_intervalo(lissandra_thread_periodic_t *lp_thread) {
 	if ((error = pthread_mutex_lock(&lp_thread->l_thread.lock)) != 0) {
 		return -1;
 	}
-	int resultado = lp_thread->interval_getter();
+	int resultado = lp_thread->interval == -1 
+		? lp_thread->interval_getter() : lp_thread->interval;
 	pthread_mutex_unlock(&lp_thread->l_thread.lock);
 	return resultado;
 }
@@ -195,7 +196,25 @@ int l_thread_periodic_create(lissandra_thread_periodic_t *lp_thread,
 		void* entrada) {
 	int error;
 	lp_thread->funcion_periodica = funcion;
+	lp_thread->interval = -1;
 	lp_thread->interval_getter = interval_getter;
+	if((error = l_thread_init(&lp_thread->l_thread)) != 0) {
+		return error;
+	}
+	lp_thread->l_thread.entrada = entrada;
+	if((error = pthread_create(&lp_thread->l_thread.thread, NULL, &wrapper_periodica, lp_thread)) != 0) {
+		l_thread_destroy(&lp_thread->l_thread);
+		return -error;
+	}
+	return 0;
+}
+
+int l_thread_periodic_create_fixed(lissandra_thread_periodic_t *lp_thread, 
+		lissandra_thread_func funcion, int interval, void *entrada) {
+	int error;
+	lp_thread->funcion_periodica = funcion;
+	lp_thread->interval = interval;
+	lp_thread->interval_getter = NULL;
 	if((error = l_thread_init(&lp_thread->l_thread)) != 0) {
 		return error;
 	}
