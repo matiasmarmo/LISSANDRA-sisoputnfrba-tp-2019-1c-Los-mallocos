@@ -7,6 +7,8 @@ int inicializar_compactador();
 
 int destruir_compactador();
 
+void *compactar(void *);
+
 int instanciar_hilo_compactador(char *tabla, int t_compactaciones);
 
 int finalizar_hilo_compactador(char *tabla);

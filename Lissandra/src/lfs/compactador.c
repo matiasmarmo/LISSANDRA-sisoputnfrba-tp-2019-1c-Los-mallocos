@@ -5,7 +5,9 @@
 #include <commons/collections/dictionary.h>
 
 #include "../commons/lissandra-threads.h"
+#include "filesystem/filesystem.h"
 #include "filesystem/manejo-tablas.h"
+#include "filesystem/manejo-datos.h"
 
 pthread_mutex_t hilos_compactadores_mutex = PTHREAD_MUTEX_INITIALIZER;
 t_dictionary *hilos_compactadores;
@@ -36,9 +38,93 @@ int destruir_compactador() {
     return 0;
 }
 
+void liberar_array_registros(registro_t *array, int cantidad) {
+    for(int i = 0; i < cantidad; i++) {
+        free(array[i].value);
+        array[i].value = NULL;
+    }
+    free(array);
+}
+
+int concatenar_a_registros(registro_t **registros, int *cant_actual, int *maximo, registro_t nuevo_registro) {
+    if(*cant_actual >= *maximo) {
+        *maximo = *maximo == 0 ? 10 : *maximo * 2;
+        registro_t *nuevos_registros = realloc(*registros, *maximo * sizeof(registro_t));
+        if(nuevos_registros == NULL) {
+            return -1;
+        }
+        *registros = nuevos_registros;
+    }
+    (*registros)[*cant_actual] = nuevo_registro;
+    (*cant_actual)++;
+    return 0;
+}
+
+void compactar_particion(char *nombre_tabla, int nro_particion, 
+        int total_particiones, registro_t *datos_tmpc, int cantidad) {
+
+    registro_t *datos_particion;
+    int ret;
+    int cantidad_registros_particion = 
+        leer_particion(nombre_tabla, nro_particion, &datos_particion);
+    int tamanio_buffer_particion = cantidad_registros_particion;
+    if(cantidad_registros_particion < 0) {
+        // log
+        return;
+    }
+    for(int i = 0; i < cantidad; i++) {
+        if(datos_tmpc[i].key % total_particiones == nro_particion) {
+            ret = concatenar_a_registros(&datos_particion, 
+                &cantidad_registros_particion,
+                &tamanio_buffer_particion,
+                datos_tmpc[i]);
+            if(ret < 0) {
+                liberar_array_registros(datos_particion, cantidad_registros_particion);
+                // log
+                return;
+            }
+        }
+    }
+    if(pisar_particion(nombre_tabla, 
+            nro_particion, 
+            datos_particion, 
+            cantidad_registros_particion) < 0) {
+        // log
+    }
+    liberar_array_registros(datos_particion, cantidad_registros_particion);
+}
+
 void *compactar(void *data) {
+
+    static int metadata_cargada = 0;
+    static metadata_t metadata;
+
     lissandra_thread_t *l_thread = (lissandra_thread_t*) data;
     char *nombre_tabla = (char*) l_thread->entrada;
+
+    if(!metadata_cargada) {
+        if(obtener_metadata_tabla(nombre_tabla, &metadata) < 0) {
+            // log
+            return NULL;
+        }
+        metadata_cargada = 1;
+    }
+
+    registro_t *datos_tmpc;
+    convertir_todos_tmp_a_tmpc(nombre_tabla);
+    int cantidad_registros_tmpc = obtener_datos_de_tmpcs(nombre_tabla, &datos_tmpc);
+    if(cantidad_registros_tmpc < 0) {
+        // log
+        return NULL;
+    }
+
+    for(int particion = 0; particion < metadata.n_particiones; particion++) {
+        compactar_particion(nombre_tabla, particion, metadata.n_particiones,
+            datos_tmpc, cantidad_registros_tmpc);
+    }
+
+    free(datos_tmpc);
+    borrar_todos_los_tmpc(nombre_tabla);
     return NULL;
 }
 
