@@ -32,6 +32,9 @@ void destruir_memtable() {
 
 	void _destruir_entrada(void *elemento) {
 		entrada_memtable_t *entrada = (entrada_memtable_t*) elemento;
+		for(int i = 0; i < entrada->cantidad_registros; i++) {
+			free((entrada->data[i]).value);
+		}
 		free(entrada->data);
 		free(entrada);
 	}
@@ -65,6 +68,11 @@ int insertar_en_entrada(entrada_memtable_t *entrada, registro_t registro) {
 	if (pthread_mutex_lock(&entrada->lock) != 0) {
 		return -1;
 	}
+	char *value_duplicado = strdup(registro.value);
+	if(value_duplicado == NULL) {
+		pthread_mutex_unlock(&entrada->lock);
+		return -1;
+	}
 	if (entrada->cantidad_registros >= entrada->tamanio_actual_data) {
 		entrada->tamanio_actual_data = entrada->tamanio_actual_data * 2;
 		registro_t *data_realocado = realloc(entrada->data,
@@ -75,7 +83,9 @@ int insertar_en_entrada(entrada_memtable_t *entrada, registro_t registro) {
 		}
 		entrada->data = data_realocado;
 	}
-	entrada->data[(entrada->cantidad_registros)++] = registro;
+	entrada->data[entrada->cantidad_registros] = registro;
+	(entrada->data[entrada->cantidad_registros]).value = value_duplicado;
+	(entrada->cantidad_registros)++;
 	pthread_mutex_unlock(&entrada->lock);
 	return 0;
 }
@@ -180,6 +190,9 @@ void destruir_datos_dumpeados(t_dictionary *datos) {
 
 	void _destruir(void *elem) {
 		memtable_data_t *data = (memtable_data_t*) elem;
+		for(int i = 0; i < data->cantidad_registros; i++) {
+			free((data->data[i]).value);
+		}
 		free(data->data);
 		free(data);
 	}
