@@ -46,7 +46,7 @@ void liberar_array_registros(registro_t *array, int cantidad) {
     free(array);
 }
 
-int concatenar_a_registros(registro_t **registros, int *cant_actual, int *maximo, registro_t nuevo_registro) {
+int agregar_registro_a_particion(registro_t **registros, int *cant_actual, int *maximo, registro_t nuevo_registro) {
     for(int i = 0; i < *cant_actual; i++) {
         if((*registros)[i].key == nuevo_registro.key) {
             if((*registros)[i].timestamp < nuevo_registro.timestamp) {
@@ -85,7 +85,7 @@ void compactar_particion(char *nombre_tabla, int nro_particion,
     }
     for(int i = 0; i < cantidad; i++) {
         if(datos_tmpc[i].key % total_particiones == nro_particion) {
-            ret = concatenar_a_registros(&datos_particion, 
+            ret = agregar_registro_a_particion(&datos_particion, 
                 &cantidad_registros_particion,
                 &tamanio_buffer_particion,
                 datos_tmpc[i]);
