@@ -83,6 +83,7 @@ int crear_particion(int numero, char* nombre_tabla) {
 	obtener_path_particion(numero, nombre_tabla, nombre_binario);
 
 	if ((binario_f = abrir_archivo_para_escritura(nombre_binario)) == NULL) {
+		liberar_bloque_bitmap(bloque);
 		return -1;
 	}
 
@@ -114,6 +115,7 @@ int crear_temporal(int numero, char* nombre_tabla) {
 	obtener_path_temporal(numero, nombre_tabla, nombre_tmp);
 
 	if ((tmp_f = abrir_archivo_para_escritura(nombre_tmp)) == NULL) {
+		liberar_bloque_bitmap(bloque);
 		return -1;
 	}
 
