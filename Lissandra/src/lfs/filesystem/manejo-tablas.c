@@ -251,6 +251,19 @@ void borrar_todos_los_tmpc(char *tabla) {
 	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
 		if (string_ends_with((char*) path, ".tmpc")
 				|| string_ends_with((char*) path, ".tmpc/")) {
+			FILE *archivo = abrir_archivo_para_lectoescritura((char*)path);
+			if(archivo == NULL)  {
+				// Retornamos 0 porque ftw corta la iteración en otro caso
+				return 0;
+			}
+			t_config *config = lfs_config_create_from_file((char*)path, archivo);
+			if(config == NULL) {
+				fclose(archivo);
+				return 0;
+			}
+			liberar_bloques_de_archivo(config);
+			config_destroy(config);
+			fclose(archivo);
 			remove(path);
 		}
 		return 0;
