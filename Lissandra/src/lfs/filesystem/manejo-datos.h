@@ -33,4 +33,6 @@ int pisar_particion(char* tabla, int nro_particion, registro_t* registros, int c
 
 int bajar_a_archivo_temporal(char* tabla, registro_t* registros, int cantidad_registros);
 
+int obtener_datos_de_tmpcs(char *tabla, registro_t **resultado);
+
 #endif

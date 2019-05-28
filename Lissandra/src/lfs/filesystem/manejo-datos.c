@@ -324,6 +324,13 @@ int leer_archivo_de_datos(char *path, registro_t **resultado) {
 	return registros_cargados;
 }
 
+int leer_particion(char* nombre_tabla, int numero_particion,
+        registro_t **registros) {
+    char path_particion[TAMANIO_PATH];
+    obtener_path_particion(numero_particion, nombre_tabla, path_particion);
+    return leer_archivo_de_datos(path_particion, registros);
+}
+
 int borrar_bloque(int bloque) {
 	char path_bloque[TAMANIO_PATH];
 	obtener_path_bloque(bloque, path_bloque);
@@ -694,7 +701,7 @@ int bajar_a_archivo_temporal(char* tabla, registro_t* registros, int cantidad_re
 		return TABLA_NO_EXISTENTE;
 	}
 
-	int cantidad_tmp_en_tabla(const char* path_tpm, const struct stat* stat, int flag){
+	int cantidad_tmp_en_tabla(const char* path_tmp, const struct stat* stat, int flag){
 		if (string_ends_with((char*) path_tmp, ".tmp") || string_ends_with((char*) path_tmp, ".tmp/")) {
 			numero++;
 		}
@@ -716,4 +723,53 @@ int bajar_a_archivo_temporal(char* tabla, registro_t* registros, int cantidad_re
 	}
 
 	return 0;
+}
+
+int obtener_datos_de_tmpcs(char *tabla, registro_t **resultado) {
+    int tamanio_actual = 10 * sizeof(registro_t);
+    int cantidad_actual_registros = 0;
+    int hubo_error = 0;
+    *resultado = malloc(tamanio_actual);
+    if(resultado == NULL) {
+        return -1;
+    }
+
+    int _concatenar_registros_al_resultado(registro_t *registros, int cantidad) {
+        while(cantidad_actual_registros + cantidad > tamanio_actual) {
+            tamanio_actual *= 2;
+            registro_t *realocado = realloc(*resultado, tamanio_actual);
+            if(realocado == NULL) {
+                hubo_error = -1;
+                return -1;
+            }
+            *resultado = realocado;
+        }
+        memcpy(*resultado + cantidad_actual_registros, registros, cantidad * sizeof(registro_t));
+        cantidad_actual_registros += cantidad;
+        return 0;
+    }
+
+    int _leer_archivo(const char* path, const struct stat* stat, int flag) {
+        if(string_ends_with((char*) path, ".tmpc")) {
+            registro_t *nuevos_registros;
+            int cantidad = leer_archivo_de_datos((char*)path, &nuevos_registros);
+            if(cantidad < 0) {
+                // Informamos el error y cortamos la iteración
+                hubo_error = -1;
+                return -1;
+            }
+            if(_concatenar_registros_al_resultado(nuevos_registros, cantidad) < 0) {
+                free(nuevos_registros);
+                return -1;
+            }
+            free(nuevos_registros);
+        }
+        return 0;
+    }
+
+    if(iterar_directorio_tabla(tabla, &_leer_archivo) < 0 || hubo_error != 0) {
+        free(*resultado);
+        return -1;
+    }
+    return cantidad_actual_registros;
 }
