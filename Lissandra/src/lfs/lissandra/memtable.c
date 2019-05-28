@@ -32,7 +32,7 @@ void destruir_memtable() {
 
 	void _destruir_entrada(void *elemento) {
 		entrada_memtable_t *entrada = (entrada_memtable_t*) elemento;
-		for(int i = 0; i < entrada->cantidad_registros; i++) {
+		for (int i = 0; i < entrada->cantidad_registros; i++) {
 			free((entrada->data[i]).value);
 		}
 		free(entrada->data);
@@ -69,7 +69,7 @@ int insertar_en_entrada(entrada_memtable_t *entrada, registro_t registro) {
 		return -1;
 	}
 	char *value_duplicado = strdup(registro.value);
-	if(value_duplicado == NULL) {
+	if (value_duplicado == NULL) {
 		pthread_mutex_unlock(&entrada->lock);
 		return -1;
 	}
@@ -121,30 +121,30 @@ int insertar_en_memtable(registro_t registro, char *tabla) {
 }
 
 int iterar_entrada_memtable(char *tabla, operacion_t operacion) {
-	if(pthread_rwlock_rdlock(&memtable_lock) != 0) {
+	if (pthread_rwlock_rdlock(&memtable_lock) != 0) {
 		return -1;
 	}
-	if(!dictionary_has_key(memtable, tabla)) {
+	if (!dictionary_has_key(memtable, tabla)) {
 		pthread_rwlock_unlock(&memtable_lock);
 		return -1;
 	}
 	entrada_memtable_t *entrada = dictionary_get(memtable, tabla);
-	if(pthread_mutex_lock(&entrada->lock) != 0) {
+	if (pthread_mutex_lock(&entrada->lock) != 0) {
 		pthread_rwlock_unlock(&memtable_lock);
 		return -1;
 	}
 	// Duplicamos el registro para poder utilizar la misma función
 	// al iterar la memtable o archivos de datos.
 	registro_t registro_duplicado;
-	for(int i = 0; i < entrada->cantidad_registros; i++) {
+	for (int i = 0; i < entrada->cantidad_registros; i++) {
 		registro_duplicado = entrada->data[i];
 		registro_duplicado.value = strdup((entrada->data[i]).value);
-		if(registro_duplicado.value == NULL) {
+		if (registro_duplicado.value == NULL) {
 			pthread_mutex_unlock(&entrada->lock);
 			pthread_rwlock_unlock(&memtable_lock);
 			return -1;
 		}
-		if(operacion(registro_duplicado) != CONTINUAR) {
+		if (operacion(registro_duplicado) != CONTINUAR) {
 			break;
 		}
 	}
@@ -186,16 +186,10 @@ t_dictionary *obtener_datos_para_dumpear() {
 	return resultado;
 }
 
-void destruir_datos_dumpeados(t_dictionary *datos) {
-
-	void _destruir(void *elem) {
-		memtable_data_t *data = (memtable_data_t*) elem;
-		for(int i = 0; i < data->cantidad_registros; i++) {
-			free((data->data[i]).value);
-		}
-		free(data->data);
-		free(data);
+void liberar_memtable_data(memtable_data_t *data) {
+	for (int i = 0; i < data->cantidad_registros; i++) {
+		free((data->data[i]).value);
 	}
-
-	dictionary_destroy_and_destroy_elements(datos, &_destruir);
+	free(data->data);
+	free(data);
 }

@@ -684,7 +684,15 @@ int escribir_en_archivo_de_datos(char *path, registro_t *registros, int cantidad
 
 int bajar_a_archivo_temporal(char* tabla, registro_t* registros, int cantidad_registros){
 	char path_tmp[TAMANIO_PATH] = { 0 };
+	int existe_tabla_res;
 	int numero = 0;
+
+	existe_tabla_res = existe_tabla(tabla);
+	if(existe_tabla_res == -1) {
+		return -1;
+	} else if(existe_tabla_res == 1){
+		return TABLA_NO_EXISTENTE;
+	}
 
 	int cantidad_tmp_en_tabla(const char* path_tpm, const struct stat* stat, int flag){
 		if (string_ends_with((char*) path_tmp, ".tmp") || string_ends_with((char*) path_tmp, ".tmp/")) {

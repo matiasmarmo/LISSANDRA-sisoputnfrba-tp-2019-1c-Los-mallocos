@@ -9,6 +9,8 @@
 
 enum resultados_operaciones { CONTINUAR, FINALIZAR };
 
+enum errores_filesystem { TABLA_NO_EXISTENTE = -20 };
+
 typedef struct registro {
     uint16_t key;
     time_t timestamp;

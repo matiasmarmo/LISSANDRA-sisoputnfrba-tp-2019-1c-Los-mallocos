@@ -19,6 +19,6 @@ int iterar_entrada_memtable(char *tabla, operacion_t operacion);
 
 t_dictionary *obtener_datos_para_dumpear();
 
-void destruir_datos_dumpeados(t_dictionary *datos);
+void liberar_memtable_data(memtable_data_t *data);
 
 #endif
