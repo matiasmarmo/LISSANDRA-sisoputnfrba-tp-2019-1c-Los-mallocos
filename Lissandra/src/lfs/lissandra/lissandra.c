@@ -74,6 +74,65 @@ int manejar_single_describe(void* single_describe_request,
 	return 0;
 }
 
+void lista_a_string_con_centinela(t_list* lista, char* string, char* centinela,
+		int tamanio_string) {
+	char *elemento;
+	memset(string, 0, tamanio_string);
+
+	for (int i = 0; i < list_size(lista); i++) {
+		elemento = (char*) list_get(lista, i);
+		strcat(string, elemento);
+
+		if ((elemento = (char*) list_get(lista, ++i)) != NULL) {
+			strcat(string, ";");
+			i--;
+		}
+	}
+}
+
+int manejar_global_describe(void* global_describe_response) {
+	struct global_describe_response* g_describe_rp =
+			(struct global_describe_response*) global_describe_response;
+	int tamanio_nombre_tabla = 50;
+
+	memset(global_describe_response, 0, GLOBAL_DESCRIBE_RESPONSE_SIZE);
+
+	t_list* tablas = list_create();
+	t_list* metadatas = list_create();
+
+	if (dar_metadata_tablas(tablas, metadatas) == -1) {
+		return -1;
+	}
+
+	int tamanio_nombres_tablas = list_size(tablas) * tamanio_nombre_tabla;
+	char nombres_tablas[tamanio_nombres_tablas];
+	lista_a_string_con_centinela(tablas, nombres_tablas, ";",
+			tamanio_nombres_tablas);
+
+	int cantidad_tablas = list_size(tablas);
+	uint8_t consistencias[cantidad_tablas];
+	uint8_t numeros_particiones[cantidad_tablas];
+	uint32_t tiempos_compactaciones[cantidad_tablas];
+
+	obtener_campos_metadatas(consistencias, numeros_particiones,
+			tiempos_compactaciones, metadatas);
+
+	if (init_global_describe_response(0, nombres_tablas, cantidad_tablas,
+			consistencias, cantidad_tablas, numeros_particiones,
+			cantidad_tablas, tiempos_compactaciones, g_describe_rp)) {
+		return -1;
+	}
+
+	void destruir_elemento(void *elemento) {
+		free(elemento);
+	}
+
+	list_destroy_and_destroy_elements(tablas, &destruir_elemento);
+	list_destroy_and_destroy_elements(metadatas, &destruir_elemento);
+
+	return 0;
+}
+
 int manejar_drop(void* drop_request, void* drop_response) {
 	struct drop_request* drop_rq = (struct drop_request*) drop_request;
 	struct drop_response* drop_rp = (struct drop_response*) drop_response;
