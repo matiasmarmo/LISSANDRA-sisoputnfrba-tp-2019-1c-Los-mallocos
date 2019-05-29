@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <commons/string.h>
 
@@ -7,6 +8,7 @@
 #include "../lfs-logger.h"
 #include "../filesystem/filesystem.h"
 #include "../filesystem/manejo-tablas.h"
+#include "memtable.h"
 
 // switch ejecutar request en lissandra
 
@@ -42,7 +44,8 @@ int manejar_create(void* create_request, void* create_response) {
 	return 0;
 }
 
-int manejar_single_describe(void* single_describe_request, void* single_describe_response) {
+int manejar_single_describe(void* single_describe_request,
+		void* single_describe_response) {
 	struct describe_request* s_describe_rq =
 			(struct describe_request*) single_describe_request;
 	struct single_describe_response* s_describe_rp =
@@ -95,23 +98,41 @@ int manejar_drop(void* drop_request, void* drop_response) {
 
 }
 
+int manejar_insert(void* insert_request, void* insert_response) {
+	struct insert_request* insert_rq = (struct insert_request*) insert_request;
+	struct insert_response* insert_rp =
+			(struct insert_response*) insert_response;
 
+	memset(insert_response, 0, INSERT_RESPONSE_SIZE);
+	string_to_upper(insert_rq->tabla);
 
+	if (existe_tabla(insert_rq->tabla) != 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla ya existe");
+		return 0;
+	}
 
+	metadata_t metadata_tabla;
+	if (obtener_metadata_tabla(insert_rq->tabla, &metadata_tabla) < 0) {
+		return -1;
+	}
 
+	registro_t registro;
+	registro.key = insert_rq->key;
+	registro.value = insert_rq->valor;
+	if (insert_rq->timestamp == 0) {
+		registro.timestamp = (unsigned long) time(NULL) / 1000;
+	} else {
+		registro.timestamp = insert_rq->timestamp;
+	}
 
+	if (insertar_en_memtable(registro, insert_rq->tabla) < 0) {
+		insert_rp->fallo = 1;
+		return -1;
+	}
+	if (init_insert_response(0, insert_rq->tabla, insert_rq->key,
+			insert_rq->valor, insert_rq->timestamp, insert_rp) < 0) {
+		return -1;
+	}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
->>>>>>> Stashed changes
+	return 0;
+}

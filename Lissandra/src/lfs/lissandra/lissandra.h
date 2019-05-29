@@ -7,4 +7,6 @@ int manejar_single_describe(void* single_describe_request, void* single_describe
 
 int manejar_drop(void* drop_request, void* drop_response);
 
+int manejar_insert(void* insert_request, void* insert_response);
+
 #endif
