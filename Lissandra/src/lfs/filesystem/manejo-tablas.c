@@ -215,15 +215,16 @@ int iterar_directorio_tabla(char *tabla,
 int borrar_tabla(char *tabla) {
 
 	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
-		if(string_ends_with((char*)path, ".bin") && 
-				!string_ends_with((char*)path, "metadata.bin")) {
-			FILE *archivo = abrir_archivo_para_lectoescritura((char*)path);
-			if(archivo == NULL)  {
+		if (string_ends_with((char*) path, ".bin")
+				&& !string_ends_with((char*) path, "metadata.bin")) {
+			FILE *archivo = abrir_archivo_para_lectoescritura((char*) path);
+			if (archivo == NULL) {
 				// Retornamos 0 porque ftw corta la iteración en otro caso
 				return 0;
 			}
-			t_config *config = lfs_config_create_from_file((char*)path, archivo);
-			if(config == NULL) {
+			t_config *config = lfs_config_create_from_file((char*) path,
+					archivo);
+			if (config == NULL) {
 				fclose(archivo);
 				return 0;
 			}
@@ -251,13 +252,14 @@ void borrar_todos_los_tmpc(char *tabla) {
 	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
 		if (string_ends_with((char*) path, ".tmpc")
 				|| string_ends_with((char*) path, ".tmpc/")) {
-			FILE *archivo = abrir_archivo_para_lectoescritura((char*)path);
-			if(archivo == NULL)  {
+			FILE *archivo = abrir_archivo_para_lectoescritura((char*) path);
+			if (archivo == NULL) {
 				// Retornamos 0 porque ftw corta la iteración en otro caso
 				return 0;
 			}
-			t_config *config = lfs_config_create_from_file((char*)path, archivo);
-			if(config == NULL) {
+			t_config *config = lfs_config_create_from_file((char*) path,
+					archivo);
+			if (config == NULL) {
 				fclose(archivo);
 				return 0;
 			}
@@ -311,8 +313,10 @@ int dar_metadata_tablas(t_list* nombre_tablas, t_list* metadatas) {
 
 	metadata_t *metadata_temp;
 	char *nombre_temp;
-	while ((directorio_datos = readdir(directorio)) != NULL
-			&& !string_starts_with(directorio_datos->d_name, ".")) {
+	while ((directorio_datos = readdir(directorio))) {
+		if (string_starts_with(directorio_datos->d_name, ".")) {
+			continue;
+		}
 		if ((nombre_temp = strdup(directorio_datos->d_name)) == NULL) {
 			hubo_error = 1;
 			break;
@@ -347,3 +351,4 @@ int dar_metadata_tablas(t_list* nombre_tablas, t_list* metadatas) {
 
 	return 0;
 }
+
