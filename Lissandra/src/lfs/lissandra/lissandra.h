@@ -3,4 +3,6 @@
 
 int manejar_create(void* create_request, void* create_response);
 
+int manejar_describe_single(void* describe_request, void* describe_response);
+
 #endif
