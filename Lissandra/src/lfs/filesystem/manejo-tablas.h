@@ -12,12 +12,6 @@ typedef struct metadata {
 } metadata_t;
 
 int crear_tabla(char* nombre, metadata_t metadata);
-/*
- * Crea el directorio para dicha tabla,
- * Crea el archivo Metadata asociado al mismo,
- * Graba en dicho archivo los campos de la estructura metadata_t pasada por argumento,
- * Crea los archivos binarios asociados a cada particion de la tabla y asigna a cada uno un bloque.
- */
 
 int existe_tabla(char* nombre_tabla);
 
@@ -33,11 +27,15 @@ void convertir_todos_tmp_a_tmpc(char* tabla);
 
 int dar_metadata_tablas(t_list *nombre_tablas, t_list *metadatas);
 
+void obtener_campos_metadatas(uint8_t* consistencias,
+		uint8_t* numeros_particiones, uint32_t* tiempos_compactaciones,
+		t_list* metadatas);
+
 int crear_particion(int numero, char* nombre_tabla);
 
 int crear_temporal(int numero, char* nombre_tabla);
 
 int iterar_directorio_tabla(char *tabla,
-        int (funcion)(const char*, const struct stat*, int));
+		int (funcion)(const char*, const struct stat*, int));
 
 #endif

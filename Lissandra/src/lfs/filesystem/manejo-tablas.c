@@ -352,3 +352,16 @@ int dar_metadata_tablas(t_list* nombre_tablas, t_list* metadatas) {
 	return 0;
 }
 
+void obtener_campos_metadatas(uint8_t* consistencias,
+		uint8_t* numeros_particiones, uint32_t* tiempos_compactaciones,
+		t_list* metadatas) {
+	metadata_t* metadata;
+
+	for (int i = 0; i < list_size(metadatas); i++) {
+		metadata = (metadata_t*) list_get(metadatas, i);
+		consistencias[i] = metadata->consistencia;
+		numeros_particiones[i] = metadata->n_particiones;
+		tiempos_compactaciones[i] = metadata->t_compactaciones;
+	}
+}
+
