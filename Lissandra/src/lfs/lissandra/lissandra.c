@@ -70,3 +70,27 @@ int manejar_describe_single(void* describe_request, void* describe_response) {
 
 	return 0;
 }
+
+int manejar_drop(void* drop_request, void* drop_response) {
+	struct drop_request* drop_rq = (struct drop_request*) drop_request;
+	struct drop_response* drop_rp = (struct drop_response*) drop_response;
+
+	memset(drop_response, 0, DROP_RESPONSE_SIZE);
+	string_to_upper(drop_rq->tabla);
+	if (init_drop_response(0, drop_rq->tabla, drop_rp) < 0) {
+		drop_rp->fallo = 1;
+		return -1;
+	}
+
+	if (existe_tabla(drop_rq->tabla) != 0) {
+		drop_rp->fallo = 1;
+		return 0;
+	}
+
+	int resultado = borrar_tabla(drop_rq->tabla);
+	if (resultado != 0) {
+		destroy(drop_rp);
+	}
+	return resultado;
+
+}
