@@ -42,29 +42,29 @@ int manejar_create(void* create_request, void* create_response) {
 	return 0;
 }
 
-int manejar_describe_single(void* describe_request, void* describe_response) {
-	struct describe_request* describe_rq =
-			(struct describe_request*) describe_request;
-	struct single_describe_response* describe_rp =
-			(struct single_describe_response*) describe_response;
+int manejar_single_describe(void* single_describe_request, void* single_describe_response) {
+	struct describe_request* s_describe_rq =
+			(struct describe_request*) single_describe_request;
+	struct single_describe_response* s_describe_rp =
+			(struct single_describe_response*) single_describe_response;
 
-	memset(describe_response, 0, SINGLE_DESCRIBE_RESPONSE_SIZE);
-	string_to_upper(describe_rq->tabla);
+	memset(single_describe_response, 0, SINGLE_DESCRIBE_RESPONSE_SIZE);
+	string_to_upper(s_describe_rq->tabla);
 	int res = 0;
 
-	if (existe_tabla(describe_rq->tabla) != 0) {
+	if (existe_tabla(s_describe_rq->tabla) != 0) {
 		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla ya existe");
 		res = 1;
 	}
 
 	metadata_t metadata_tabla;
-	if (obtener_metadata_tabla(describe_rq->tabla, &metadata_tabla) < 0) {
+	if (obtener_metadata_tabla(s_describe_rq->tabla, &metadata_tabla) < 0) {
 		return -1;
 	}
 
-	if (init_single_describe_response(res, describe_rq->tabla,
+	if (init_single_describe_response(res, s_describe_rq->tabla,
 			metadata_tabla.consistencia, metadata_tabla.n_particiones,
-			metadata_tabla.t_compactaciones, describe_rp) < 0) {
+			metadata_tabla.t_compactaciones, s_describe_rp) < 0) {
 		return -1;
 	}
 
@@ -94,3 +94,24 @@ int manejar_drop(void* drop_request, void* drop_response) {
 	return resultado;
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+>>>>>>> Stashed changes
