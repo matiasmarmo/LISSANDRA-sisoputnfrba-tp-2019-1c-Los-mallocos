@@ -141,7 +141,6 @@ int manejar_drop(void* drop_request, void* drop_response) {
 	memset(drop_response, 0, DROP_RESPONSE_SIZE);
 	string_to_upper(drop_rq->tabla);
 	if (init_drop_response(0, drop_rq->tabla, drop_rp) < 0) {
-		drop_rp->fallo = 1;
 		return -1;
 	}
 
@@ -165,10 +164,11 @@ int manejar_insert(void* insert_request, void* insert_response) {
 
 	memset(insert_response, 0, INSERT_RESPONSE_SIZE);
 	string_to_upper(insert_rq->tabla);
+	int res = 0;
 
 	if (existe_tabla(insert_rq->tabla) != 0) {
 		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla no existe");
-		return 0;
+		res = 1;
 	}
 
 	metadata_t metadata_tabla;
@@ -179,17 +179,15 @@ int manejar_insert(void* insert_request, void* insert_response) {
 	registro_t registro;
 	registro.key = insert_rq->key;
 	registro.value = insert_rq->valor;
-	if (insert_rq->timestamp == 0) {
+	registro.timestamp = insert_rq->timestamp;
+	if(insert_rq->timestamp == 0){
 		registro.timestamp = time(NULL);
-	} else {
-		registro.timestamp = insert_rq->timestamp;
 	}
 
 	if (insertar_en_memtable(registro, insert_rq->tabla) < 0) {
-		insert_rp->fallo = 1;
-		return -1;
+		res = 1;
 	}
-	if (init_insert_response(0, insert_rq->tabla, insert_rq->key,
+	if (init_insert_response(res, insert_rq->tabla, insert_rq->key,
 			insert_rq->valor, insert_rq->timestamp, insert_rp) < 0) {
 		return -1;
 	}
@@ -204,10 +202,10 @@ int manejar_select(void* select_request, void* select_response) {
 
 	memset(select_response, 0, SELECT_RESPONSE_SIZE);
 	string_to_upper(select_rq->tabla);
+	int res = 0;
 
 	if (existe_tabla(select_rq->tabla) != 0) {
-		select_rp->fallo = 1;
-		return 0;
+		res = 1;
 	}
 
 	metadata_t metadata_tabla;
@@ -231,31 +229,30 @@ int manejar_select(void* select_request, void* select_response) {
 		return CONTINUAR;
 	}
 
-	if((cantidad_temporales = cantidad_tmp_en_tabla(select_rq->tabla)) < 0) {
+	if ((cantidad_temporales = cantidad_tmp_en_tabla(select_rq->tabla)) < 0) {
 		return -1;
 	}
 
 	int particion = select_rq->key % metadata_tabla.n_particiones;
 
-	if(iterar_particion(select_rq->tabla, particion, &_manejar_registro) < 0) {
+	if (iterar_particion(select_rq->tabla, particion, &_manejar_registro) < 0) {
 		return -1;
 	}
 
-	for(int i = 0; i < cantidad_temporales; i++) {
+	for (int i = 0; i < cantidad_temporales; i++) {
 		iterar_archivo_temporal(select_rq->tabla, i, &_manejar_registro);
 	}
 
-	if(iterar_entrada_memtable(select_rq->tabla, &_manejar_registro) < 0) {
+	if (iterar_entrada_memtable(select_rq->tabla, &_manejar_registro) < 0) {
 		return -1;
 	}
 
-	if(resultado.value == NULL) {
-		// No existe el registro
-		return -1;
+	if (resultado.value == NULL) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false, "No existe el registro");
+		res = 1;
 	}
 
-
-	if (init_select_response(0, select_rq->tabla, select_rq->key,
+	if (init_select_response(res, select_rq->tabla, select_rq->key,
 			resultado.value, metadata_tabla.t_compactaciones, select_rp) < 0) {
 		return -1;
 	}
