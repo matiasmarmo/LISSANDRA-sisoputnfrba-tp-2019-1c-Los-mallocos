@@ -8,6 +8,7 @@
 #include "../lfs-logger.h"
 #include "../filesystem/filesystem.h"
 #include "../filesystem/manejo-tablas.h"
+#include "../filesystem/manejo-datos.h"
 #include "memtable.h"
 
 // switch ejecutar request en lissandra
@@ -166,7 +167,7 @@ int manejar_insert(void* insert_request, void* insert_response) {
 	string_to_upper(insert_rq->tabla);
 
 	if (existe_tabla(insert_rq->tabla) != 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla ya existe");
+		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla no existe");
 		return 0;
 	}
 
@@ -179,7 +180,7 @@ int manejar_insert(void* insert_request, void* insert_response) {
 	registro.key = insert_rq->key;
 	registro.value = insert_rq->valor;
 	if (insert_rq->timestamp == 0) {
-		registro.timestamp = (unsigned long) time(NULL) / 1000;
+		registro.timestamp = time(NULL);
 	} else {
 		registro.timestamp = insert_rq->timestamp;
 	}
@@ -193,5 +194,72 @@ int manejar_insert(void* insert_request, void* insert_response) {
 		return -1;
 	}
 
+	return 0;
+}
+
+int manejar_select(void* select_request, void* select_response) {
+	struct select_request* select_rq = (struct select_request*) select_request;
+	struct select_response* select_rp =
+			(struct select_response*) select_response;
+
+	memset(select_response, 0, SELECT_RESPONSE_SIZE);
+	string_to_upper(select_rq->tabla);
+
+	if (existe_tabla(select_rq->tabla) != 0) {
+		select_rp->fallo = 1;
+		return 0;
+	}
+
+	metadata_t metadata_tabla;
+	if (obtener_metadata_tabla(select_rq->tabla, &metadata_tabla) < 0) {
+		return -1;
+	}
+
+	registro_t resultado;
+	resultado.value = NULL;
+	resultado.timestamp = 0;
+	int cantidad_temporales = 0;
+
+	int _manejar_registro(registro_t nuevo_registro) {
+		if (nuevo_registro.key == select_rq->key
+				&& resultado.timestamp < nuevo_registro.timestamp) {
+			free(resultado.value);
+			resultado = nuevo_registro;
+		} else {
+			free(nuevo_registro.value);
+		}
+		return CONTINUAR;
+	}
+
+	if((cantidad_temporales = cantidad_tmp_en_tabla(select_rq->tabla)) < 0) {
+		return -1;
+	}
+
+	int particion = select_rq->key % metadata_tabla.n_particiones;
+
+	if(iterar_particion(select_rq->tabla, particion, &_manejar_registro) < 0) {
+		return -1;
+	}
+
+	for(int i = 0; i < cantidad_temporales; i++) {
+		iterar_archivo_temporal(select_rq->tabla, i, &_manejar_registro);
+	}
+
+	if(iterar_entrada_memtable(select_rq->tabla, &_manejar_registro) < 0) {
+		return -1;
+	}
+
+	if(resultado.value == NULL) {
+		// No existe el registro
+		return -1;
+	}
+
+
+	if (init_select_response(0, select_rq->tabla, select_rq->key,
+			resultado.value, metadata_tabla.t_compactaciones, select_rp) < 0) {
+		return -1;
+	}
+
+	free(resultado.value);
 	return 0;
 }
