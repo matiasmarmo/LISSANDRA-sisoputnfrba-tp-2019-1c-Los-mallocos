@@ -139,12 +139,15 @@ void finalizar_hilo(void* elemento) {
 }
 
 void manejar_consola(char* linea, void* request) {
+	void* respuesta[get_max_msg_size()];
 	if (get_msg_id(request) == EXIT_REQUEST_ID) {
 		finalizar_lfs();
 	}
-	//llamar a lissandra(request)
-	//manejar error (si tira error)
+
+	manejar_request(request, respuesta);
+
 	destroy(request);
+	destroy(respuesta);
 }
 
 void* correr_servidor(void* entrada) {
