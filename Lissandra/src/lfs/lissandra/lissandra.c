@@ -134,6 +134,23 @@ int manejar_global_describe(void* global_describe_response) {
 	return 0;
 }
 
+int manejar_describe(void* describe_request, void* describe_response) {
+	struct describe_request* s_describe_rq =
+			(struct describe_request*) describe_request;
+	if (s_describe_rq->todas) {
+		if (manejar_global_describe(describe_response) == -1) {
+			return -1;
+		}
+	} else {
+		if (manejar_single_describe(describe_request, describe_response)
+				== -1) {
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 int manejar_drop(void* drop_request, void* drop_response) {
 	struct drop_request* drop_rq = (struct drop_request*) drop_request;
 	struct drop_response* drop_rp = (struct drop_response*) drop_response;
@@ -180,7 +197,7 @@ int manejar_insert(void* insert_request, void* insert_response) {
 	registro.key = insert_rq->key;
 	registro.value = insert_rq->valor;
 	registro.timestamp = insert_rq->timestamp;
-	if(insert_rq->timestamp == 0){
+	if (insert_rq->timestamp == 0) {
 		registro.timestamp = time(NULL);
 	}
 
