@@ -17,6 +17,24 @@
 #include "lfs-logger.h"
 #include "lfs-config.h"
 #include "lfs-main.h"
+#include "lissandra/lissandra.h"
+
+int llamado_lissandra(uint8_t* buffer, uint8_t* respuesta){
+	int id_request = get_msg_id(buffer);
+	switch(id_request){
+		case SELECT_REQUEST_ID:
+			return manejar_create(buffer, respuesta);
+		case INSERT_REQUEST_ID:
+			return manejar_insert(buffer, respuesta);
+		case CREATE_REQUEST_ID:
+			return manejar_create(buffer, respuesta);
+		case DESCRIBE_REQUEST_ID:
+			return manejar_describe(buffer, respuesta);
+		case DROP_REQUEST_ID:
+			return manejar_drop(buffer, respuesta);
+	}
+	return 0;
+}
 
 void *manejar_cliente(void* entrada) {
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) entrada;
@@ -48,7 +66,11 @@ void *manejar_cliente(void* entrada) {
 					continue;
 				}
 			}
-			//llamo a lissandra
+
+			if(llamado_lissandra(buffer, respuesta) == -1){
+				return NULL;
+			}
+
 			destroy(buffer);
 			if ((error = send_msg(cliente, respuesta) < 0)) {
 				lfs_log_to_level(LOG_LEVEL_TRACE, false,
