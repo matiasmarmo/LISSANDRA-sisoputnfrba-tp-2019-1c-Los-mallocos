@@ -140,11 +140,15 @@ void finalizar_hilo(void* elemento) {
 
 void manejar_consola(char* linea, void* request) {
 	void* respuesta[get_max_msg_size()];
+	int res;
 	if (get_msg_id(request) == EXIT_REQUEST_ID) {
 		finalizar_lfs();
 	}
 
-	manejar_request(request, respuesta);
+	res = manejar_request(request, respuesta);
+	if(res != -1){
+		mostrar(respuesta);
+	}
 
 	destroy(request);
 	destroy(respuesta);
