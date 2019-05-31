@@ -19,23 +19,6 @@
 #include "lfs-main.h"
 #include "lissandra/lissandra.h"
 
-int llamado_lissandra(uint8_t* buffer, uint8_t* respuesta){
-	int id_request = get_msg_id(buffer);
-	switch(id_request){
-		case SELECT_REQUEST_ID:
-			return manejar_create(buffer, respuesta);
-		case INSERT_REQUEST_ID:
-			return manejar_insert(buffer, respuesta);
-		case CREATE_REQUEST_ID:
-			return manejar_create(buffer, respuesta);
-		case DESCRIBE_REQUEST_ID:
-			return manejar_describe(buffer, respuesta);
-		case DROP_REQUEST_ID:
-			return manejar_drop(buffer, respuesta);
-	}
-	return 0;
-}
-
 void *manejar_cliente(void* entrada) {
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) entrada;
 	int cliente = *((int*) l_thread->entrada);
@@ -67,7 +50,7 @@ void *manejar_cliente(void* entrada) {
 				}
 			}
 
-			if(llamado_lissandra(buffer, respuesta) == -1){
+			if(manejar_request(buffer, respuesta) == -1){
 				return NULL;
 			}
 

@@ -11,8 +11,6 @@
 #include "../filesystem/manejo-datos.h"
 #include "memtable.h"
 
-// switch ejecutar request en lissandra
-
 int manejar_create(void* create_request, void* create_response) {
 	struct create_request* create_rq = (struct create_request*) create_request;
 	struct create_response* create_rp =
@@ -275,5 +273,22 @@ int manejar_select(void* select_request, void* select_response) {
 	}
 
 	free(resultado.value);
+	return 0;
+}
+
+int manejar_request(uint8_t* buffer, uint8_t* respuesta){
+	int id_request = get_msg_id(buffer);
+	switch(id_request){
+		case SELECT_REQUEST_ID:
+			return manejar_create(buffer, respuesta);
+		case INSERT_REQUEST_ID:
+			return manejar_insert(buffer, respuesta);
+		case CREATE_REQUEST_ID:
+			return manejar_create(buffer, respuesta);
+		case DESCRIBE_REQUEST_ID:
+			return manejar_describe(buffer, respuesta);
+		case DROP_REQUEST_ID:
+			return manejar_drop(buffer, respuesta);
+	}
 	return 0;
 }
