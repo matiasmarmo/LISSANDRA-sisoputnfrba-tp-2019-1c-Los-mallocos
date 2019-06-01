@@ -51,7 +51,7 @@ void *manejar_cliente(void* entrada) {
 			}
 
 			if(manejar_request(buffer, respuesta) == -1){
-				return NULL;
+				break;
 			}
 
 			destroy(buffer);
@@ -143,15 +143,16 @@ void manejar_consola(char* linea, void* request) {
 	int res;
 	if (get_msg_id(request) == EXIT_REQUEST_ID) {
 		finalizar_lfs();
+		return;
 	}
 
 	res = manejar_request(request, respuesta);
 	if(res != -1){
 		mostrar(respuesta);
+		destroy(respuesta);
 	}
 
 	destroy(request);
-	destroy(respuesta);
 }
 
 void* correr_servidor(void* entrada) {
