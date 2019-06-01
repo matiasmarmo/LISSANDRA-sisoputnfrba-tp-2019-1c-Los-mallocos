@@ -52,11 +52,12 @@ int manejar_single_describe(void* single_describe_request,
 
 	memset(single_describe_response, 0, SINGLE_DESCRIBE_RESPONSE_SIZE);
 	string_to_upper(s_describe_rq->tabla);
-	int res = 0;
 
 	if (existe_tabla(s_describe_rq->tabla) != 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla ya existe");
-		res = 1;
+		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla no existe");
+		init_single_describe_response(1, s_describe_rq->tabla, 0, 0, 0,
+				s_describe_rp);
+		return 0;
 	}
 
 	metadata_t metadata_tabla;
@@ -64,7 +65,7 @@ int manejar_single_describe(void* single_describe_request,
 		return -1;
 	}
 
-	if (init_single_describe_response(res, s_describe_rq->tabla,
+	if (init_single_describe_response(0, s_describe_rq->tabla,
 			metadata_tabla.consistencia, metadata_tabla.n_particiones,
 			metadata_tabla.t_compactaciones, s_describe_rp) < 0) {
 		return -1;
@@ -136,17 +137,10 @@ int manejar_describe(void* describe_request, void* describe_response) {
 	struct describe_request* s_describe_rq =
 			(struct describe_request*) describe_request;
 	if (s_describe_rq->todas) {
-		if (manejar_global_describe(describe_response) == -1) {
-			return -1;
-		}
+		return manejar_global_describe(describe_response);
 	} else {
-		if (manejar_single_describe(describe_request, describe_response)
-				== -1) {
-			return -1;
-		}
+		return manejar_single_describe(describe_request, describe_response);
 	}
-
-	return 0;
 }
 
 int manejar_drop(void* drop_request, void* drop_response) {
@@ -179,15 +173,21 @@ int manejar_insert(void* insert_request, void* insert_response) {
 
 	memset(insert_response, 0, INSERT_RESPONSE_SIZE);
 	string_to_upper(insert_rq->tabla);
-	int res = 0;
+
+	if (init_insert_response(0, insert_rq->tabla, insert_rq->key,
+			insert_rq->valor, insert_rq->timestamp, insert_rp) < 0) {
+		return -1;
+	}
 
 	if (existe_tabla(insert_rq->tabla) != 0) {
 		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla no existe");
-		res = 1;
+		insert_rp->fallo = 1;
+		return 0;
 	}
 
 	metadata_t metadata_tabla;
 	if (obtener_metadata_tabla(insert_rq->tabla, &metadata_tabla) < 0) {
+		destroy(insert_rp);
 		return -1;
 	}
 
@@ -200,11 +200,8 @@ int manejar_insert(void* insert_request, void* insert_response) {
 	}
 
 	if (insertar_en_memtable(registro, insert_rq->tabla) < 0) {
-		res = 1;
-	}
-	if (init_insert_response(res, insert_rq->tabla, insert_rq->key,
-			insert_rq->valor, insert_rq->timestamp, insert_rp) < 0) {
-		return -1;
+		insert_rp->fallo = 1;
+		return 0;
 	}
 
 	return 0;
@@ -217,14 +214,17 @@ int manejar_select(void* select_request, void* select_response) {
 
 	memset(select_response, 0, SELECT_RESPONSE_SIZE);
 	string_to_upper(select_rq->tabla);
-	int res = 0;
 
 	if (existe_tabla(select_rq->tabla) != 0) {
-		res = 1;
+		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla no existe");
+		init_select_response(1, select_rq->tabla, select_rq->key, "", 0,
+				select_rp);
+		return 0;
 	}
 
 	metadata_t metadata_tabla;
 	if (obtener_metadata_tabla(select_rq->tabla, &metadata_tabla) < 0) {
+		destroy(select_rp);
 		return -1;
 	}
 
@@ -245,12 +245,14 @@ int manejar_select(void* select_request, void* select_response) {
 	}
 
 	if ((cantidad_temporales = cantidad_tmp_en_tabla(select_rq->tabla)) < 0) {
+		destroy(select_rp);
 		return -1;
 	}
 
 	int particion = select_rq->key % metadata_tabla.n_particiones;
 
 	if (iterar_particion(select_rq->tabla, particion, &_manejar_registro) < 0) {
+		destroy(select_rp);
 		return -1;
 	}
 
@@ -259,16 +261,18 @@ int manejar_select(void* select_request, void* select_response) {
 	}
 
 	if (iterar_entrada_memtable(select_rq->tabla, &_manejar_registro) < 0) {
+		destroy(select_rp);
 		return -1;
 	}
 
 	if (resultado.value == NULL) {
 		lfs_log_to_level(LOG_LEVEL_WARNING, false, "No existe el registro");
-		res = 1;
+		select_rp->fallo = 1;
+		return 0;
 	}
 
-	if (init_select_response(res, select_rq->tabla, select_rq->key,
-			resultado.value, metadata_tabla.t_compactaciones, select_rp) < 0) {
+	if (init_select_response(0, select_rq->tabla, select_rq->key,
+			resultado.value, resultado.timestamp, select_rp) < 0) {
 		return -1;
 	}
 
@@ -276,19 +280,19 @@ int manejar_select(void* select_request, void* select_response) {
 	return 0;
 }
 
-int manejar_request(uint8_t* buffer, uint8_t* respuesta){
+int manejar_request(uint8_t* buffer, uint8_t* respuesta) {
 	int id_request = get_msg_id(buffer);
-	switch(id_request){
-		case SELECT_REQUEST_ID:
-			return manejar_create(buffer, respuesta);
-		case INSERT_REQUEST_ID:
-			return manejar_insert(buffer, respuesta);
-		case CREATE_REQUEST_ID:
-			return manejar_create(buffer, respuesta);
-		case DESCRIBE_REQUEST_ID:
-			return manejar_describe(buffer, respuesta);
-		case DROP_REQUEST_ID:
-			return manejar_drop(buffer, respuesta);
+	switch (id_request) {
+	case SELECT_REQUEST_ID:
+		return manejar_select(buffer, respuesta);
+	case INSERT_REQUEST_ID:
+		return manejar_insert(buffer, respuesta);
+	case CREATE_REQUEST_ID:
+		return manejar_create(buffer, respuesta);
+	case DESCRIBE_REQUEST_ID:
+		return manejar_describe(buffer, respuesta);
+	case DROP_REQUEST_ID:
+		return manejar_drop(buffer, respuesta);
 	}
 	return 0;
 }
