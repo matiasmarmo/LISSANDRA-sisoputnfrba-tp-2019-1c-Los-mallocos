@@ -193,7 +193,7 @@ int ejecutarDescribe(char* msg,char* buffer, int tamanioBuffer){
 
 int ejecutarDrop(char* msg,char* buffer, int tamanioBuffer){
 	//DROP + NOMBRE_TABLA
-	int inicio = 6;
+	int inicio = 5;
 	char nombreTabla[MAX_TOKENS_LENGTH];
 
 	int tamanioPalabra = obtenerProximaPalabra(msg, nombreTabla, '\0', inicio);
