@@ -172,10 +172,10 @@ int ejecutarCreate(char* msg,char* buffer, int tamanioBuffer){
 int ejecutarDescribe(char* msg,char* buffer, int tamanioBuffer){
 	//DESCRIBE + NOMBRE_TABLA o DESCRIBE
 	int inicio = 8;
-	char nombreTabla[MAX_TOKENS_LENGTH];
+	char nombreTabla[MAX_TOKENS_LENGTH] = { 0 };
 	if(msg[inicio]=='\0'){
 		 struct describe_request mensaje;
-		 init_describe_request(0,NULL,&mensaje);
+		 init_describe_request(1,"",&mensaje);
 		 memcpy(buffer, &mensaje, sizeof(struct describe_request));
 		 return OK;
 	}
@@ -185,9 +185,9 @@ int ejecutarDescribe(char* msg,char* buffer, int tamanioBuffer){
 	if(!isIdentifier(nombreTabla)){ return IDENTIFICADOR_INVALIDO; }
 
 	struct describe_request mensaje;
-	init_describe_request(1,nombreTabla,&mensaje);
+	init_describe_request(0,nombreTabla,&mensaje);
 	if(sizeof(struct describe_request) > tamanioBuffer){ return ERROR_TAMANIO_BUFFER; }
-	memcpy(buffer, &mensaje, sizeof(struct describe_request));
+	memcpy(buffer, &mensaje, get_max_msg_size());
 	return OK;
 }
 
