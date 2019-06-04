@@ -79,9 +79,26 @@ void manejar_select(struct select_request* mensaje){
 	}
 }
 
+uint16_t numero_de_pagina_libre(segmento* segmento){
+	uint16_t cantidad_paginas = list_size(segmento->registro_base);
+	uint16_t num_pagina = 1;
+	bool _buscar_numero_pagina(void *elemento) {
+		registro_tabla_pagina *reg = (registro_tabla_pagina*) elemento;
+		return reg->numero_pagina == num_pagina;
+	}
+	for(num_pagina = 1 ; num_pagina < cantidad_paginas ; num_pagina++){
+		registro_tabla_pagina* reg_pagina = list_find(segmento->registro_base, &_buscar_numero_pagina);
+		if(reg_pagina == NULL){
+			return num_pagina;
+		}
+	}
+	return cantidad_paginas;
+}
+
 void crear_registro_nuevo_en_tabla_de_paginas(uint8_t* memoria, int lugar_pagina_vacia, segmento* segmento, int flag_modificado){
 	registro_tabla_pagina* nuevo_registro_pagina = malloc(sizeof(registro_tabla_pagina));
-	nuevo_registro_pagina->numero_pagina = list_size(segmento->registro_base) + 1;
+	nuevo_registro_pagina->numero_pagina = numero_de_pagina_libre(segmento);
+	//nuevo_registro_pagina->numero_pagina = list_size(segmento->registro_base) + 1;
 	nuevo_registro_pagina->puntero_a_pagina = memoria + lugar_pagina_vacia;
 	nuevo_registro_pagina->flag_modificado = flag_modificado;
 	list_add(segmento->registro_base, nuevo_registro_pagina);
