@@ -55,6 +55,16 @@ void destruccion_tabla_segmentos(){
 	list_destroy_and_destroy_elements(TABLA_DE_SEGMENTOS,&_destroy_element);;
 }
 
+void estado_actual_memoria(){
+	int cantidad_segmentos = list_size(TABLA_DE_SEGMENTOS);
+	printf("Cantidad de segmentos: %d\n", cantidad_segmentos);
+	segmento* segmento_temporal;
+	for(int i=0; i< cantidad_segmentos; i++){
+		segmento_temporal = list_get(TABLA_DE_SEGMENTOS,i);
+		printf("	-Segmento %d --> %d paginas (TABLA: %s)\n", i+1, list_size(segmento_temporal->registro_base),segmento_temporal->tabla);
+	}
+}
+
 uint16_t numero_de_pagina_libre(segmento* segmento){
 	uint16_t cantidad_paginas = list_size(segmento->registro_base);
 	uint16_t num_pagina = 1;

@@ -31,7 +31,7 @@ void finalizar_memoria(){
 
 int main() {
 	//inicializar_memoria();
-	int tamanio_memoria = 45; //int tamanio_memoria = get_tamanio_memoria();
+	int tamanio_memoria = 73; //int tamanio_memoria = get_tamanio_memoria();
 	tamanio_maximo_value = 10; // PEDIRSELO AL FS (BYTES)
 	int tamanio_maximo_pagina = sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
 	inicializacion_memoria(tamanio_memoria);
@@ -53,7 +53,7 @@ int main() {
 	//--------------------------------------------------------------
 	lugar_pagina_vacia = encontrar_pagina_vacia(tamanio_memoria,tamanio_maximo_pagina);
 	if(lugar_pagina_vacia == -1){
-		printf("no hay mas paginas libres");
+		printf("no hay mas paginas libres\n");
 	}else{
 		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia, segmento_buscado, 0);
 		crear_pagina_nueva(lugar_pagina_vacia, 25, 123456, "martin");
@@ -62,10 +62,19 @@ int main() {
 	//--------------------------------------------------------------
 	lugar_pagina_vacia = encontrar_pagina_vacia(tamanio_memoria,tamanio_maximo_pagina);
 	if(lugar_pagina_vacia == -1){
-		printf("no hay mas paginas libres");
+		printf("no hay mas paginas libres\n");
 	}else{
 		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia, segmento_buscado, 0);
 		crear_pagina_nueva(lugar_pagina_vacia, 12, 8976, "carlos");
+	}
+	cantidad_paginas_de_un_segmento(segmento_buscado);
+	//--------------------------------------------------------------
+	lugar_pagina_vacia = encontrar_pagina_vacia(tamanio_memoria,tamanio_maximo_pagina);
+	if(lugar_pagina_vacia == -1){
+		printf("no hay mas paginas libres\n");
+	}else{
+		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia, segmento_buscado, 0);
+		crear_pagina_nueva(lugar_pagina_vacia, 73, 1961, "matias");
 	}
 	cantidad_paginas_de_un_segmento(segmento_buscado);
 	//--------------------------------------------------------------
@@ -100,6 +109,7 @@ int main() {
 	}
 
 	printf("lugar_pagina_vacia: %d\n",lugar_pagina_vacia);
+	estado_actual_memoria();
 	destruccion_tabla_registros_paginas();
 	destruccion_tabla_segmentos();
 	destruccion_memoria();

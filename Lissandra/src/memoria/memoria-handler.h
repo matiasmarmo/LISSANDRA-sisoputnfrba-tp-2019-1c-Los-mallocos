@@ -25,6 +25,7 @@ void destruccion_memoria();
 void inicializacion_tabla_segmentos();
 void destruccion_tabla_segmentos();
 void destruccion_tabla_registros_paginas();
+void estado_actual_memoria();
 void crear_segmento_nuevo(char*);
 segmento* encontrar_segmento_en_memoria(char*);
 int cantidad_paginas_de_un_segmento(segmento*);
