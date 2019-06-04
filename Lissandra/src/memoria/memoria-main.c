@@ -108,12 +108,30 @@ int main() {
 		}
 	}
 
-	printf("lugar_pagina_vacia: %d\n",lugar_pagina_vacia);
+	printf("lugar_pagina_vacia: %d\n\n",lugar_pagina_vacia);
 	estado_actual_memoria();
+	//--------------------------
+	struct select_request query;
+	init_select_request("tabla1", 12, &query);
+	printf("SELECT tabla1 12\n");
+	manejar_select(query);
+	//--------------------------
+	init_select_request("tabla1", 72, &query);
+	printf("SELECT tabla1 72\n");
+	manejar_select(query);
+	//--------------------------
+	init_select_request("tabla3", 72, &query);
+	printf("SELECT tabla3 72\n");
+	manejar_select(query);
+	//--------------------------
+	init_select_request("tabla1", 73, &query);
+	printf("SELECT tabla1 73\n");
+	manejar_select(query);
+	//--------------------------
 	destruccion_tabla_registros_paginas();
 	destruccion_tabla_segmentos();
 	destruccion_memoria();
-
+	printf("SUCCESS");
 	//int paginas = tamanio_memoria / tamanio_maximo_pagina;
 
 	/*inicializar_memoria_logger();

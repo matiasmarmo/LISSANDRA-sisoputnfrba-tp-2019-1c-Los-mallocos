@@ -84,7 +84,6 @@ uint16_t numero_de_pagina_libre(segmento* segmento){
 void crear_registro_nuevo_en_tabla_de_paginas(int lugar_pagina_vacia, segmento* segmento, int flag_modificado){
 	registro_tabla_pagina* nuevo_registro_pagina = malloc(sizeof(registro_tabla_pagina));
 	nuevo_registro_pagina->numero_pagina = numero_de_pagina_libre(segmento);
-	//nuevo_registro_pagina->numero_pagina = list_size(segmento->registro_base) + 1;
 	nuevo_registro_pagina->puntero_a_pagina = memoria + lugar_pagina_vacia;
 	nuevo_registro_pagina->flag_modificado = flag_modificado;
 	list_add(segmento->registro_base, nuevo_registro_pagina);
