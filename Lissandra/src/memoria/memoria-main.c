@@ -10,11 +10,12 @@
 
 #include "../commons/comunicacion/protocol.h"
 #include "../commons/lissandra-threads.h"
-#include "memoria-requests-handler.h"
+#include "memoria-request-handler.h"
 #include "memoria-logger.h"
 #include "memoria-config.h"
 #include "memoria-server.h"
 #include "memoria-main.h"
+#include "memoria-handler.h"
 
 //pthread_mutex_t memoria_main_mutex = PTHREAD_MUTEX_INITIALIZER;
 //pthread_cond_t memoria_main_cond = PTHREAD_COND_INITIALIZER;

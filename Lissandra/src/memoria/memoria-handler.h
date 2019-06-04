@@ -1,12 +1,5 @@
-/*
- * memoria-requests-handler.h
- *
- *  Created on: 27 may. 2019
- *      Author: utnso
- */
-
-#ifndef MEMORIA_MEMORIA_REQUESTS_HANDLER_H_
-#define MEMORIA_MEMORIA_REQUESTS_HANDLER_H_
+#ifndef MEMORIA_MEMORIA_HANDLER_H_
+#define MEMORIA_MEMORIA_HANDLER_H_
 #define MAX_TAM_NOMBRE_TABLA 50
 
 typedef struct segmento_t{
@@ -40,4 +33,4 @@ void crear_registro_nuevo_en_tabla_de_paginas(int, segmento*, int);
 void crear_pagina_nueva(int, uint16_t, uint64_t, char*);
 registro_tabla_pagina* encontrar_pagina_en_memoria(segmento*, uint16_t);
 
-#endif /* MEMORIA_MEMORIA_REQUESTS_HANDLER_H_ */
+#endif /* MEMORIA_MEMORIA_HANDLER_H_ */
