@@ -115,7 +115,8 @@ int main() {
 	}
 
 	printf("lugar_pagina_vacia: %d",lugar_pagina_vacia);
-
+	destruccion_tabla_registros_paginas();
+	destruccion_tabla_segmentos();
 	free(memoria);
 
 	//int paginas = tamanio_memoria / tamanio_maximo_pagina;

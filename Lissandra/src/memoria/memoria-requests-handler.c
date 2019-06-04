@@ -24,8 +24,24 @@ void inicializacion_tabla_segmentos(){
 	TABLA_DE_SEGMENTOS = list_create();
 }
 
+void destruccion_tabla_registros_paginas(){
+	void _destroy_element(void *elemento) {
+		free((registro_tabla_pagina*) elemento);
+	}
+	int cantidad_segmentos = list_size(TABLA_DE_SEGMENTOS);
+	segmento* segmento_temporal;
+	for(int i=0; i< cantidad_segmentos; i++){
+		segmento_temporal = list_get(TABLA_DE_SEGMENTOS,i);
+		list_destroy_and_destroy_elements(segmento_temporal->registro_base,&_destroy_element);;
+	}
+	free(segmento_temporal);
+}
+
 void destruccion_tabla_segmentos(){
-	list_destroy(TABLA_DE_SEGMENTOS);
+	void _destroy_element(void *elemento) {
+		free((segmento*) elemento);
+	}
+	list_destroy_and_destroy_elements(TABLA_DE_SEGMENTOS,&_destroy_element);;
 }
 
 void manejar_select(struct select_request* mensaje){
