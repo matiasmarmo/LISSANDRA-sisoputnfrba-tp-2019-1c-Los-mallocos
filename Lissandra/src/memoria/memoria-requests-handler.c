@@ -19,6 +19,17 @@
 #define MAX_TAM_NOMBRE_TABLA 50
 
 t_list* TABLA_DE_SEGMENTOS;
+uint8_t* memoria;
+
+uint8_t* get_memoria(){
+	return memoria;
+}
+void inicializacion_memoria(int tamanio_memoria){
+	memoria = calloc(tamanio_memoria, sizeof(char));
+}
+void destruccion_memoria(){
+	free(memoria);
+}
 
 void inicializacion_tabla_segmentos(){
 	TABLA_DE_SEGMENTOS = list_create();
@@ -43,7 +54,7 @@ void destruccion_tabla_segmentos(){
 	}
 	list_destroy_and_destroy_elements(TABLA_DE_SEGMENTOS,&_destroy_element);;
 }
-
+/*
 void manejar_select(struct select_request* mensaje){
 	int lugar_pagina_vacia;
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje->tabla);
@@ -93,7 +104,7 @@ void manejar_select(struct select_request* mensaje){
 		}
 
 	}
-}
+}*/
 
 uint16_t numero_de_pagina_libre(segmento* segmento){
 	uint16_t cantidad_paginas = list_size(segmento->registro_base);
@@ -111,7 +122,7 @@ uint16_t numero_de_pagina_libre(segmento* segmento){
 	return cantidad_paginas;
 }
 
-void crear_registro_nuevo_en_tabla_de_paginas(uint8_t* memoria, int lugar_pagina_vacia, segmento* segmento, int flag_modificado){
+void crear_registro_nuevo_en_tabla_de_paginas(int lugar_pagina_vacia, segmento* segmento, int flag_modificado){
 	registro_tabla_pagina* nuevo_registro_pagina = malloc(sizeof(registro_tabla_pagina));
 	nuevo_registro_pagina->numero_pagina = numero_de_pagina_libre(segmento);
 	//nuevo_registro_pagina->numero_pagina = list_size(segmento->registro_base) + 1;
@@ -120,7 +131,7 @@ void crear_registro_nuevo_en_tabla_de_paginas(uint8_t* memoria, int lugar_pagina
 	list_add(segmento->registro_base, nuevo_registro_pagina);
 }
 
-void crear_pagina_nueva(uint8_t* memoria,int lugar_pagina_vacia, uint16_t key, uint64_t timestamp, char* value){
+void crear_pagina_nueva(int lugar_pagina_vacia, uint16_t key, uint64_t timestamp, char* value){
 	pagina nueva_pagina;
 	nueva_pagina.key = (uint16_t*)(memoria + 0 + lugar_pagina_vacia);
 	nueva_pagina.timestamp = (uint64_t*)(memoria + sizeof(uint16_t) + lugar_pagina_vacia);
@@ -158,7 +169,7 @@ segmento* encontrar_segmento_en_memoria(char* nombre_tabla_buscada){
 	return segmento;
 }
 
-int encontrar_pagina_vacia(uint8_t* memoria,int tamanio_memoria,int tamanio_maximo_pagina){
+int encontrar_pagina_vacia(int tamanio_memoria,int tamanio_maximo_pagina){
 	int numero_pagina = 0;
 	while(tamanio_memoria >= tamanio_maximo_pagina + numero_pagina){
 		if(	*(memoria + numero_pagina) == 0){
