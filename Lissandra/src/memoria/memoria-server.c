@@ -22,11 +22,13 @@
 
 t_list *lista_clientes;
 
-int clientes[2]={-1, -1};
-int cant_actual=0;
+//int clientes[2]={-1, -1};
+//int cant_actual=0;
 
 void inicializar_clientes() {
 	lista_clientes = list_create();
+	list_add(lista_clientes,-1);
+	list_add(lista_clientes,-1);
 }
 
 void destruir_clientes() {
@@ -35,16 +37,11 @@ void destruir_clientes() {
 
 void sacarCliente(int cliente, int* posicion) {
 	if(posicion == 0) {
-		clientes[0] = -1;
-		if(clientes[1] != -1) {
-			clientes[0] = clientes[1];
-			clientes[1] = -1;
-			posicion--;
-		}
+		list_add_in_index(lista_clientes, 0, list_get(lista_clientes, 1));
+		list_add_in_index(lista_clientes, 1, -1);
 	} else {
-		clientes[1] = -1;
+		list_add_in_index(lista_clientes, 1, -1);
 	}
-	cant_actual--;
 }
 
 void manejarCliente(int cliente, int* posicion){
@@ -97,10 +94,14 @@ void manejarCliente(int cliente, int* posicion){
 }
 
 void agregarCliente(int nuevo_cliente) {
-	if (cant_actual < 2){
-		clientes[cant_actual] = nuevo_cliente;
-		cant_actual++;
-	} else {
+	if (list_get(lista_clientes, 0) == -1 || list_get(lista_clientes, 1) == -1) {
+		if(list_get(lista_clientes, 0) == -1 ){
+			list_add_in_index(lista_clientes, 0, nuevo_cliente);
+		} else {
+			list_add_in_index(lista_clientes, 1, nuevo_cliente);
+		}
+	}
+	else{
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Se intentó conectar un tercer cliente en la memoria");
 	}
@@ -170,20 +171,22 @@ void* correr_servidor_memoria(void* entrada) {
 			if (FD_ISSET(servidor, &copia)) {
 				nuevo_cliente = aceptar_cliente(servidor);
 				if(nuevo_cliente > 0) {
-					list_add(lista_clientes,nuevo_cliente);
-					//agregarCliente(nuevo_cliente);
+					//list_add(lista_clientes,nuevo_cliente);
+					agregarCliente(nuevo_cliente);
 					if(nuevo_cliente > mayor_file_descriptor) {
 						mayor_file_descriptor = nuevo_cliente;
 					}
-					FD_SET(clientes[cant_actual-1], &descriptores);
+					FD_SET(list_get(lista_clientes, list_size(lista_clientes) - 1), &descriptores);
+					//FD_SET(clientes[cant_actual-1], &descriptores);
 				}
 			}
 			if (FD_ISSET(STDIN_FILENO, &copia)) {
 				leer_siguiente_caracter();
 			}
-			for(i=0; i<cant_actual ; i++) {
-				if(clientes[i] != -1 && FD_ISSET(clientes[i], &copia)) {
-					manejarCliente(clientes[i], &i);
+			for(i=0; i < list_size(lista_clientes) ; i++) {
+				//if(clientes[i] != -1 && FD_ISSET(clientes[i], &copia)) {
+				if(list_get(lista_clientes, i) != -1 && FD_ISSET(list_get(lista_clientes, i), &copia)) {
+					manejarCliente(list_get(lista_clientes, i), &i);
 				}
 			}
 		}
