@@ -18,13 +18,13 @@
 #include "memoria-main.h"
 
 
-void manejar_select(struct select_request mensaje){
+void _manejar_select(struct select_request mensaje){
 	int lugar_pagina_vacia;
 	int flag_modificado = 0;
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
 	if(segmento_buscado==NULL){ // No existe el segmento en memoria
 		printf("   El segmento no esta en memoria\n");
-		lugar_pagina_vacia = encontrar_pagina_vacia(get_tamanio_maximo_pagina());
+		lugar_pagina_vacia = encontrar_pagina_vacia();
 		if(lugar_pagina_vacia == -1){
 			// HACER JOURNAL
 		}else{
@@ -45,7 +45,7 @@ void manejar_select(struct select_request mensaje){
 		registro_tabla_pagina* reg_pagina = encontrar_pagina_en_memoria(segmento_buscado, mensaje.key);
 		if(reg_pagina==NULL){ // No existe la pagina en memoria
 			printf("   La pagina con esa key no esta en memoria\n");
-			lugar_pagina_vacia = encontrar_pagina_vacia(get_tamanio_maximo_pagina());
+			lugar_pagina_vacia = encontrar_pagina_vacia();
 			if(lugar_pagina_vacia == -1){
 				// HACER JOURNAL
 			}else{
@@ -80,7 +80,7 @@ void _manejar_insert(struct insert_request mensaje){
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
 	if(segmento_buscado==NULL){ // No existe el segmento en memoria
 		printf("   El segmento no esta en memoria\n");
-		lugar_pagina_vacia = encontrar_pagina_vacia(get_tamanio_maximo_pagina());
+		lugar_pagina_vacia = encontrar_pagina_vacia();
 		if(lugar_pagina_vacia == -1){
 			// HACER JOURNAL
 		}else{
@@ -95,7 +95,7 @@ void _manejar_insert(struct insert_request mensaje){
 		registro_tabla_pagina* reg_pagina = encontrar_pagina_en_memoria(segmento_buscado, mensaje.key);
 		if(reg_pagina==NULL){ // No existe la pagina en memoria
 			printf("   La pagina con esa key no esta en memoria\n");
-			lugar_pagina_vacia = encontrar_pagina_vacia(get_tamanio_maximo_pagina());
+			lugar_pagina_vacia = encontrar_pagina_vacia();
 			if(lugar_pagina_vacia == -1){
 				printf("   No hay paginas libres\n");
 				// HACER JOURNAL

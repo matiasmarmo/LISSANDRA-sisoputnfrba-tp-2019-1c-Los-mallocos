@@ -34,108 +34,47 @@ int main() {
 	inicializar_memoria_config();
 	inicializar_clientes();
 	tamanio_maximo_value = 10; // PEDIRSELO AL FS (BYTES)
-	int tamanio_maximo_pagina = sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
 	inicializacion_memoria();
-	printf("%d",get_tamanio_memoria());
 	inicializacion_tabla_segmentos();
-	// creo 2 segmentos para probar
-	crear_segmento_nuevo("tabla1");
-	crear_segmento_nuevo("tabla2");
-	// pruebo si hay o no segmento en memoria
-	segmento* segmento_buscado = encontrar_segmento_en_memoria("tabla1");
-	if(segmento_buscado==NULL){
-		printf("segmento no esta en memoria\n");
-	}
-	else{
-		printf("segmento_buscado -> reg_lim: %d\n",segmento_buscado->registro_limite);
-		printf("segmento_buscado -> nombre: %s\n",segmento_buscado->tabla);
-	}
-	cantidad_paginas_de_un_segmento(segmento_buscado);
-	int lugar_pagina_vacia;
-	//--------------------------------------------------------------
-	lugar_pagina_vacia = encontrar_pagina_vacia(tamanio_maximo_pagina);
-	if(lugar_pagina_vacia == -1){
-		printf("no hay mas paginas libres\n");
-	}else{
-		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia, segmento_buscado, 0);
-		crear_pagina_nueva(lugar_pagina_vacia, 25, 123456, "martin");
-	}
-	cantidad_paginas_de_un_segmento(segmento_buscado);
-	//--------------------------------------------------------------
-	lugar_pagina_vacia = encontrar_pagina_vacia(tamanio_maximo_pagina);
-	if(lugar_pagina_vacia == -1){
-		printf("no hay mas paginas libres\n");
-	}else{
-		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia, segmento_buscado, 0);
-		crear_pagina_nueva(lugar_pagina_vacia, 12, 8976, "carlos");
-	}
-	cantidad_paginas_de_un_segmento(segmento_buscado);
-	//--------------------------------------------------------------
-	lugar_pagina_vacia = encontrar_pagina_vacia(tamanio_maximo_pagina);
-	if(lugar_pagina_vacia == -1){
-		printf("no hay mas paginas libres\n");
-	}else{
-		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia, segmento_buscado, 0);
-		crear_pagina_nueva(lugar_pagina_vacia, 73, 1961, "matias");
-	}
-	cantidad_paginas_de_un_segmento(segmento_buscado);
-	//--------------------------------------------------------------
 
-	registro_tabla_pagina* a = list_get(segmento_buscado->registro_base,0);
+	struct select_request query;
+	struct insert_request query2;
+	init_insert_request("tabla1", 25, "martin",123456, &query2);
+	printf("INSERT tabla1 25 martin\n");
+	_manejar_insert(query2);
+	destroy_insert_request(&query2);
+	init_insert_request("tabla1", 12, "carlos",8796, &query2);
+	printf("INSERT tabla1 12 carlos\n");
+	_manejar_insert(query2);
+	destroy_insert_request(&query2);
+	init_insert_request("tabla1", 73, "matias",1961, &query2);
+	printf("INSERT tabla1 73 matias\n");
+	_manejar_insert(query2);
+	destroy_insert_request(&query2);
 
-	printf("numero de pagina: %d\n", a->numero_pagina);
-	printf("puntero a pagina: %p\n", a->puntero_a_pagina);
-	printf("flag  modificado: %d\n", a->flag_modificado);
-	printf("puntero a pagina: %p\n", &(get_memoria())[0]);
-	pagina final1;
-	pagina final2;
-	final1.key = (uint16_t*)(get_memoria() + 0);
-	final2.key = (uint16_t*)(get_memoria() + 21);
-	printf("key1: %d\n", *(final1.key));
-	printf("key2: %d\n", *(final2.key));
-	cantidad_paginas_de_un_segmento(segmento_buscado);
-
-	printf("Busco la pagina con key = 25\n");
-	registro_tabla_pagina* reg_pagina = encontrar_pagina_en_memoria(segmento_buscado, 25);
-	if(reg_pagina==NULL){
-		printf("   La pagina con esa key no esta en memoria\n");
-	}
-	else{
-		printf("   Pagina buscada -> key: %d\n",*((uint16_t*)(reg_pagina->puntero_a_pagina)));
-		printf("   Pagina buscada -> timestamp: %llu\n",*((uint64_t*)(reg_pagina->puntero_a_pagina + 2)));
-		int h=0;
-		while(*((char*)(reg_pagina->puntero_a_pagina + 10 + h)) != '\0'){
-			printf("   Pagina buscada -> value: %c\n",*((char*)(reg_pagina->puntero_a_pagina + 10 + h)));
-			h++;
-		}
-	}
-
-	printf("lugar_pagina_vacia: %d\n\n",lugar_pagina_vacia);
 	estado_actual_memoria();
 	//--------------------------
-	struct select_request query;
 	init_select_request("tabla1", 12, &query);
 	printf("SELECT tabla1 12\n");
-	manejar_select(query);
+	_manejar_select(query);
 	destroy_select_request(&query);
 	//--------------------------
 	init_select_request("tabla1", 72, &query);
 	printf("SELECT tabla1 72\n");
-	manejar_select(query);
+	_manejar_select(query);
 	destroy_select_request(&query);
 	//--------------------------
 	init_select_request("tabla3", 72, &query);
 	printf("SELECT tabla3 72\n");
-	manejar_select(query);
+	_manejar_select(query);
 	destroy_select_request(&query);
 	//--------------------------
 	init_select_request("tabla1", 73, &query);
 	printf("SELECT tabla1 73\n");
-	manejar_select(query);
+	_manejar_select(query);
 	destroy_select_request(&query);
 	//--------------------------
 	estado_actual_memoria();
-	struct insert_request query2;
 	init_insert_request("tabla2", 66, "alfajor",1234, &query2);
 	printf("INSERT tabla2 66 alfajor\n");
 	_manejar_insert(query2);
@@ -143,7 +82,7 @@ int main() {
 	//--------------------------
 	init_select_request("tabla2", 66, &query);
 	printf("SELECT tabla2 66\n");
-	manejar_select(query);
+	_manejar_select(query);
 	destroy_select_request(&query);
 	//--------------------------
 	estado_actual_memoria();
@@ -151,8 +90,9 @@ int main() {
 	destruccion_tabla_registros_paginas();
 	destruccion_tabla_segmentos();
 	destruccion_memoria();
+	destruir_clientes();
 	//--------------------------
-	printf("SUCCESS");
+	printf(".:SUCCESS:.\n\n");
 	//int paginas = tamanio_memoria / tamanio_maximo_pagina;
 
 	/*inicializar_memoria_logger();
@@ -174,7 +114,6 @@ int main() {
 	// finalizar hilos
 
 	//liberar_recursos_memoria();
-	destruir_clientes();
 	return 0;
 }
 

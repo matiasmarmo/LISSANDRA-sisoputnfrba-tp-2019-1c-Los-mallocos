@@ -52,7 +52,7 @@ void destruccion_tabla_segmentos(){
 	void _destroy_element(void *elemento) {
 		free((segmento*) elemento);
 	}
-	list_destroy_and_destroy_elements(TABLA_DE_SEGMENTOS,&_destroy_element);;
+	list_destroy_and_destroy_elements(TABLA_DE_SEGMENTOS,&_destroy_element);
 }
 
 void estado_actual_memoria(){
@@ -129,13 +129,13 @@ segmento* encontrar_segmento_en_memoria(char* nombre_tabla_buscada){
 	return segmento;
 }
 
-int encontrar_pagina_vacia(int tamanio_maximo_pagina){
+int encontrar_pagina_vacia(){
 	int numero_pagina = 0;
-	while(get_tamanio_memoria() >= tamanio_maximo_pagina + numero_pagina){
+	while(get_tamanio_memoria() >= get_tamanio_maximo_pagina() + numero_pagina){
 		if(	*(memoria + numero_pagina) == 0){
 			return numero_pagina;
 		}
-		numero_pagina += tamanio_maximo_pagina;
+		numero_pagina += get_tamanio_maximo_pagina();
 	}
 	return -1;
 }
