@@ -38,4 +38,6 @@ int crear_temporal(int numero, char* nombre_tabla);
 int iterar_directorio_tabla(char *tabla,
 		int (funcion)(const char*, const struct stat*, int));
 
+int cantidad_tmp_en_tabla(char *nombre_tabla);
+
 #endif

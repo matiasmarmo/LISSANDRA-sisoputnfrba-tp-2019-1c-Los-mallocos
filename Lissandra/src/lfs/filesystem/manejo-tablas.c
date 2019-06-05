@@ -369,3 +369,22 @@ void obtener_campos_metadatas(uint8_t* consistencias,
 	}
 }
 
+int cantidad_tmp_en_tabla(char *nombre_tabla) {
+
+	int numero = 0;
+
+	int _cantidad_tmp_en_tabla(const char* path_tmp, const struct stat* stat,
+			int flag) {
+		if (string_ends_with((char*) path_tmp, ".tmp")
+				|| string_ends_with((char*) path_tmp, ".tmp/")) {
+			numero++;
+		}
+		return 0;
+	}
+
+	if(iterar_directorio_tabla(nombre_tabla, &_cantidad_tmp_en_tabla) < 0) {
+		return -1;
+	}
+
+	return numero;
+}

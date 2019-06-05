@@ -38,4 +38,6 @@ int bajar_a_archivo_temporal(char* tabla, registro_t* registros, int cantidad_re
 
 int obtener_datos_de_tmpcs(char *tabla, registro_t **resultado);
 
+int buscar_registro_en_tabla(char* tabla, int particion, int key_buscada, registro_t* registro);
+
 #endif

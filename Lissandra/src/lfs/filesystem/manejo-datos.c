@@ -18,6 +18,7 @@
 #include "manejo-datos.h"
 #include "bitmap.h"
 #include "config-with-locks.h"
+#include "../lissandra/memtable.h"
 
 #define TIMESTAMP_STR_LEN 20
 
@@ -101,11 +102,11 @@ FILE *abrir_archivo_para_escritura(char *path) {
 
 FILE *abrir_archivo_para_lectoescritura(char *path) {
 	FILE *archivo = _abrir_archivo_con_lock(path, "r+", LOCK_EX);
-    if(archivo == NULL && errno == ENOENT) {
-        // No existe, lo creamos
-        archivo = _abrir_archivo_con_lock(path, "w+", LOCK_EX);
-    }
-    return archivo;
+	if (archivo == NULL && errno == ENOENT) {
+		// No existe, lo creamos
+		archivo = _abrir_archivo_con_lock(path, "w+", LOCK_EX);
+	}
+	return archivo;
 }
 
 FILE *abrir_archivo_para_agregar(char *path) {
@@ -227,13 +228,13 @@ int iterar_archivo_de_datos(char *path, operacion_t operacion) {
 	// por cada registro. También maneja los registros truncados
 	// entre bloques.
 
-    FILE *archivo = abrir_archivo_para_lectura(path);
-    if(archivo == NULL){
-        return -1;
-    }
+	FILE *archivo = abrir_archivo_para_lectura(path);
+	if (archivo == NULL) {
+		return -1;
+	}
 	t_config *archivo_datos = lfs_config_create_from_file(path, archivo);
 	if (archivo_datos == NULL) {
-        fclose(archivo);
+		fclose(archivo);
 		return -1;
 	}
 
@@ -246,7 +247,7 @@ int iterar_archivo_de_datos(char *path, operacion_t operacion) {
 	char **bloques = config_get_array_value(archivo_datos, "BLOCKS");
 	if (bloques == NULL) {
 		config_destroy(archivo_datos);
-        fclose(archivo);
+		fclose(archivo);
 		return -1;
 	}
 
@@ -258,7 +259,7 @@ int iterar_archivo_de_datos(char *path, operacion_t operacion) {
 		}
 	}
 
-    fclose(archivo);
+	fclose(archivo);
 
 	for (char **bloque_num = bloques; *bloque_num != NULL; bloque_num++) {
 		free(*bloque_num);
@@ -325,29 +326,29 @@ int leer_archivo_de_datos(char *path, registro_t **resultado) {
 }
 
 int leer_particion(char* nombre_tabla, int numero_particion,
-        registro_t **registros) {
-    char path_particion[TAMANIO_PATH];
-    obtener_path_particion(numero_particion, nombre_tabla, path_particion);
-    return leer_archivo_de_datos(path_particion, registros);
+		registro_t **registros) {
+	char path_particion[TAMANIO_PATH];
+	obtener_path_particion(numero_particion, nombre_tabla, path_particion);
+	return leer_archivo_de_datos(path_particion, registros);
 }
 
 int borrar_bloque(int bloque) {
 	char path_bloque[TAMANIO_PATH];
 	obtener_path_bloque(bloque, path_bloque);
-    int fd;
-    FILE *archivo_bloque = abrir_archivo_para_lectoescritura(path_bloque);
+	int fd;
+	FILE *archivo_bloque = abrir_archivo_para_lectoescritura(path_bloque);
 
-    if(archivo_bloque == NULL) {
-        return -1;
-    }
+	if (archivo_bloque == NULL) {
+		return -1;
+	}
 
-    fd = fileno(archivo_bloque);
+	fd = fileno(archivo_bloque);
 
 	if (ftruncate(fd, 0) < 0) {
 		fclose(archivo_bloque);
 		return -1;
 	}
-    fclose(archivo_bloque);
+	fclose(archivo_bloque);
 
 	if (liberar_bloque_bitmap(bloque) < 0) {
 		return -1;
@@ -356,7 +357,7 @@ int borrar_bloque(int bloque) {
 }
 
 int iterar_bloques(char** bloques, operacion_bloque_t operacion_bloque) {
-    int hubo_error = 0;
+	int hubo_error = 0;
 	for (char **i = bloques; *i != NULL; i++) {
 		if (operacion_bloque((int) strtoumax(*i, NULL, 10)) < 0) {
 			hubo_error = -1;
@@ -366,18 +367,18 @@ int iterar_bloques(char** bloques, operacion_bloque_t operacion_bloque) {
 }
 
 int liberar_bloques_de_archivo(t_config *config_archivo) {
-    char** buffer = config_get_array_value(config_archivo, "BLOCKS");
-    int hubo_error = 0;
-    if (iterar_bloques(buffer, &borrar_bloque) < 0) {
-        hubo_error = -1;
-    }
+	char** buffer = config_get_array_value(config_archivo, "BLOCKS");
+	int hubo_error = 0;
+	if (iterar_bloques(buffer, &borrar_bloque) < 0) {
+		hubo_error = -1;
+	}
 
-    for(char **i = buffer; *i != NULL; i++) {
-        free(*i);
-    }
-    free(buffer);
+	for (char **i = buffer; *i != NULL; i++) {
+		free(*i);
+	}
+	free(buffer);
 
-    return hubo_error;
+	return hubo_error;
 }
 
 int pisar_particion(char* tabla, int nro_particion, registro_t* registros,
@@ -390,33 +391,33 @@ int pisar_particion(char* tabla, int nro_particion, registro_t* registros,
 	t_config* config_particion = lfs_config_create_from_file(path_particion,
 			archivo);
 
-    // No chequeamos el error de liberar_bloques_particion
-    // porque, incluso si falla, igual debemos
-    // continuar con la misma ejecución
+	// No chequeamos el error de liberar_bloques_particion
+	// porque, incluso si falla, igual debemos
+	// continuar con la misma ejecución
 	liberar_bloques_de_archivo(config_particion);
 
-    int bloque_temp = pedir_bloque_bitmap();
-    if(bloque_temp < 0) {
-        // Esto no debería pasar porque acabamos de liberar
-        // nosotros bloques y siempre debiera haber alguno
-        // disponible.
-        // Pero, en caso de que falle, estamos dejando
-        // al archivo en un estado inconsistente (tiene
-        // los bloques que le liberamos)
-        // Por el momento, asumimos que no va a fallar.
-        fclose(archivo);
-        config_destroy(config_particion);
-        return -1;
-    }
+	int bloque_temp = pedir_bloque_bitmap();
+	if (bloque_temp < 0) {
+		// Esto no debería pasar porque acabamos de liberar
+		// nosotros bloques y siempre debiera haber alguno
+		// disponible.
+		// Pero, en caso de que falle, estamos dejando
+		// al archivo en un estado inconsistente (tiene
+		// los bloques que le liberamos)
+		// Por el momento, asumimos que no va a fallar.
+		fclose(archivo);
+		config_destroy(config_particion);
+		return -1;
+	}
 	sprintf(blocks_str, "[%d]", bloque_temp);
 	config_set_value(config_particion, "BLOCKS", blocks_str);
-    config_set_value(config_particion, "SIZE", "0");
+	config_set_value(config_particion, "SIZE", "0");
 	lfs_config_save_in_file(config_particion, archivo);
 
-    config_destroy(config_particion);
-    fclose(archivo);
+	config_destroy(config_particion);
+	fclose(archivo);
 
-	if(escribir_en_archivo_de_datos(path_particion, registros, cantidad) < 0){
+	if (escribir_en_archivo_de_datos(path_particion, registros, cantidad) < 0) {
 		return -1;
 	}
 
@@ -424,301 +425,316 @@ int pisar_particion(char* tabla, int nro_particion, registro_t* registros,
 }
 
 void registro_a_string(registro_t registro, char *buffer) {
-    sprintf(buffer, "%lu;%d;%s", registro.timestamp, registro.key, registro.value);
+	sprintf(buffer, "%lu;%d;%s", registro.timestamp, registro.key,
+			registro.value);
 }
 
 char *array_de_registros_a_string(registro_t *registros, int cantidad) {
-    char buffer[get_tamanio_string_registro()];
-    int tamanio_actual = 10 * get_tamanio_string_registro();
-    char *resultado = malloc(tamanio_actual);
-    int registro_siguiente = 0;
-    if(resultado == NULL) {
-        return NULL;
-    }
-    memset(buffer, 0, get_tamanio_string_registro());
-    memset(resultado, 0, tamanio_actual);
-    for(int i = 0; i < cantidad; i++) {
-        registro_a_string(registros[registro_siguiente++], buffer);
-        if(strlen(resultado) + strlen(buffer) + 1 > tamanio_actual) {
-            tamanio_actual *= 2;
-            char *realocado = realloc(resultado, tamanio_actual);
-            if(realocado == NULL) {
-                free(resultado);
-                return NULL;
-            }
-            resultado = realocado;
-        }
-        strcat(resultado, buffer);
-        strcat(resultado, "\n");
-    }
+	char buffer[get_tamanio_string_registro()];
+	int tamanio_actual = 10 * get_tamanio_string_registro();
+	char *resultado = malloc(tamanio_actual);
+	int registro_siguiente = 0;
+	if (resultado == NULL) {
+		return NULL;
+	}
+	memset(buffer, 0, get_tamanio_string_registro());
+	memset(resultado, 0, tamanio_actual);
+	for (int i = 0; i < cantidad; i++) {
+		registro_a_string(registros[registro_siguiente++], buffer);
+		if (strlen(resultado) + strlen(buffer) + 1 > tamanio_actual) {
+			tamanio_actual *= 2;
+			char *realocado = realloc(resultado, tamanio_actual);
+			if (realocado == NULL) {
+				free(resultado);
+				return NULL;
+			}
+			resultado = realocado;
+		}
+		strcat(resultado, buffer);
+		strcat(resultado, "\n");
+	}
 
-    return resultado;
+	return resultado;
 }
 
 int cantidad_bytes_a_escribir(registro_t *registros, int cantidad_registros) {
-    int resultado = 0;
-    char buffer[get_tamanio_string_registro()];
-    for(int i = 0; i < cantidad_registros; i++) {
-        registro_a_string(registros[i], buffer);
-        // Agregamos un caracter extra por el '\n'
-        resultado += strlen(buffer) + 1;
-    }
-    return resultado;
+	int resultado = 0;
+	char buffer[get_tamanio_string_registro()];
+	for (int i = 0; i < cantidad_registros; i++) {
+		registro_a_string(registros[i], buffer);
+		// Agregamos un caracter extra por el '\n'
+		resultado += strlen(buffer) + 1;
+	}
+	return resultado;
 }
 
 int bytes_disponibles_en_bloque_from_file(FILE *archivo) {
-    long bytes_actuales;
-    if(fseek(archivo, 0, SEEK_END) < 0) {
-        fclose(archivo);
-        return -1;
-    }
+	long bytes_actuales;
+	if (fseek(archivo, 0, SEEK_END) < 0) {
+		fclose(archivo);
+		return -1;
+	}
 
-    if((bytes_actuales = ftell(archivo)) < 0) {
-        fclose(archivo);
-        return -1;
-    }
+	if ((bytes_actuales = ftell(archivo)) < 0) {
+		fclose(archivo);
+		return -1;
+	}
 
-    return (int)(get_tamanio_bloque() - bytes_actuales);
+	return (int) (get_tamanio_bloque() - bytes_actuales);
 }
 
 int bytes_disponibles_en_bloque(char *numero_bloque) {
-    char path_bloque[TAMANIO_PATH] = { 0 };
-    path_a_bloque(numero_bloque, path_bloque, TAMANIO_PATH);
+	char path_bloque[TAMANIO_PATH] = { 0 };
+	path_a_bloque(numero_bloque, path_bloque, TAMANIO_PATH);
 
-    int resultado;
-    FILE *archivo = abrir_archivo_para_lectura(path_bloque);
-    if(archivo == NULL) {
-        return errno == ENOENT ? get_tamanio_bloque() : -1;
-    }
+	int resultado;
+	FILE *archivo = abrir_archivo_para_lectura(path_bloque);
+	if (archivo == NULL) {
+		return errno == ENOENT ? get_tamanio_bloque() : -1;
+	}
 
-    resultado = bytes_disponibles_en_bloque_from_file(archivo);
-    
-    fclose(archivo);
-    return resultado;
+	resultado = bytes_disponibles_en_bloque_from_file(archivo);
+
+	fclose(archivo);
+	return resultado;
 }
 
 int ultimo_bloque_de_archivo_de_datos(char *path, FILE *file) {
-    t_config *archivo_datos = lfs_config_create_from_file(path, file);
-    char **i;
-    char numero_bloque[10];
-    if(archivo_datos == NULL) {
-        return -1;
-    }
-    char **bloques = config_get_array_value(archivo_datos, "BLOCKS");
-    if(bloques == NULL) {
-        config_destroy(archivo_datos);
-        return -1;
-    }
+	t_config *archivo_datos = lfs_config_create_from_file(path, file);
+	char **i;
+	char numero_bloque[10];
+	if (archivo_datos == NULL) {
+		return -1;
+	}
+	char **bloques = config_get_array_value(archivo_datos, "BLOCKS");
+	if (bloques == NULL) {
+		config_destroy(archivo_datos);
+		return -1;
+	}
 
-    for(i = bloques; *i != NULL; i++);
-    strcpy(numero_bloque, *(--i));
+	for (i = bloques; *i != NULL; i++)
+		;
+	strcpy(numero_bloque, *(--i));
 
-    for(i = bloques; *i != NULL; i++) {
-        free(*i);
-    }
-    free(bloques);
-    config_destroy(archivo_datos);
+	for (i = bloques; *i != NULL; i++) {
+		free(*i);
+	}
+	free(bloques);
+	config_destroy(archivo_datos);
 
-    return (int) (strtoumax(numero_bloque, NULL, 10));
+	return (int) (strtoumax(numero_bloque, NULL, 10));
 }
 
 int bytes_disponibles_en_ultimo_bloque(int numero_bloque) {
-    char numero_str[10];
-    sprintf(numero_str, "%d", numero_bloque);
-    return bytes_disponibles_en_bloque(numero_str);
+	char numero_str[10];
+	sprintf(numero_str, "%d", numero_bloque);
+	return bytes_disponibles_en_bloque(numero_str);
 }
 
 int escribir_en_bloque(int numero_bloque, char *string_datos, int desde) {
-    char numero_bloque_str[10], path_bloque[TAMANIO_PATH];
-    sprintf(numero_bloque_str, "%d", numero_bloque);
-    path_a_bloque(numero_bloque_str, path_bloque, TAMANIO_PATH);
+	char numero_bloque_str[10], path_bloque[TAMANIO_PATH];
+	sprintf(numero_bloque_str, "%d", numero_bloque);
+	path_a_bloque(numero_bloque_str, path_bloque, TAMANIO_PATH);
 
-    FILE *archivo_bloque = abrir_archivo_para_lectoescritura(path_bloque);
-    if(archivo_bloque == NULL) {
-        return -1;
-    }
+	FILE *archivo_bloque = abrir_archivo_para_lectoescritura(path_bloque);
+	if (archivo_bloque == NULL) {
+		return -1;
+	}
 
-    int bytes_disponibles = bytes_disponibles_en_bloque_from_file(archivo_bloque);
-    char *string_a_escribir = &(string_datos[desde]);
-    int bytes_a_escribir;
-    if(bytes_disponibles < 0 || fseek(archivo_bloque, 0, SEEK_SET) < 0) {
-        fclose(archivo_bloque);
-        return -1;
-    }
-    bytes_a_escribir = strlen(string_a_escribir) > bytes_disponibles ? bytes_disponibles : strlen(string_a_escribir);
-    if(fseek(archivo_bloque, 0, SEEK_END) < 0) {
-        fclose(archivo_bloque);
-        return -1;
-    }
-    if(fwrite(&(string_datos[desde]), bytes_a_escribir, 1, archivo_bloque) != 1) {
-        fclose(archivo_bloque);
-        return -1;
-    }
-    fclose(archivo_bloque);
-    return bytes_a_escribir;
+	int bytes_disponibles = bytes_disponibles_en_bloque_from_file(
+			archivo_bloque);
+	char *string_a_escribir = &(string_datos[desde]);
+	int bytes_a_escribir;
+	if (bytes_disponibles < 0 || fseek(archivo_bloque, 0, SEEK_SET) < 0) {
+		fclose(archivo_bloque);
+		return -1;
+	}
+	bytes_a_escribir =
+			strlen(string_a_escribir) > bytes_disponibles ?
+					bytes_disponibles : strlen(string_a_escribir);
+	if (fseek(archivo_bloque, 0, SEEK_END) < 0) {
+		fclose(archivo_bloque);
+		return -1;
+	}
+	if (fwrite(&(string_datos[desde]), bytes_a_escribir, 1, archivo_bloque)
+			!= 1) {
+		fclose(archivo_bloque);
+		return -1;
+	}
+	fclose(archivo_bloque);
+	return bytes_a_escribir;
 }
 
 int agregar_bloque_a_config(t_config *config, int bloque) {
 
-    char numero[10];
-    sprintf(numero, "%d", bloque);
-    char *bloques_actuales = config_get_string_value(config, "BLOCKS");
-    char *nuevo_valor = malloc(strlen(bloques_actuales) + 10);
-    if(nuevo_valor == NULL) {
-        free(bloques_actuales);
-        return -1;
-    }
-    strcpy(nuevo_valor, bloques_actuales);
-    int indice = 0;
-    while(nuevo_valor[indice++] != ']');
-    nuevo_valor[indice - 1] = ',';
-    nuevo_valor[indice] =  ' ';
-    nuevo_valor[indice + 1] = '\0';
-    strcat(nuevo_valor, numero);
-    strcat(nuevo_valor, "]");
-    config_set_value(config, "BLOCKS", nuevo_valor);
-    free(nuevo_valor);
-    return 0;
+	char numero[10];
+	sprintf(numero, "%d", bloque);
+	char *bloques_actuales = config_get_string_value(config, "BLOCKS");
+	char *nuevo_valor = malloc(strlen(bloques_actuales) + 10);
+	if (nuevo_valor == NULL) {
+		free(bloques_actuales);
+		return -1;
+	}
+	strcpy(nuevo_valor, bloques_actuales);
+	int indice = 0;
+	while (nuevo_valor[indice++] != ']')
+		;
+	nuevo_valor[indice - 1] = ',';
+	nuevo_valor[indice] = ' ';
+	nuevo_valor[indice + 1] = '\0';
+	strcat(nuevo_valor, numero);
+	strcat(nuevo_valor, "]");
+	config_set_value(config, "BLOCKS", nuevo_valor);
+	free(nuevo_valor);
+	return 0;
 }
 
 void sumar_bytes_escritos_a_config(t_config *config, int cantidad) {
-    char valor[10] = { 0 };
-    sprintf(valor, "%d", cantidad + config_get_int_value(config, "SIZE"));
-    config_set_value(config, "SIZE", valor);
+	char valor[10] = { 0 };
+	sprintf(valor, "%d", cantidad + config_get_int_value(config, "SIZE"));
+	config_set_value(config, "SIZE", valor);
 }
 
 int escribir_datos_en_bloques(char *path, FILE *archivo_datos, int *bloques,
-        int cant_bloques, char *string_a_escribir) {
-    int caracteres_escritos = 0, ret_escritura;
-    t_config *config_datos = lfs_config_create_from_file(path, archivo_datos);
-    if(config_datos == NULL) {
-        return -1;
-    }
+		int cant_bloques, char *string_a_escribir) {
+	int caracteres_escritos = 0, ret_escritura;
+	t_config *config_datos = lfs_config_create_from_file(path, archivo_datos);
+	if (config_datos == NULL) {
+		return -1;
+	}
 
-    ret_escritura = escribir_en_bloque(bloques[0], string_a_escribir, caracteres_escritos);
-    if(ret_escritura == -1) {
-        config_destroy(config_datos);
-        return -1;
-    }
-    caracteres_escritos += ret_escritura;
-    for(int i = 1; i < cant_bloques; i++) {
-        ret_escritura = escribir_en_bloque(bloques[i], string_a_escribir, caracteres_escritos);
-        if(ret_escritura == -1) {
-            config_destroy(config_datos);
-            return -1;
-        }
-        caracteres_escritos += ret_escritura;
-        if(agregar_bloque_a_config(config_datos, bloques[i]) < 0) {
-            config_destroy(config_datos);
-            return -1;
-        }
-    }
-    sumar_bytes_escritos_a_config(config_datos, caracteres_escritos);
-    lfs_config_save_in_file(config_datos, archivo_datos);
-    config_destroy(config_datos);
-    return 0;
+	ret_escritura = escribir_en_bloque(bloques[0], string_a_escribir,
+			caracteres_escritos);
+	if (ret_escritura == -1) {
+		config_destroy(config_datos);
+		return -1;
+	}
+	caracteres_escritos += ret_escritura;
+	for (int i = 1; i < cant_bloques; i++) {
+		ret_escritura = escribir_en_bloque(bloques[i], string_a_escribir,
+				caracteres_escritos);
+		if (ret_escritura == -1) {
+			config_destroy(config_datos);
+			return -1;
+		}
+		caracteres_escritos += ret_escritura;
+		if (agregar_bloque_a_config(config_datos, bloques[i]) < 0) {
+			config_destroy(config_datos);
+			return -1;
+		}
+	}
+	sumar_bytes_escritos_a_config(config_datos, caracteres_escritos);
+	lfs_config_save_in_file(config_datos, archivo_datos);
+	config_destroy(config_datos);
+	return 0;
 }
 
 int liberar_bloques_bitmap(int *bloques, int cantidad) {
-    int hubo_error = 0;
-    for(int i = 0; i < cantidad; i++) {
-        if(liberar_bloque_bitmap(bloques[i]) < 0) {
-            hubo_error = -1;
-        }
-    }
-    return hubo_error;
+	int hubo_error = 0;
+	for (int i = 0; i < cantidad; i++) {
+		if (liberar_bloque_bitmap(bloques[i]) < 0) {
+			hubo_error = -1;
+		}
+	}
+	return hubo_error;
 }
 
-int cantidad_de_bloques_a_pedir(int cantiadad_bytes_a_escribir, int restante_ultimo_bloque) {
-    int res;
-    if(cantiadad_bytes_a_escribir < restante_ultimo_bloque) {
-        res = 0;
-    } else {
-        res = (cantiadad_bytes_a_escribir - restante_ultimo_bloque) / get_tamanio_bloque() + 1;
-        if((cantiadad_bytes_a_escribir - restante_ultimo_bloque) % get_tamanio_bloque() == 0) {
-            res--;
-        }
-    }
-    return res;
+int cantidad_de_bloques_a_pedir(int cantiadad_bytes_a_escribir,
+		int restante_ultimo_bloque) {
+	int res;
+	if (cantiadad_bytes_a_escribir < restante_ultimo_bloque) {
+		res = 0;
+	} else {
+		res = (cantiadad_bytes_a_escribir - restante_ultimo_bloque)
+				/ get_tamanio_bloque() + 1;
+		if ((cantiadad_bytes_a_escribir - restante_ultimo_bloque)
+				% get_tamanio_bloque() == 0) {
+			res--;
+		}
+	}
+	return res;
 }
 
 int pedir_bloques(int *bloques, int cantidad, int ultimo_bloque) {
-    bloques[0] = ultimo_bloque;
-    for(int i = 1; i < cantidad; i++) {
-        int bloque = pedir_bloque_bitmap();
-        if(bloque == -1) {
-            liberar_bloques_bitmap(bloques + 1, i - 1);
-            return -1;
-        }
-        bloques[i] = bloque;
-    }
-    return 0;
+	bloques[0] = ultimo_bloque;
+	for (int i = 1; i < cantidad; i++) {
+		int bloque = pedir_bloque_bitmap();
+		if (bloque == -1) {
+			liberar_bloques_bitmap(bloques + 1, i - 1);
+			return -1;
+		}
+		bloques[i] = bloque;
+	}
+	return 0;
 }
 
-int escribir_en_archivo_de_datos(char *path, registro_t *registros, int cantidad_registros) {
-    FILE *archivo = abrir_archivo_para_lectoescritura(path);
-    if(archivo == NULL) {
-        return -1;
-    }
-    int cantidad_de_bytes = cantidad_bytes_a_escribir(registros, cantidad_registros);
-    int ultimo_bloque = ultimo_bloque_de_archivo_de_datos(path, archivo);
-    int restante_ultimo_bloque = bytes_disponibles_en_ultimo_bloque(ultimo_bloque);
-    int cantidad_bloques_que_pedir = cantidad_de_bloques_a_pedir(
-        cantidad_de_bytes, restante_ultimo_bloque);
-    
-    int bloques_a_escribir[cantidad_bloques_que_pedir + 1];
-    if(pedir_bloques(bloques_a_escribir, cantidad_bloques_que_pedir + 1, ultimo_bloque) < 0) {
-        fclose(archivo);
-        return -1;
-    }
+int escribir_en_archivo_de_datos(char *path, registro_t *registros,
+		int cantidad_registros) {
+	FILE *archivo = abrir_archivo_para_lectoescritura(path);
+	if (archivo == NULL) {
+		return -1;
+	}
+	int cantidad_de_bytes = cantidad_bytes_a_escribir(registros,
+			cantidad_registros);
+	int ultimo_bloque = ultimo_bloque_de_archivo_de_datos(path, archivo);
+	int restante_ultimo_bloque = bytes_disponibles_en_ultimo_bloque(
+			ultimo_bloque);
+	int cantidad_bloques_que_pedir = cantidad_de_bloques_a_pedir(
+			cantidad_de_bytes, restante_ultimo_bloque);
 
-    char *string_a_escribir = array_de_registros_a_string(registros, cantidad_registros);
-    if(string_a_escribir == NULL) {
-        liberar_bloques_bitmap(bloques_a_escribir + 1, cantidad_bloques_que_pedir);
-        fclose(archivo);
-        return -1;
-    }
-    if(escribir_datos_en_bloques(path, archivo, bloques_a_escribir, cantidad_bloques_que_pedir + 1, string_a_escribir) < 0) {
-        liberar_bloques_bitmap(bloques_a_escribir + 1, cantidad_bloques_que_pedir);
-        free(string_a_escribir);
-        fclose(archivo);
-        return -1;
-    }
-    free(string_a_escribir);
-    fclose(archivo);
-    return 0;
+	int bloques_a_escribir[cantidad_bloques_que_pedir + 1];
+	if (pedir_bloques(bloques_a_escribir, cantidad_bloques_que_pedir + 1,
+			ultimo_bloque) < 0) {
+		fclose(archivo);
+		return -1;
+	}
+
+	char *string_a_escribir = array_de_registros_a_string(registros,
+			cantidad_registros);
+	if (string_a_escribir == NULL) {
+		liberar_bloques_bitmap(bloques_a_escribir + 1,
+				cantidad_bloques_que_pedir);
+		fclose(archivo);
+		return -1;
+	}
+	if (escribir_datos_en_bloques(path, archivo, bloques_a_escribir,
+			cantidad_bloques_que_pedir + 1, string_a_escribir) < 0) {
+		liberar_bloques_bitmap(bloques_a_escribir + 1,
+				cantidad_bloques_que_pedir);
+		free(string_a_escribir);
+		fclose(archivo);
+		return -1;
+	}
+	free(string_a_escribir);
+	fclose(archivo);
+	return 0;
 }
 
-int bajar_a_archivo_temporal(char* tabla, registro_t* registros, int cantidad_registros){
+int bajar_a_archivo_temporal(char* tabla, registro_t* registros,
+		int cantidad_registros) {
 	char path_tmp[TAMANIO_PATH] = { 0 };
 	int existe_tabla_res;
-	int numero = 0;
+	int numero;
 
 	existe_tabla_res = existe_tabla(tabla);
-	if(existe_tabla_res == -1) {
+	if (existe_tabla_res == -1) {
 		return -1;
-	} else if(existe_tabla_res == 1){
+	} else if (existe_tabla_res == 1) {
 		return TABLA_NO_EXISTENTE;
 	}
 
-	int cantidad_tmp_en_tabla(const char* path_tmp, const struct stat* stat, int flag){
-		if (string_ends_with((char*) path_tmp, ".tmp") || string_ends_with((char*) path_tmp, ".tmp/")) {
-			numero++;
-		}
-		return 0;
-	}
-
-	if((iterar_directorio_tabla(tabla, &cantidad_tmp_en_tabla)) == -1){
+	if ((numero = cantidad_tmp_en_tabla(tabla)) < 0) {
 		return -1;
 	}
 
-	if(crear_temporal(numero, tabla) < -1){
+	if (crear_temporal(numero, tabla) < 0) {
 		return -1;
 	}
 
-    obtener_path_temporal(numero, tabla, path_tmp);
+	obtener_path_temporal(numero, tabla, path_tmp);
 
-	if((escribir_en_archivo_de_datos(path_tmp, registros, cantidad_registros)) == -1){
+	if ((escribir_en_archivo_de_datos(path_tmp, registros, cantidad_registros))
+			== -1) {
 		return -1;
 	}
 
@@ -726,50 +742,53 @@ int bajar_a_archivo_temporal(char* tabla, registro_t* registros, int cantidad_re
 }
 
 int obtener_datos_de_tmpcs(char *tabla, registro_t **resultado) {
-    int tamanio_actual = 10 * sizeof(registro_t);
-    int cantidad_actual_registros = 0;
-    int hubo_error = 0;
-    *resultado = malloc(tamanio_actual);
-    if(resultado == NULL) {
-        return -1;
-    }
+	int tamanio_actual = 10 * sizeof(registro_t);
+	int cantidad_actual_registros = 0;
+	int hubo_error = 0;
+	*resultado = malloc(tamanio_actual);
+	if (resultado == NULL) {
+		return -1;
+	}
 
-    int _concatenar_registros_al_resultado(registro_t *registros, int cantidad) {
-        while(cantidad_actual_registros + cantidad > tamanio_actual) {
-            tamanio_actual *= 2;
-            registro_t *realocado = realloc(*resultado, tamanio_actual);
-            if(realocado == NULL) {
-                hubo_error = -1;
-                return -1;
-            }
-            *resultado = realocado;
-        }
-        memcpy(*resultado + cantidad_actual_registros, registros, cantidad * sizeof(registro_t));
-        cantidad_actual_registros += cantidad;
-        return 0;
-    }
+	int _concatenar_registros_al_resultado(registro_t *registros, int cantidad) {
+		while (cantidad_actual_registros + cantidad > tamanio_actual) {
+			tamanio_actual *= 2;
+			registro_t *realocado = realloc(*resultado, tamanio_actual);
+			if (realocado == NULL) {
+				hubo_error = -1;
+				return -1;
+			}
+			*resultado = realocado;
+		}
+		memcpy(*resultado + cantidad_actual_registros, registros,
+				cantidad * sizeof(registro_t));
+		cantidad_actual_registros += cantidad;
+		return 0;
+	}
 
-    int _leer_archivo(const char* path, const struct stat* stat, int flag) {
-        if(string_ends_with((char*) path, ".tmpc")) {
-            registro_t *nuevos_registros;
-            int cantidad = leer_archivo_de_datos((char*)path, &nuevos_registros);
-            if(cantidad < 0) {
-                // Informamos el error y cortamos la iteración
-                hubo_error = -1;
-                return -1;
-            }
-            if(_concatenar_registros_al_resultado(nuevos_registros, cantidad) < 0) {
-                free(nuevos_registros);
-                return -1;
-            }
-            free(nuevos_registros);
-        }
-        return 0;
-    }
+	int _leer_archivo(const char* path, const struct stat* stat, int flag) {
+		if (string_ends_with((char*) path, ".tmpc")) {
+			registro_t *nuevos_registros;
+			int cantidad = leer_archivo_de_datos((char*) path,
+					&nuevos_registros);
+			if (cantidad < 0) {
+				// Informamos el error y cortamos la iteración
+				hubo_error = -1;
+				return -1;
+			}
+			if (_concatenar_registros_al_resultado(nuevos_registros, cantidad)
+					< 0) {
+				free(nuevos_registros);
+				return -1;
+			}
+			free(nuevos_registros);
+		}
+		return 0;
+	}
 
-    if(iterar_directorio_tabla(tabla, &_leer_archivo) < 0 || hubo_error != 0) {
-        free(*resultado);
-        return -1;
-    }
-    return cantidad_actual_registros;
+	if (iterar_directorio_tabla(tabla, &_leer_archivo) < 0 || hubo_error != 0) {
+		free(*resultado);
+		return -1;
+	}
+	return cantidad_actual_registros;
 }

@@ -10,45 +10,31 @@
 
 #include "../commons/comunicacion/protocol.h"
 #include "../commons/lissandra-threads.h"
-#include "memoria-requests-handler.h"
+#include "memoria-request-handler.h"
 #include "memoria-logger.h"
 #include "memoria-config.h"
 #include "memoria-server.h"
 #include "memoria-main.h"
+#include "memoria-handler.h"
 
 //pthread_mutex_t memoria_main_mutex = PTHREAD_MUTEX_INITIALIZER;
 //pthread_cond_t memoria_main_cond = PTHREAD_COND_INITIALIZER;
 
-
-void inicializar_memoria() {
-
-}
-
-void liberar_recursos_memoria() {
-
-}
-
-
-void finalizar_memoria(){
-
-}
-uint8_t* memoria;
 int tamanio_maximo_value;
-
-uint8_t* get_memoria(){
-	return memoria;
-}
 
 int get_tamanio_maximo_pagina(){
 	return sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
 }
+void finalizar_memoria(){
+
+}
 
 int main() {
 	//inicializar_memoria();
-	int tamanio_memoria = 45; //int tamanio_memoria = get_tamanio_memoria();
+	int tamanio_memoria = 73; //int tamanio_memoria = get_tamanio_memoria();
 	tamanio_maximo_value = 10; // PEDIRSELO AL FS (BYTES)
 	int tamanio_maximo_pagina = sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
-	memoria = calloc(tamanio_memoria, sizeof(char));
+	inicializacion_memoria(tamanio_memoria);
 	inicializacion_tabla_segmentos();
 	// creo 2 segmentos para probar
 	crear_segmento_nuevo("tabla1");
@@ -65,21 +51,30 @@ int main() {
 	cantidad_paginas_de_un_segmento(segmento_buscado);
 	int lugar_pagina_vacia;
 	//--------------------------------------------------------------
-	lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
+	lugar_pagina_vacia = encontrar_pagina_vacia(tamanio_memoria,tamanio_maximo_pagina);
 	if(lugar_pagina_vacia == -1){
-		printf("no hay mas paginas libres");
+		printf("no hay mas paginas libres\n");
 	}else{
-		crear_registro_nuevo_en_tabla_de_paginas(memoria, lugar_pagina_vacia, segmento_buscado, 0);
-		crear_pagina_nueva(memoria,lugar_pagina_vacia, 25, 123456, "martin");
+		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia, segmento_buscado, 0);
+		crear_pagina_nueva(lugar_pagina_vacia, 25, 123456, "martin");
 	}
 	cantidad_paginas_de_un_segmento(segmento_buscado);
 	//--------------------------------------------------------------
-	lugar_pagina_vacia = encontrar_pagina_vacia(memoria,tamanio_memoria,tamanio_maximo_pagina);
+	lugar_pagina_vacia = encontrar_pagina_vacia(tamanio_memoria,tamanio_maximo_pagina);
 	if(lugar_pagina_vacia == -1){
-		printf("no hay mas paginas libres");
+		printf("no hay mas paginas libres\n");
 	}else{
-		crear_registro_nuevo_en_tabla_de_paginas(memoria, lugar_pagina_vacia, segmento_buscado, 0);
-		crear_pagina_nueva(memoria,lugar_pagina_vacia, 12, 8976, "carlos");
+		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia, segmento_buscado, 0);
+		crear_pagina_nueva(lugar_pagina_vacia, 12, 8976, "carlos");
+	}
+	cantidad_paginas_de_un_segmento(segmento_buscado);
+	//--------------------------------------------------------------
+	lugar_pagina_vacia = encontrar_pagina_vacia(tamanio_memoria,tamanio_maximo_pagina);
+	if(lugar_pagina_vacia == -1){
+		printf("no hay mas paginas libres\n");
+	}else{
+		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia, segmento_buscado, 0);
+		crear_pagina_nueva(lugar_pagina_vacia, 73, 1961, "matias");
 	}
 	cantidad_paginas_de_un_segmento(segmento_buscado);
 	//--------------------------------------------------------------
@@ -89,11 +84,11 @@ int main() {
 	printf("numero de pagina: %d\n", a->numero_pagina);
 	printf("puntero a pagina: %p\n", a->puntero_a_pagina);
 	printf("flag  modificado: %d\n", a->flag_modificado);
-	printf("puntero a pagina: %p\n", &memoria[0]);
+	printf("puntero a pagina: %p\n", &(get_memoria())[0]);
 	pagina final1;
 	pagina final2;
-	final1.key = (uint16_t*)(memoria + 0);
-	final2.key = (uint16_t*)(memoria + 21);
+	final1.key = (uint16_t*)(get_memoria() + 0);
+	final2.key = (uint16_t*)(get_memoria() + 21);
 	printf("key1: %d\n", *(final1.key));
 	printf("key2: %d\n", *(final2.key));
 	cantidad_paginas_de_un_segmento(segmento_buscado);
@@ -111,13 +106,32 @@ int main() {
 			printf("   Pagina buscada -> value: %c\n",*((char*)(reg_pagina->puntero_a_pagina + 10 + h)));
 			h++;
 		}
-
 	}
 
-	printf("lugar_pagina_vacia: %d",lugar_pagina_vacia);
-
-	free(memoria);
-
+	printf("lugar_pagina_vacia: %d\n\n",lugar_pagina_vacia);
+	estado_actual_memoria();
+	//--------------------------
+	struct select_request query;
+	init_select_request("tabla1", 12, &query);
+	printf("SELECT tabla1 12\n");
+	manejar_select(query);
+	//--------------------------
+	init_select_request("tabla1", 72, &query);
+	printf("SELECT tabla1 72\n");
+	manejar_select(query);
+	//--------------------------
+	init_select_request("tabla3", 72, &query);
+	printf("SELECT tabla3 72\n");
+	manejar_select(query);
+	//--------------------------
+	init_select_request("tabla1", 73, &query);
+	printf("SELECT tabla1 73\n");
+	manejar_select(query);
+	//--------------------------
+	destruccion_tabla_registros_paginas();
+	destruccion_tabla_segmentos();
+	destruccion_memoria();
+	printf("SUCCESS");
 	//int paginas = tamanio_memoria / tamanio_maximo_pagina;
 
 	/*inicializar_memoria_logger();

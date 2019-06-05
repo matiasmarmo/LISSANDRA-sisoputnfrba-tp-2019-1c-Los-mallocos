@@ -17,6 +17,7 @@
 #include "lfs-logger.h"
 #include "lfs-config.h"
 #include "lfs-main.h"
+#include "lissandra/lissandra.h"
 
 void *manejar_cliente(void* entrada) {
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) entrada;
@@ -48,7 +49,11 @@ void *manejar_cliente(void* entrada) {
 					continue;
 				}
 			}
-			//llamo a lissandra
+
+			if(manejar_request(buffer, respuesta) == -1){
+				break;
+			}
+
 			destroy(buffer);
 			if ((error = send_msg(cliente, respuesta) < 0)) {
 				lfs_log_to_level(LOG_LEVEL_TRACE, false,
@@ -134,11 +139,19 @@ void finalizar_hilo(void* elemento) {
 }
 
 void manejar_consola(char* linea, void* request) {
+	void* respuesta[get_max_msg_size()];
+	int res;
 	if (get_msg_id(request) == EXIT_REQUEST_ID) {
 		finalizar_lfs();
+		return;
 	}
-	//llamar a lissandra(request)
-	//manejar error (si tira error)
+
+	res = manejar_request(request, respuesta);
+	if(res != -1){
+		mostrar(respuesta);
+		destroy(respuesta);
+	}
+
 	destroy(request);
 }
 
