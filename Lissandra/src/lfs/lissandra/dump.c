@@ -2,8 +2,11 @@
 
 #include <commons/collections/dictionary.h>
 
+#include "../../commons/lissandra-threads.h"
+
 #include "../filesystem/filesystem.h"
 #include "../filesystem/manejo-datos.h"
+#include "../lfs-config.h"
 #include "memtable.h"
 
 t_dictionary *datos_no_dumpeados;
@@ -59,3 +62,6 @@ void *dumpear(void *entrada) {
 	return NULL;
 }
 
+int instanciar_hilo_dumper(lissandra_thread_periodic_t *lp_thread) {
+	return l_thread_periodic_create(lp_thread, &dumpear, &get_tiempo_dump, NULL);
+}

@@ -7,4 +7,6 @@ void *dumpear(void *entrada);
 
 void destruir_dumper();
 
+int instanciar_hilo_dumper(lissandra_thread_periodic_t *lp_thread);
+
 #endif
