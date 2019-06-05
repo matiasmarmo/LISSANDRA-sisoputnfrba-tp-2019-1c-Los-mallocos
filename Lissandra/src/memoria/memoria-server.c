@@ -20,8 +20,18 @@
 #include "memoria-config.h"
 #include "memoria-main.h"
 
+t_list *clientes;
+
 int clientes[2]={-1, -1};
 int cant_actual=0;
+
+void inicializar_clientes() {
+	clientes = list_create();
+}
+
+void destruir_clientes() {
+	list_destroy(clientes);
+}
 
 void sacarCliente(int cliente, int* posicion) {
 	if(posicion == 0) {
@@ -160,7 +170,8 @@ void* correr_servidor_memoria(void* entrada) {
 			if (FD_ISSET(servidor, &copia)) {
 				nuevo_cliente = aceptar_cliente(servidor);
 				if(nuevo_cliente > 0) {
-					agregarCliente(nuevo_cliente);
+					list_add(clientes,nuevo_cliente);
+					//agregarCliente(nuevo_cliente);
 					if(nuevo_cliente > mayor_file_descriptor) {
 						mayor_file_descriptor = nuevo_cliente;
 					}
