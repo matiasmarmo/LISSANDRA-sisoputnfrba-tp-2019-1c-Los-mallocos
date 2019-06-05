@@ -20,13 +20,11 @@
 #include "manejo-datos.h"
 
 int crear_directorio_tabla(char* nombre_tabla) {
-	int res_mkdir;
 	char path_tabla[TAMANIO_PATH];
 
 	obtener_path_tabla(nombre_tabla, path_tabla);
-	if ((res_mkdir = mkdir(path_tabla,
-	S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH))
-			== -1) {
+	if (mkdir(path_tabla, S_IRUSR | S_IWUSR | S_IXUSR 
+		| S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) == -1) {
 		return -1;
 	}
 	return 0;

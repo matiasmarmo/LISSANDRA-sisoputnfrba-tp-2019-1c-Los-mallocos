@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/stat.h>
 #include <inttypes.h>
 #include <time.h>
- #include <string.h>
+#include <string.h>
 #include <sys/file.h>
+#include <errno.h>
 #include <commons/config.h>
 #include <commons/bitarray.h>
 
@@ -29,12 +31,12 @@ int get_cantidad_bloques() {
 }
 
 int inicializar_filesystem(){
-	char metadata_path[256];
+	char path[256];
 	char* punto_montaje = get_punto_montaje();
-	sprintf(metadata_path,"%s/Metadata/Metadata.bin", punto_montaje);
-	t_config *metadata = config_create(metadata_path);
+	sprintf(path,"%s/Metadata/Metadata.bin", punto_montaje);
+	t_config *metadata = config_create(path);
 	if (metadata == NULL){
-		lfs_log_to_level(LOG_LEVEL_TRACE, false, "No se pudo abrir el archivo metadata");
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "No se pudo abrir el archivo metadata");
 		return -1;
 	}
 
@@ -42,9 +44,27 @@ int inicializar_filesystem(){
 	cantidad_bloques = config_get_int_value(metadata, "BLOCKS");
 	config_destroy(metadata);
 
+	int _crear_directorio_en_punto_montaje(char *nombre) {
+		sprintf(path, "%s/%s", punto_montaje, nombre);
+		if(mkdir(path, S_IRUSR | S_IWUSR | S_IXUSR 
+			| S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) == -1) {
+			return errno != EEXIST ? -1 : 0;
+		}
+		return 0;
+	}
+
+	if (_crear_directorio_en_punto_montaje("Tables") < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear el directorio Tables en el punto de montaje");
+		return -1;
+	}
+
+	if (_crear_directorio_en_punto_montaje("Bloques") < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear el directorio Bloques en el punto de montaje");
+		return -1;
+	}
 
 	if(crear_bitmap(cantidad_bloques) < 0){
-		lfs_log_to_level(LOG_LEVEL_TRACE, false, "Error al crear el bitmap");
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear el bitmap");
 		return -1;
 	}
 
