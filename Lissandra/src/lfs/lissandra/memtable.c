@@ -126,7 +126,8 @@ int iterar_entrada_memtable(char *tabla, operacion_t operacion) {
 	}
 	if (!dictionary_has_key(memtable, tabla)) {
 		pthread_rwlock_unlock(&memtable_lock);
-		return -1;
+		// No hay datos de la tabla en memtable
+		return 0;
 	}
 	entrada_memtable_t *entrada = dictionary_get(memtable, tabla);
 	if (pthread_mutex_lock(&entrada->lock) != 0) {
