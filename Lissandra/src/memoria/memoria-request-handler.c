@@ -69,6 +69,7 @@ void manejar_select(struct select_request mensaje){
 			printf("   Pagina buscada -> key: %d\n",respuesta.key);
 			printf("   Pagina buscada -> timestamp: %llu\n",respuesta.timestamp);
 			printf("   Pagina buscada -> value: %s\n",respuesta.valor);
+			destroy_select_response(&respuesta);
 		}
 	}
 }
