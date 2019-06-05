@@ -3,13 +3,22 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <string.h>
 #include <commons/collections/list.h>
+#include <commons/collections/dictionary.h>
 #include <commons/log.h>
+#include <stdint.h>
 
 #include "../commons/lissandra-threads.h"
+#include "filesystem/filesystem.h"
+#include "filesystem/manejo-datos.h"
+#include "filesystem/manejo-tablas.h"
+#include "lissandra/memtable.h"
+#include "compactador.h"
 #include "lfs-logger.h"
 #include "lfs-config.h"
 #include "lfs-servidor.h"
+#include "lissandra/dump.h"
 #include "lfs-main.h"
 
 pthread_mutex_t lfs_main_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -31,11 +40,45 @@ void inicializar_lfs() {
 		destruir_lfs_logger();
 		exit(EXIT_FAILURE);
 	}
+    if(inicializar_filesystem() < 0) {
+        lfs_log_to_level(LOG_LEVEL_ERROR, false,
+                "Error al inicializar filesystem. Abortando.");
+        destruir_lfs_logger();
+        destruir_lfs_config();
+        exit(EXIT_FAILURE);   
+    }
+    if(inicializar_memtable() < 0) {
+        lfs_log_to_level(LOG_LEVEL_ERROR, false,
+                "Error al inicializar la memtable. Abortando.");
+        destruir_lfs_logger();
+        destruir_lfs_config();
+        exit(EXIT_FAILURE);   
+    }
+    if(inicializar_dumper() < 0) {
+        lfs_log_to_level(LOG_LEVEL_ERROR, false,
+                "Error al inicializar el dumper. Abortando.");
+        destruir_lfs_logger();
+        destruir_lfs_config();
+        destruir_memtable();
+        exit(EXIT_FAILURE);   
+    }
+    if(inicializar_compactador() < 0) {
+        lfs_log_to_level(LOG_LEVEL_ERROR, false,
+                "Error al inicializar el compactador. Abortando.");
+        destruir_lfs_logger();
+        destruir_lfs_config();
+        destruir_memtable();
+        destruir_dumper();
+        exit(EXIT_FAILURE);   
+    }
 }
 
 void liberar_recursos_lfs() {
 	destruir_lfs_config();
 	destruir_lfs_logger();
+    destruir_compactador();
+    destruir_dumper();
+    destruir_memtable();
 }
 
 void finalizar_thread(lissandra_thread_t *l_thread) {
@@ -51,18 +94,20 @@ void finalizar_thread_si_se_creo(lissandra_thread_t *l_thread, int create_ret) {
 }
 
 int main() {
-	// inicio lissandra
-	int rets[CANTIDAD_PROCESOS];
+	int rets[3];
 	inicializar_lfs();
 	lissandra_thread_t servidor, inotify;
+    lissandra_thread_periodic_t dumper;
 
 	rets[0] = l_thread_create(&servidor, &correr_servidor, NULL);
 	rets[1] = inicializar_lfs_inotify(&inotify);
+    rets[2] = instanciar_hilo_dumper(&dumper);
 
-	for (int i = 0; i < CANTIDAD_PROCESOS; i++) {
+	for (int i = 0; i < 3; i++) {
 		if (rets[i] != 0) {
 			finalizar_thread_si_se_creo(&servidor, rets[0]);
 			finalizar_thread_si_se_creo(&inotify, rets[1]);
+            finalizar_thread_si_se_creo(&(dumper.l_thread), rets[2]);
 			liberar_recursos_lfs();
 			exit(EXIT_FAILURE);
 		}
@@ -76,6 +121,7 @@ int main() {
 
 	finalizar_thread(&servidor);
 	finalizar_thread(&inotify);
+    finalizar_thread(&(dumper.l_thread));
 	lfs_log_to_level(LOG_LEVEL_INFO, false, "Finalizando.");
 	liberar_recursos_lfs();
 	return 0;
