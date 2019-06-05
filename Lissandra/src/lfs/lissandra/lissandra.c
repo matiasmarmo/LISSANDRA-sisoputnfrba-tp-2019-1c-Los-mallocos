@@ -185,12 +185,6 @@ int manejar_insert(void* insert_request, void* insert_response) {
 		return 0;
 	}
 
-	metadata_t metadata_tabla;
-	if (obtener_metadata_tabla(insert_rq->tabla, &metadata_tabla) < 0) {
-		destroy(insert_rp);
-		return -1;
-	}
-
 	registro_t registro;
 	registro.key = insert_rq->key;
 	registro.value = insert_rq->valor;
