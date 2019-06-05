@@ -36,6 +36,7 @@ int main() {
 	tamanio_maximo_value = 10; // PEDIRSELO AL FS (BYTES)
 	int tamanio_maximo_pagina = sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
 	inicializacion_memoria();
+	printf("%d",get_tamanio_memoria());
 	inicializacion_tabla_segmentos();
 	// creo 2 segmentos para probar
 	crear_segmento_nuevo("tabla1");
@@ -116,28 +117,34 @@ int main() {
 	init_select_request("tabla1", 12, &query);
 	printf("SELECT tabla1 12\n");
 	manejar_select(query);
+	destroy_select_request(&query);
 	//--------------------------
 	init_select_request("tabla1", 72, &query);
 	printf("SELECT tabla1 72\n");
 	manejar_select(query);
+	destroy_select_request(&query);
 	//--------------------------
 	init_select_request("tabla3", 72, &query);
 	printf("SELECT tabla3 72\n");
 	manejar_select(query);
+	destroy_select_request(&query);
 	//--------------------------
 	init_select_request("tabla1", 73, &query);
 	printf("SELECT tabla1 73\n");
 	manejar_select(query);
+	destroy_select_request(&query);
 	//--------------------------
 	estado_actual_memoria();
 	struct insert_request query2;
 	init_insert_request("tabla2", 66, "alfajor",1234, &query2);
 	printf("INSERT tabla2 66 alfajor\n");
 	_manejar_insert(query2);
+	destroy_insert_request(&query2);
 	//--------------------------
 	init_select_request("tabla2", 66, &query);
 	printf("SELECT tabla2 66\n");
 	manejar_select(query);
+	destroy_select_request(&query);
 	//--------------------------
 	estado_actual_memoria();
 	destruir_memoria_config();
