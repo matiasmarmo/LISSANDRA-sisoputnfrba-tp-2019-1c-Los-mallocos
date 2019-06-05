@@ -4,21 +4,16 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <string.h>
-#include <commons/collections/list.h>
-#include <commons/collections/dictionary.h>
-#include <commons/log.h>
 #include <stdint.h>
 
 #include "../commons/lissandra-threads.h"
 #include "filesystem/filesystem.h"
-#include "filesystem/manejo-datos.h"
-#include "filesystem/manejo-tablas.h"
 #include "lissandra/memtable.h"
+#include "lissandra/dump.h"
 #include "compactador.h"
 #include "lfs-logger.h"
 #include "lfs-config.h"
 #include "lfs-servidor.h"
-#include "lissandra/dump.h"
 #include "lfs-main.h"
 
 pthread_mutex_t lfs_main_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -122,6 +117,8 @@ int main() {
 	finalizar_thread(&servidor);
 	finalizar_thread(&inotify);
     finalizar_thread(&(dumper.l_thread));
+    dumpear(NULL);
+    compactar_todas_las_tablas();
 	lfs_log_to_level(LOG_LEVEL_INFO, false, "Finalizando.");
 	liberar_recursos_lfs();
 	return 0;

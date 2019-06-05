@@ -105,18 +105,15 @@ void compactar_particion(char *nombre_tabla, int nro_particion,
     liberar_array_registros(datos_particion, cantidad_registros_particion);
 }
 
-void *compactar(void *data) {
+int compactar(char *nombre_tabla) {
 
     static int metadata_cargada = 0;
     static metadata_t metadata;
 
-    lissandra_thread_t *l_thread = (lissandra_thread_t*) data;
-    char *nombre_tabla = (char*) l_thread->entrada;
-
     if(!metadata_cargada) {
         if(obtener_metadata_tabla(nombre_tabla, &metadata) < 0) {
             // log
-            return NULL;
+            return -1;
         }
         metadata_cargada = 1;
     }
@@ -126,7 +123,7 @@ void *compactar(void *data) {
     int cantidad_registros_tmpc = obtener_datos_de_tmpcs(nombre_tabla, &datos_tmpc);
     if(cantidad_registros_tmpc < 0) {
         // log
-        return NULL;
+        return -1;
     }
 
     for(int particion = 0; particion < metadata.n_particiones; particion++) {
@@ -136,6 +133,13 @@ void *compactar(void *data) {
 
     free(datos_tmpc);
     borrar_todos_los_tmpc(nombre_tabla);
+    return -1;
+}
+
+void *thread_compactacion(void *data) {
+    lissandra_thread_t *l_thread = (lissandra_thread_t*) data;
+    char *nombre_tabla = (char*) l_thread->entrada;
+    compactar(nombre_tabla);
     return NULL;
 }
 
@@ -161,7 +165,7 @@ int instanciar_hilo_compactador(char *tabla, int t_compactaciones) {
         return -1;
     }
     if(l_thread_periodic_create_fixed(lp_thread,
-            &compactar, t_compactaciones,
+            &thread_compactacion, t_compactaciones,
             entrada_thread) < 0) {
         pthread_mutex_unlock(&hilos_compactadores_mutex);
         free(lp_thread);
@@ -185,4 +189,18 @@ int finalizar_hilo_compactador(char *tabla) {
     destruir_hilo_compactador(hilo_compactador);
     pthread_mutex_unlock(&hilos_compactadores_mutex);
     return 0;
+}
+
+void compactar_todas_las_tablas() {
+
+    int resultado = 0;
+
+    void _compactar(char *tabla, void *valor) {
+        int res_compactacion = compactar(tabla);
+        resultado = resultado || res_compactacion;
+    }
+
+    pthread_mutex_lock(&hilos_compactadores_mutex);
+    dictionary_iterator(hilos_compactadores, &_compactar);
+    pthread_mutex_unlock(&hilos_compactadores_mutex);
 }
