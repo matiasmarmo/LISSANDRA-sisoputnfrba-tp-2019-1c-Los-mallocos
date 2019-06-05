@@ -46,16 +46,23 @@ void inicializar_clientes() {
 	list_add(lista_clientes, cliente2);
 }
 
+void destruir_cliente(cliente_t *cliente) {
+	free(cliente);
+}
+
 void destruir_clientes() {
-	list_destroy(lista_clientes);
+	void _destruir_elemento(void *elemento) {
+			destruir_cliente((cliente_t*) elemento);
+		}
+
+	list_destroy_and_destroy_elements(lista_clientes, &_destruir_elemento);
 }
 
 void sacarCliente(int cliente, int* posicion) {
 	int valor_inicial = -1;
 	cliente_t *clienteReseteado = construir_cliente(valor_inicial);
 	if(posicion == 0) {
-		int mover_de = 1;
-		list_add_in_index(lista_clientes, 0, list_get(lista_clientes, mover_de));
+		list_add_in_index(lista_clientes, 0, list_get(lista_clientes, 1));
 		list_add_in_index(lista_clientes, 1, clienteReseteado);
 	} else {
 		list_add_in_index(lista_clientes, 1, clienteReseteado);
@@ -85,6 +92,14 @@ void manejarCliente(int cliente, int* posicion){
 	}
 	uint16_t puertos[2] = {1,2};
 	uint8_t numeros[2] = {1,2};
+
+	//switch( get_msg_id(buffer) ){
+	//case :
+	//	break;
+	//default:
+	//	break;
+	//}
+
 	if(get_msg_id(buffer) == DESCRIBE_REQUEST_ID) {
 		printf("Describe\n");
 		//send_global_describe_response(0, "TablaA;TablaB", 2, puertos, 2, numeros, 2, ips_ints, cliente);
