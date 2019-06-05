@@ -11,6 +11,7 @@
 #include <commons/collections/list.h>
 
 #include "../../commons/comunicacion/protocol.h"
+#include "../compactador.h"
 #include "../lfs-config.h"
 #include "manejo-tablas.h"
 #include "filesystem.h"
@@ -146,17 +147,19 @@ int crear_particiones(int n_particiones, char* nombre_tabla) {
 }
 
 int crear_tabla(char* nombre_tabla, metadata_t metadata) {
-	int res_tabla;
 
-	if ((res_tabla = crear_directorio_tabla(nombre_tabla)) == -1) {
+	if (crear_directorio_tabla(nombre_tabla) == -1) {
 		return -1;
 	}
-	if ((res_tabla = crear_metadata_tabla(metadata, nombre_tabla)) == -1) {
+	if (crear_metadata_tabla(metadata, nombre_tabla) == -1) {
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
-	if ((res_tabla = crear_particiones(metadata.n_particiones, nombre_tabla))
-			== -1) {
+	if (crear_particiones(metadata.n_particiones, nombre_tabla) == -1) {
+		borrar_tabla(nombre_tabla);
+		return -1;
+	}
+	if(instanciar_hilo_compactador(nombre_tabla, metadata.t_compactaciones) < 0) {
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
@@ -238,6 +241,7 @@ int borrar_tabla(char *tabla) {
 
 	char path_tabla[TAMANIO_PATH] = { 0 };
 	obtener_path_tabla(tabla, path_tabla);
+	finalizar_hilo_compactador(tabla);
 	iterar_directorio_tabla(tabla, &_borrar_archivo);
 	return rmdir(path_tabla);
 }
