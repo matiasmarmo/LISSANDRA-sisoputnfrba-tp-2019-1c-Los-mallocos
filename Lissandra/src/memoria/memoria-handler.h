@@ -20,7 +20,7 @@ typedef struct pagina_t{
 	char* value;
 }pagina;
 uint8_t* get_memoria();
-void inicializacion_memoria(int );
+void inicializacion_memoria();
 void destruccion_memoria();
 //-----------------------------------
 void inicializacion_tabla_segmentos();
@@ -31,7 +31,7 @@ void estado_actual_memoria();
 void crear_segmento_nuevo(char*);
 segmento* encontrar_segmento_en_memoria(char*);
 int cantidad_paginas_de_un_segmento(segmento*);
-int encontrar_pagina_vacia(int,int);
+int encontrar_pagina_vacia(int);
 void crear_registro_nuevo_en_tabla_de_paginas(int, segmento*, int);
 void crear_pagina_nueva(int, uint16_t, uint64_t, char*);
 registro_tabla_pagina* encontrar_pagina_en_memoria(segmento*, uint16_t);

@@ -24,8 +24,8 @@ uint8_t* memoria;
 uint8_t* get_memoria(){
 	return memoria;
 }
-void inicializacion_memoria(int tamanio_memoria){
-	memoria = calloc(tamanio_memoria, sizeof(char));
+void inicializacion_memoria(){
+	memoria = calloc(get_tamanio_memoria(), sizeof(char));
 }
 void destruccion_memoria(){
 	free(memoria);
@@ -57,12 +57,14 @@ void destruccion_tabla_segmentos(){
 
 void estado_actual_memoria(){
 	int cantidad_segmentos = list_size(TABLA_DE_SEGMENTOS);
-	printf("Cantidad de segmentos: %d\n", cantidad_segmentos);
+	printf("    ______________________________________\n");
+	printf("   | Cantidad de segmentos: %d\n", cantidad_segmentos);
 	segmento* segmento_temporal;
 	for(int i=0; i< cantidad_segmentos; i++){
 		segmento_temporal = list_get(TABLA_DE_SEGMENTOS,i);
-		printf("	-Segmento %d --> %d paginas (TABLA: %s)\n", i+1, list_size(segmento_temporal->registro_base),segmento_temporal->tabla);
+		printf("   |   -Segmento %d --> %d paginas (TABLA: %s)\n", i+1, list_size(segmento_temporal->registro_base),segmento_temporal->tabla);
 	}
+
 }
 
 uint16_t numero_de_pagina_libre(segmento* segmento){
@@ -127,9 +129,9 @@ segmento* encontrar_segmento_en_memoria(char* nombre_tabla_buscada){
 	return segmento;
 }
 
-int encontrar_pagina_vacia(int tamanio_memoria,int tamanio_maximo_pagina){
+int encontrar_pagina_vacia(int tamanio_maximo_pagina){
 	int numero_pagina = 0;
-	while(tamanio_memoria >= tamanio_maximo_pagina + numero_pagina){
+	while(get_tamanio_memoria() >= tamanio_maximo_pagina + numero_pagina){
 		if(	*(memoria + numero_pagina) == 0){
 			return numero_pagina;
 		}
