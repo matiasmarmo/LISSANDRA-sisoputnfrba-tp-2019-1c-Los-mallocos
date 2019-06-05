@@ -69,11 +69,11 @@ void inicializar_lfs() {
 }
 
 void liberar_recursos_lfs() {
-	destruir_lfs_config();
-	destruir_lfs_logger();
     destruir_compactador();
     destruir_dumper();
     destruir_memtable();
+    destruir_lfs_config();
+    destruir_lfs_logger();
 }
 
 void finalizar_thread(lissandra_thread_t *l_thread) {
