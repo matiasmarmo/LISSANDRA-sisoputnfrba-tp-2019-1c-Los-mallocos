@@ -31,7 +31,12 @@ void finalizar_memoria(){
 
 int main() {
 	//inicializar_memoria();
+<<<<<<< HEAD
 	inicializar_memoria_config();
+=======
+	inicializar_clientes();
+	int tamanio_memoria = 73; //int tamanio_memoria = get_tamanio_memoria();
+>>>>>>> d370f64124d479573a31c3f2a3c38761917fab76
 	tamanio_maximo_value = 10; // PEDIRSELO AL FS (BYTES)
 	int tamanio_maximo_pagina = sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
 	inicializacion_memoria();
@@ -166,6 +171,7 @@ int main() {
 	// finalizar hilos
 
 	//liberar_recursos_memoria();
+	destruir_clientes();
 	return 0;
 }
 
