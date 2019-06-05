@@ -20,15 +20,32 @@ int crear_bitmap(int cantidad_bloques) {
 	cantidad_bytes_bitmap = (cantidad_bloques / 8) + 1;
 	char datos_iniciales_bitmap[cantidad_bytes_bitmap];
 	memset(datos_iniciales_bitmap, 0, cantidad_bytes_bitmap);
+	int res_ftell;
 
 	char* punto_montaje = get_punto_montaje();
 
 	sprintf(bitmap_path, "%sMetadata/Bitmap.bin", punto_montaje);
-	FILE *archivo_bitmap = abrir_archivo_para_escritura(bitmap_path);
+	FILE *archivo_bitmap = abrir_archivo_para_lectoescritura(bitmap_path);
 	if (archivo_bitmap == NULL) {
 		lfs_log_to_level(LOG_LEVEL_TRACE, false,
 				"No se puse abrir el archivo bitmap");
 		return -1;
+	}
+
+	if(fseek(archivo_bitmap, 0, SEEK_END) < 0) {
+		fclose(archivo_bitmap);
+		return -1;
+	}
+	if((res_ftell = ftell(archivo_bitmap)) < 0) {
+		fclose(archivo_bitmap);
+		return -1;	
+	}
+	if(res_ftell != 0) {
+		// El bitmap ya estaba creado y tiene datos de una 
+		// ejecución anterior del lfs. Lo utilizamos a partir
+		// de su estado actual
+		fclose(archivo_bitmap);
+		return 0;
 	}
 
 	if (fwrite(datos_iniciales_bitmap, cantidad_bytes_bitmap, 1, archivo_bitmap)
