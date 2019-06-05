@@ -5,4 +5,8 @@ void* correr_servidor_memoria(void*);
 void inicializar_clientes();
 void destruir_clientes();
 
+typedef struct cliente {
+	int cliente_valor;
+} cliente_t;
+
 #endif

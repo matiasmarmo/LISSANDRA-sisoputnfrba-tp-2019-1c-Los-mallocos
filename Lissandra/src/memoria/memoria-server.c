@@ -16,6 +16,7 @@
 #include "../commons/lissandra-threads.h"
 #include "../commons/consola/consola.h"
 #include "../commons/comunicacion/protocol-utils.h"
+#include "memoria-server.h"
 #include "memoria-logger.h"
 #include "memoria-config.h"
 #include "memoria-main.h"
@@ -25,10 +26,24 @@ t_list *lista_clientes;
 //int clientes[2]={-1, -1};
 //int cant_actual=0;
 
+cliente_t* construir_cliente(int valor) {
+	cliente_t *cliente = malloc(sizeof(cliente_t));
+	if (cliente == NULL) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Construcción de cliente fallida, error en malloc");
+		return NULL;
+	}
+	cliente->cliente_valor = valor;
+	return cliente;
+}
+
 void inicializar_clientes() {
+	int valor_inicial = -1;
+	cliente_t *cliente1 = construir_cliente(valor_inicial);
+	cliente_t *cliente2 = construir_cliente(valor_inicial);
 	lista_clientes = list_create();
-	list_add(lista_clientes,-1);
-	list_add(lista_clientes,-1);
+	list_add(lista_clientes, cliente1);
+	list_add(lista_clientes, cliente2);
 }
 
 void destruir_clientes() {
@@ -36,11 +51,14 @@ void destruir_clientes() {
 }
 
 void sacarCliente(int cliente, int* posicion) {
+	int valor_inicial = -1;
+	cliente_t *clienteReseteado = construir_cliente(valor_inicial);
 	if(posicion == 0) {
-		list_add_in_index(lista_clientes, 0, list_get(lista_clientes, 1));
-		list_add_in_index(lista_clientes, 1, -1);
+		int mover_de = 1;
+		list_add_in_index(lista_clientes, 0, list_get(lista_clientes, mover_de));
+		list_add_in_index(lista_clientes, 1, clienteReseteado);
 	} else {
-		list_add_in_index(lista_clientes, 1, -1);
+		list_add_in_index(lista_clientes, 1, clienteReseteado);
 	}
 }
 
@@ -69,7 +87,7 @@ void manejarCliente(int cliente, int* posicion){
 	uint8_t numeros[2] = {1,2};
 	if(get_msg_id(buffer) == DESCRIBE_REQUEST_ID) {
 		printf("Describe\n");
-		send_global_describe_response(0, "TablaA;TablaB", 2, puertos, 2, numeros, 2, ips_ints, cliente);
+		//send_global_describe_response(0, "TablaA;TablaB", 2, puertos, 2, numeros, 2, ips_ints, cliente);
 	} else if (get_msg_id(buffer) == GOSSIP_ID) {
 		printf("GOSSIP\n");
 		send_gossip_response(2, ips_ints, 2, puertos, 2, numeros, cliente);
@@ -93,12 +111,15 @@ void manejarCliente(int cliente, int* posicion){
 	destroy(respuesta);
 }
 
-void agregarCliente(int nuevo_cliente) {
-	if (list_get(lista_clientes, 0) == -1 || list_get(lista_clientes, 1) == -1) {
-		if(list_get(lista_clientes, 0) == -1 ){
-			list_add_in_index(lista_clientes, 0, nuevo_cliente);
+void agregarCliente(int valor_cliente) {
+	cliente_t *clienteNuevo = construir_cliente(valor_cliente);
+	cliente_t *primerCliente = list_get(lista_clientes, 0);
+	cliente_t *segundoCliente = list_get(lista_clientes, 0);;
+	if (primerCliente->cliente_valor == -1 || segundoCliente->cliente_valor == -1) {
+		if(primerCliente->cliente_valor == -1){
+			list_add_in_index(lista_clientes, 0, clienteNuevo);
 		} else {
-			list_add_in_index(lista_clientes, 1, nuevo_cliente);
+			list_add_in_index(lista_clientes, 1, clienteNuevo);
 		}
 	}
 	else{
@@ -153,6 +174,7 @@ void* correr_servidor_memoria(void* entrada) {
 	FD_SET(STDIN_FILENO, &descriptores);
 
 	int i;
+	cliente_t *cliente = malloc(sizeof(cliente_t));
 	int nuevo_cliente;
 	int select_ret;
 	int mayor_file_descriptor = servidor;
@@ -176,7 +198,8 @@ void* correr_servidor_memoria(void* entrada) {
 					if(nuevo_cliente > mayor_file_descriptor) {
 						mayor_file_descriptor = nuevo_cliente;
 					}
-					FD_SET(list_get(lista_clientes, list_size(lista_clientes) - 1), &descriptores);
+					cliente = list_get(lista_clientes, list_size(lista_clientes) - 1);
+					FD_SET(cliente->cliente_valor, &descriptores);
 					//FD_SET(clientes[cant_actual-1], &descriptores);
 				}
 			}
@@ -185,12 +208,15 @@ void* correr_servidor_memoria(void* entrada) {
 			}
 			for(i=0; i < list_size(lista_clientes) ; i++) {
 				//if(clientes[i] != -1 && FD_ISSET(clientes[i], &copia)) {
-				if(list_get(lista_clientes, i) != -1 && FD_ISSET(list_get(lista_clientes, i), &copia)) {
-					manejarCliente(list_get(lista_clientes, i), &i);
+				cliente = list_get(lista_clientes, i);
+
+				if(cliente->cliente_valor != -1 && FD_ISSET(cliente->cliente_valor, &copia)) {
+					manejarCliente(cliente->cliente_valor, &i);
 				}
 			}
 		}
 	}
+	free(cliente);
 	cerrar_consola();
 	close(servidor);
 	l_thread_indicar_finalizacion(l_thread);
