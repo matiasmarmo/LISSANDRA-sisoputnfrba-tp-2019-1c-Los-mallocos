@@ -16,6 +16,8 @@
 #include "../commons/lissandra-threads.h"
 #include "../commons/consola/consola.h"
 #include "../commons/comunicacion/protocol-utils.h"
+#include "memoria-request-handler.h"
+#include "memoria-handler.h"
 #include "memoria-server.h"
 #include "memoria-logger.h"
 #include "memoria-config.h"
@@ -98,27 +100,31 @@ void manejarCliente(int cliente, int* posicion){
 		return;
 	}
 
-	uint8_t info_decodificada[tamanio_buffers];
-	memset(info_decodificada, 0, tamanio_buffers);
+	//uint8_t info_decodificada[tamanio_buffers];
+	//memset(info_decodificada, 0, tamanio_buffers);
 
-	int recibir;
+	//int recibir;
 	switch(get_msg_id(buffer)){
 	case SELECT_REQUEST_ID:
 		//select_request *request_select = malloc(sizeof(select_request));
 		//struct select_request request_select;
-		recibir = decode_select_request (buffer , info_decodificada , tamanio_buffers);
-		if(manejarErrores(recibir) > 0) {
-			_manejar_select(info_decodificada);
-		}
+		//recibir = decode_select_request (buffer , info_decodificada , tamanio_buffers);
+		//if(manejarErrores(recibir) > 0) {
+		//}
 		//free(request_select);
+
+		_manejar_select(*((struct select_request *) buffer), respuesta);
+
 		break;
 	case INSERT_REQUEST_ID:
 		//insert_request *request_insert = malloc(sizeof(insert_request));
 		//struct insert_request request_select;
-		recibir = decode_insert_request (buffer , info_decodificada , tamanio_buffers);
-		if(manejarErrores(recibir) > 0) {
-			_manejar_insert(info_decodificada);
-		}
+		//recibir = decode_insert_request (buffer , info_decodificada , tamanio_buffers);
+		//if(manejarErrores(recibir) > 0) {
+		//	_manejar_insert(info_decodificada);
+		//}
+
+		_manejar_insert(*((struct insert_request *) buffer), respuesta);
 		//free(request_insert);
 		break;
 	default:
@@ -213,7 +219,7 @@ void* correr_servidor_memoria(void* entrada) {
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) entrada;
 	char puerto[6];
 	sprintf(puerto, "%d", get_puerto_escucha_mem());
-
+	printf("Puerto: %s, tam: %d\n", puerto, get_tamanio_memoria());
 	int servidor = create_socket_server(puerto, 10);
 	if (servidor < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al crear el servidor");

@@ -18,7 +18,7 @@
 #include "memoria-main.h"
 
 
-void _manejar_select(struct select_request mensaje){
+void _manejar_select(struct select_request mensaje, void* respuesta_select){
 	int lugar_pagina_vacia;
 	int flag_modificado = 0;
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
@@ -62,19 +62,19 @@ void _manejar_select(struct select_request mensaje){
 			struct select_response respuesta;
 			int aux = init_select_response(0,segmento_buscado->tabla,*((uint16_t*)(reg_pagina->puntero_a_pagina)),(char*)(reg_pagina->puntero_a_pagina + 10 ),(unsigned long)time(NULL),&respuesta);
 			if(aux < 0){
-
+				return;
 			}
 			// DEVUELVO STRUCT RESPUESTA
 			// FIN
 			printf("   Pagina buscada -> key: %d\n",respuesta.key);
 			printf("   Pagina buscada -> timestamp: %llu\n",respuesta.timestamp);
 			printf("   Pagina buscada -> value: %s\n",respuesta.valor);
-			destroy_select_response(&respuesta);
+			memcpy(respuesta_select, &respuesta, sizeof(struct select_response));
 		}
 	}
 }
 
-void _manejar_insert(struct insert_request mensaje){
+void _manejar_insert(struct insert_request mensaje, void* respuesta_insert){
 	int lugar_pagina_vacia;
 	int flag_modificado = 0;
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
@@ -113,6 +113,8 @@ void _manejar_insert(struct insert_request mensaje){
 			*((uint16_t*)(reg_pagina->puntero_a_pagina)) = mensaje.key;
 			*((uint64_t*)(reg_pagina->puntero_a_pagina + 2)) = mensaje.timestamp;
 			memcpy((char*)(reg_pagina->puntero_a_pagina + 10) , mensaje.valor,10);
+
+			memcpy(respuesta_insert, &mensaje, sizeof(struct insert_response));
 			// DEVUELVO STRUCT RESPUESTA
 			// FIN
 		}
