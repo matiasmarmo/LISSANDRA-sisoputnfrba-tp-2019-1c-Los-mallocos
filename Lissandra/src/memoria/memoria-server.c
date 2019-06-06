@@ -69,6 +69,19 @@ void sacarCliente(int cliente, int* posicion) {
 	}
 }
 
+int manejarErrores(int retorno_protocol){
+	if(retorno_protocol == BUFFER_TOO_SMALL) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+		    "Buffer demasiado pequeño");
+				return -1;
+	} if(retorno_protocol == ALLOC_ERROR) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+			"El valor de la tabla es NULL");
+				return -1;
+	}
+	return 1;
+}
+
 void manejarCliente(int cliente, int* posicion){
 	int error;
 	int tamanio_buffers = get_max_msg_size();
@@ -84,35 +97,35 @@ void manejarCliente(int cliente, int* posicion){
 		}
 		return;
 	}
-	imprimir_async("Se envia respuesta al kernel");
-	char *ips[2] = { "192.168.1.8", "192.168.1.8"};
-	uint32_t ips_ints[2];
-	for(int i = 0; i < 2; i++) {
-		ipv4_a_uint32(ips[i], &(ips_ints[i]));
+
+	uint8_t info_decodificada[tamanio_buffers];
+	memset(info_decodificada, 0, tamanio_buffers);
+
+	int recibir;
+	switch(get_msg_id(buffer)){
+	case SELECT_REQUEST_ID:
+		//select_request *request_select = malloc(sizeof(select_request));
+		//struct select_request request_select;
+		recibir = decode_select_request (buffer , info_decodificada , tamanio_buffers);
+		if(manejarErrores(recibir) > 0) {
+			_manejar_select(info_decodificada);
+		}
+		//free(request_select);
+		break;
+	case INSERT_REQUEST_ID:
+		//insert_request *request_insert = malloc(sizeof(insert_request));
+		//struct insert_request request_select;
+		recibir = decode_insert_request (buffer , info_decodificada , tamanio_buffers);
+		if(manejarErrores(recibir) > 0) {
+			_manejar_insert(info_decodificada);
+		}
+		//free(request_insert);
+		break;
+	default:
+		imprimir_async("Se recibió una solicitud que aun no se puede trabajar");
+		break;
 	}
-	uint16_t puertos[2] = {1,2};
-	uint8_t numeros[2] = {1,2};
 
-	//switch( get_msg_id(buffer) ){
-	//case :
-	//	break;
-	//default:
-	//	break;
-	//}
-
-	if(get_msg_id(buffer) == DESCRIBE_REQUEST_ID) {
-		printf("Describe\n");
-		//send_global_describe_response(0, "TablaA;TablaB", 2, puertos, 2, numeros, 2, ips_ints, cliente);
-	} else if (get_msg_id(buffer) == GOSSIP_ID) {
-		printf("GOSSIP\n");
-		send_gossip_response(2, ips_ints, 2, puertos, 2, numeros, cliente);
-	} else {
-		printf("Otro\n");
-		send_drop_response(0, "Tabla", cliente);
-	}
-
-	return;
-	// ejecutar_request(buffer, respuesta);
 	destroy(buffer);
 	if ((error = send_msg(cliente, respuesta) < 0)) { // intento reconectarme
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
@@ -124,6 +137,32 @@ void manejarCliente(int cliente, int* posicion){
 		destroy(respuesta);
 	}
 	destroy(respuesta);
+
+	/*
+		imprimir_async("Se envia respuesta al kernel");
+		char *ips[2] = { "192.168.1.8", "192.168.1.8"};
+		uint32_t ips_ints[2];
+		for(int i = 0; i < 2; i++) {
+			ipv4_a_uint32(ips[i], &(ips_ints[i]));
+		}
+		uint16_t puertos[2] = {1,2};
+		uint8_t numeros[2] = {1,2};*/
+
+   /*
+	if(get_msg_id(buffer) == DESCRIBE_REQUEST_ID) {
+		printf("Describe\n");
+		//send_global_describe_response(0, "TablaA;TablaB", 2, puertos, 2, numeros, 2, ips_ints, cliente);
+	} else if (get_msg_id(buffer) == GOSSIP_ID) {
+		printf("GOSSIP\n");
+		send_gossip_response(2, ips_ints, 2, puertos, 2, numeros, cliente);
+	} else {
+		printf("Otro\n");
+		send_drop_response(0, "Tabla", cliente);
+	}
+	*/
+
+	//return;
+	// ejecutar_request(buffer, respuesta);
 }
 
 void agregarCliente(int valor_cliente) {
