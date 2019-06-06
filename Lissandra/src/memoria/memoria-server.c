@@ -84,6 +84,17 @@ int manejarErrores(int retorno_protocol){
 	return 1;
 }
 
+int ejecutar_request(void *request, void *respuesta) {
+	switch(get_msg_id(request)){
+		case SELECT_REQUEST_ID:
+			return _manejar_select(*((struct select_request *) request), respuesta);
+		case INSERT_REQUEST_ID:
+			return _manejar_insert(*((struct insert_request *) request), respuesta);
+		default:
+			return -1;
+	}
+}
+
 void manejarCliente(int cliente, int* posicion){
 	int error;
 	int tamanio_buffers = get_max_msg_size();
@@ -104,32 +115,11 @@ void manejarCliente(int cliente, int* posicion){
 	//memset(info_decodificada, 0, tamanio_buffers);
 
 	//int recibir;
-	switch(get_msg_id(buffer)){
-	case SELECT_REQUEST_ID:
-		//select_request *request_select = malloc(sizeof(select_request));
-		//struct select_request request_select;
-		//recibir = decode_select_request (buffer , info_decodificada , tamanio_buffers);
-		//if(manejarErrores(recibir) > 0) {
-		//}
-		//free(request_select);
-
-		_manejar_select(*((struct select_request *) buffer), respuesta);
-
-		break;
-	case INSERT_REQUEST_ID:
-		//insert_request *request_insert = malloc(sizeof(insert_request));
-		//struct insert_request request_select;
-		//recibir = decode_insert_request (buffer , info_decodificada , tamanio_buffers);
-		//if(manejarErrores(recibir) > 0) {
-		//	_manejar_insert(info_decodificada);
-		//}
-
-		_manejar_insert(*((struct insert_request *) buffer), respuesta);
-		//free(request_insert);
-		break;
-	default:
-		imprimir_async("Se recibió una solicitud que aun no se puede trabajar");
-		break;
+	
+	if(ejecutar_request(buffer, respuesta) < 0) {
+		// log
+		destroy(buffer);
+		return;
 	}
 
 	destroy(buffer);
@@ -205,11 +195,15 @@ int aceptar_cliente(int servidor) {
 void manejar_consola_memoria(char* linea, void* request) {
 	if (get_msg_id(request) == EXIT_REQUEST_ID) {
 		finalizar_memoria();
+		return;
 	}
 	int tamanio_buffers = get_max_msg_size();
 	uint8_t respuesta[tamanio_buffers];
 	memset(respuesta, 0, tamanio_buffers);
-	// ejecutar_request(request, respuesta);
+	if(ejecutar_request(request, respuesta) < 0) {
+		imprimir("Error al procesar el request\n");
+		return;
+	}
 	mostrar(respuesta);
 	destroy(request);
 	destroy(respuesta);
@@ -234,7 +228,7 @@ void* correr_servidor_memoria(void* entrada) {
 	FD_SET(STDIN_FILENO, &descriptores);
 
 	int i;
-	cliente_t *cliente = malloc(sizeof(cliente_t));
+	cliente_t *cliente;
 	int nuevo_cliente;
 	int select_ret;
 	int mayor_file_descriptor = servidor;
@@ -276,7 +270,7 @@ void* correr_servidor_memoria(void* entrada) {
 			}
 		}
 	}
-	free(cliente);
+	destruir_clientes();
 	cerrar_consola();
 	close(servidor);
 	l_thread_indicar_finalizacion(l_thread);

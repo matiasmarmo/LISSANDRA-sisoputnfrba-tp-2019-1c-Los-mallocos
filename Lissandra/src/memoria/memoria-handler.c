@@ -45,7 +45,6 @@ void destruccion_tabla_registros_paginas(){
 		segmento_temporal = list_get(TABLA_DE_SEGMENTOS,i);
 		list_destroy_and_destroy_elements(segmento_temporal->registro_base,&_destroy_element);;
 	}
-	free(segmento_temporal);
 }
 
 void destruccion_tabla_segmentos(){
@@ -142,7 +141,7 @@ int encontrar_pagina_vacia(){
 
 int cantidad_paginas_de_un_segmento(segmento* segmento){
 	int cantidad = list_size(segmento->registro_base);
-	printf("cant_paginas: %d\n", cantidad);
+	//printf("cant_paginas: %d\n", cantidad);
 	return cantidad;
 }
 

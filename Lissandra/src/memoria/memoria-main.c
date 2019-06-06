@@ -26,7 +26,9 @@ int get_tamanio_maximo_pagina() {
 	return sizeof(uint16_t) + sizeof(uint64_t) + tamanio_maximo_value + 1; //BYTES
 }
 void finalizar_memoria() {
-
+	pthread_mutex_lock(&memoria_main_mutex);
+	pthread_cond_signal(&memoria_main_cond);
+	pthread_mutex_unlock(&memoria_main_mutex);
 }
 
 int main() {
@@ -86,34 +88,26 @@ int main() {
 	 destroy_select_request(&query);
 	 */
 	//--------------------------
-	estado_actual_memoria();
-	destruir_memoria_config();
-	destruccion_tabla_registros_paginas();
-	destruccion_tabla_segmentos();
-	destruccion_memoria();
-	destruir_clientes();
 	//--------------------------
-	printf(".:SUCCESS:.\n\n");
+	//printf(".:SUCCESS:.\n\n");
 	//int paginas = tamanio_memoria / tamanio_maximo_pagina;
 
 	inicializar_memoria_logger();
-	 inicializar_memoria_config();
-	 lissandra_thread_t l_thread;
-	 l_thread_create(&l_thread, &correr_servidor_memoria, NULL);
-	 sleep(1000000);
-	 l_thread_solicitar_finalizacion(&l_thread);
-	 l_thread_join(&l_thread, NULL);
+	inicializar_memoria_config();
+	lissandra_thread_t l_thread;
+	l_thread_create(&l_thread, &correr_servidor_memoria, NULL);
 
 	pthread_mutex_lock(&memoria_main_mutex);
 	pthread_cond_wait(&memoria_main_cond, &memoria_main_mutex);
 	pthread_mutex_unlock(&memoria_main_mutex);
 
+	l_thread_solicitar_finalizacion(&l_thread);
+	l_thread_join(&l_thread, NULL);
 	estado_actual_memoria();
-	destruir_memoria_config();
 	destruccion_tabla_registros_paginas();
 	destruccion_tabla_segmentos();
 	destruccion_memoria();
-	destruir_clientes();
+	destruir_memoria_config();
+	destruir_memoria_logger();
 	return 0;
 }
-
