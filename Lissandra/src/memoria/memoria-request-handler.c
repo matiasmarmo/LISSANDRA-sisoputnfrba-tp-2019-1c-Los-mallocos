@@ -153,6 +153,18 @@ int _manejar_describe(struct describe_request mensaje, void* respuesta_describe)
 		init_single_describe_response(0, "AVES", 0, 5, 50000, &respuesta);
 	}else if(strcmp(mensaje.tabla,"MAMIFEROS")==0){
 		init_single_describe_response(0, "MAMIFEROS", 0, 3, 60000, &respuesta);
+	}else if(strcmp(mensaje.tabla,"POSTRES")==0){
+		init_single_describe_response(0, "POSTRES", 0, 3, 60000, &respuesta);
+	}else if(strcmp(mensaje.tabla,"FRUTAS")==0){
+		init_single_describe_response(0, "FRUTAS", 0, 2, 50000, &respuesta);
+	}else if(strcmp(mensaje.tabla,"BEBIDAS")==0){
+		init_single_describe_response(0, "BEBIDAS", 0, 6, 10000, &respuesta);
+	}else if(strcmp(mensaje.tabla,"COSAS")==0){
+		init_single_describe_response(0, "BEBIDAS", 0, 9, 35000, &respuesta);
+	}else if(strcmp(mensaje.tabla,"ANIMALES")==0){
+		init_single_describe_response(0, "ANIMALES", 0, 5, 65000, &respuesta);
+	}else{
+		return ERROR;
 	}
 	memcpy(respuesta_describe, &respuesta, sizeof(struct single_describe_response));
 	return EXIT_SUCCESS;
