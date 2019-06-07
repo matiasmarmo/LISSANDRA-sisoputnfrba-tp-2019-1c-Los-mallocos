@@ -144,3 +144,16 @@ int _manejar_create(struct create_request mensaje, void* respuesta_create){
 	}
 	return EXIT_SUCCESS;
 }
+
+int _manejar_describe(struct describe_request mensaje, void* respuesta_describe){
+	struct single_describe_response respuesta;
+	if(strcmp(mensaje.tabla,"MARINOS")==0){
+		init_single_describe_response(0, "MARINOS", 0, 1, 10000, &respuesta);
+	}else if(strcmp(mensaje.tabla,"AVES")==0){
+		init_single_describe_response(0, "AVES", 0, 5, 50000, &respuesta);
+	}else if(strcmp(mensaje.tabla,"MAMIFEROS")==0){
+		init_single_describe_response(0, "MAMIFEROS", 0, 3, 60000, &respuesta);
+	}
+	memcpy(respuesta_describe, &respuesta, sizeof(struct single_describe_response));
+	return EXIT_SUCCESS;
+}

@@ -145,3 +145,7 @@ int cantidad_paginas_de_un_segmento(segmento* segmento){
 	return cantidad;
 }
 
+
+
+
+
