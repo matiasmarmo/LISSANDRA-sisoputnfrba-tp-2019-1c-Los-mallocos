@@ -98,7 +98,7 @@ int _manejar_insert(struct insert_request mensaje, void* respuesta_insert){
 		registro_tabla_pagina* reg_pagina = encontrar_pagina_en_memoria(segmento_buscado, mensaje.key);
 		if(reg_pagina==NULL){ // No existe la pagina en memoria
 			memoria_log_to_level(LOG_LEVEL_INFO, false,
-					"La key %d de la tabla %s no se encuentra en memoria, voy a pedirla al FS", mensaje.key, segmento_buscado->tabla);
+					"La key %d de la tabla %s no se encuentra en memoria, creo una pagina nueva", mensaje.key, segmento_buscado->tabla);
 			lugar_pagina_vacia = encontrar_pagina_vacia();
 			if(lugar_pagina_vacia == -1){
 				memoria_log_to_level(LOG_LEVEL_INFO, false,
@@ -113,11 +113,34 @@ int _manejar_insert(struct insert_request mensaje, void* respuesta_insert){
 			}
 		}
 		else{ // La pagina esta en memoria
+			memoria_log_to_level(LOG_LEVEL_INFO, false,
+								"La key %d de la tabla %s se encuentra en memoria, la actualizo", mensaje.key, segmento_buscado->tabla);
 			*((uint16_t*)(reg_pagina->puntero_a_pagina)) = mensaje.key;
 			*((uint64_t*)(reg_pagina->puntero_a_pagina + 2)) = mensaje.timestamp;
 			memcpy((char*)(reg_pagina->puntero_a_pagina + 10) , mensaje.valor,10);
 		}
 	}
 	init_insert_response(0, mensaje.tabla, mensaje.key, mensaje.valor, mensaje.timestamp, respuesta_insert);
+	return EXIT_SUCCESS;
+}
+/*----PARA CHECKPOINT----*/
+int _manejar_create(struct create_request mensaje, void* respuesta_create){
+	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
+	if(segmento_buscado==NULL){ // No existe el segmento en memoria
+		crear_segmento_nuevo(mensaje.tabla);
+		memoria_log_to_level(LOG_LEVEL_INFO, false,
+							"Creo un nuevo segmento para la tabla %s", mensaje.tabla);
+		struct create_response respuesta;
+		int aux = init_create_response(0,mensaje.tabla,mensaje.consistencia,
+				        mensaje.n_particiones,mensaje.t_compactaciones,&respuesta);
+		if(aux < 0){
+			memoria_log_to_level(LOG_LEVEL_TRACE, false,
+					"Falló la respuesta del CREATE, error en init_create_response()");
+			return ERROR;
+		}
+		memcpy(respuesta_create, &respuesta, sizeof(struct create_response));
+	}else{
+		return ERROR;
+	}
 	return EXIT_SUCCESS;
 }

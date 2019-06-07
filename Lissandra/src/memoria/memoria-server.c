@@ -90,6 +90,8 @@ int ejecutar_request(void *request, void *respuesta) {
 			return _manejar_select(*((struct select_request *) request), respuesta);
 		case INSERT_REQUEST_ID:
 			return _manejar_insert(*((struct insert_request *) request), respuesta);
+		case CREATE_REQUEST_ID:
+			return _manejar_create(*((struct create_request *) request), respuesta);
 		default:
 			return -1;
 	}
