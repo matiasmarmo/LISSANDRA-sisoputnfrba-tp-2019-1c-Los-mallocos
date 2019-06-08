@@ -25,9 +25,6 @@
 
 t_list *lista_clientes;
 
-//int clientes[2]={-1, -1};
-//int cant_actual=0;
-
 cliente_t* construir_cliente(int valor) {
 	cliente_t *cliente = malloc(sizeof(cliente_t));
 	if (cliente == NULL) {
@@ -114,11 +111,6 @@ void manejarCliente(int cliente, int* posicion){
 		}
 		return;
 	}
-
-	//uint8_t info_decodificada[tamanio_buffers];
-	//memset(info_decodificada, 0, tamanio_buffers);
-
-	//int recibir;
 	
 	if(ejecutar_request(buffer, respuesta) < 0) {
 		// log
@@ -137,32 +129,6 @@ void manejarCliente(int cliente, int* posicion){
 		destroy(respuesta);
 	}
 	destroy(respuesta);
-
-	/*
-		imprimir_async("Se envia respuesta al kernel");
-		char *ips[2] = { "192.168.1.8", "192.168.1.8"};
-		uint32_t ips_ints[2];
-		for(int i = 0; i < 2; i++) {
-			ipv4_a_uint32(ips[i], &(ips_ints[i]));
-		}
-		uint16_t puertos[2] = {1,2};
-		uint8_t numeros[2] = {1,2};*/
-
-   /*
-	if(get_msg_id(buffer) == DESCRIBE_REQUEST_ID) {
-		printf("Describe\n");
-		//send_global_describe_response(0, "TablaA;TablaB", 2, puertos, 2, numeros, 2, ips_ints, cliente);
-	} else if (get_msg_id(buffer) == GOSSIP_ID) {
-		printf("GOSSIP\n");
-		send_gossip_response(2, ips_ints, 2, puertos, 2, numeros, cliente);
-	} else {
-		printf("Otro\n");
-		send_drop_response(0, "Tabla", cliente);
-	}
-	*/
-
-	//return;
-	// ejecutar_request(buffer, respuesta);
 }
 
 void agregarCliente(int valor_cliente) {
@@ -251,21 +217,17 @@ void* correr_servidor_memoria(void* entrada) {
 			if (FD_ISSET(servidor, &copia)) {
 				nuevo_cliente = aceptar_cliente(servidor);
 				if(nuevo_cliente > 0) {
-					//list_add(lista_clientes,nuevo_cliente);
-					agregarCliente(nuevo_cliente);
 					if(nuevo_cliente > mayor_file_descriptor) {
 						mayor_file_descriptor = nuevo_cliente;
 					}
 					cliente = list_get(lista_clientes, list_size(lista_clientes) - 1);
 					FD_SET(cliente->cliente_valor, &descriptores);
-					//FD_SET(clientes[cant_actual-1], &descriptores);
 				}
 			}
 			if (FD_ISSET(STDIN_FILENO, &copia)) {
 				leer_siguiente_caracter();
 			}
 			for(i=0; i < list_size(lista_clientes) ; i++) {
-				//if(clientes[i] != -1 && FD_ISSET(clientes[i], &copia)) {
 				cliente = list_get(lista_clientes, i);
 
 				if(cliente->cliente_valor != -1 && FD_ISSET(cliente->cliente_valor, &copia)) {
