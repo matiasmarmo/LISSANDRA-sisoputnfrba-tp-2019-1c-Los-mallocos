@@ -78,6 +78,7 @@ int _manejar_select(struct select_request mensaje, void* respuesta_select){
 }
 
 int _manejar_insert(struct insert_request mensaje, void* respuesta_insert){
+	printf("Insert: %s, %d, %s\n", mensaje.tabla, mensaje.key, mensaje.valor);
 	int lugar_pagina_vacia;
 	int flag_modificado = 0;
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
@@ -164,6 +165,10 @@ int _manejar_single_describe(struct describe_request mensaje, void* respuesta_de
 		init_single_describe_response(0, "COSAS", 0, 9, 35000, &respuesta);
 	}else if(strcmp(mensaje.tabla,"ANIMALES")==0){
 		init_single_describe_response(0, "ANIMALES", 0, 5, 65000, &respuesta);
+	}else if(strcmp(mensaje.tabla,"COLORES")==0){
+		init_single_describe_response(0, "COLORES", 0, 2, 35000, &respuesta);
+	}else if(strcmp(mensaje.tabla,"PLATOS_PRINCIPALES")==0){
+		init_single_describe_response(0, "PLATOS_PRINCIPALES", 0, 2, 10000, &respuesta);
 	}else{
 		return ERROR;
 	}
@@ -172,11 +177,11 @@ int _manejar_single_describe(struct describe_request mensaje, void* respuesta_de
 }
 
 int _manejar_global_describe(struct describe_request mensaje, void *respuesta) {
-	char *nombres_tablas = "MARINOS;AVES;MAMIFEROS;POSTRES;FRUTAS;BEBIDAS;COSAS;ANIMALES";
-	uint8_t consistencias[8] = { 0 };
-	uint8_t n_particiones[8] = { 1, 5, 3, 3, 2, 6, 9, 5 };
-	uint32_t t_compactaciones[8] = { 10000, 50000, 60000, 60000, 50000, 10000, 35000, 65000 };
-	init_global_describe_response(0, nombres_tablas, 8, consistencias, 8, n_particiones, 8, t_compactaciones, respuesta);
+	char *nombres_tablas = "MARINOS;AVES;MAMIFEROS;POSTRES;FRUTAS;BEBIDAS;COSAS;ANIMALES;COLORES;PLATOS_PRINCIPALES";
+	uint8_t consistencias[10] = { 0 };
+	uint8_t n_particiones[10] = { 1, 5, 3, 3, 2, 6, 9, 5, 2, 2 };
+	uint32_t t_compactaciones[10] = { 10000, 50000, 60000, 60000, 50000, 10000, 35000, 65000, 35000, 10000 };
+	init_global_describe_response(0, nombres_tablas, 10, consistencias, 10, n_particiones, 10, t_compactaciones, respuesta);
 	return 0;
 }
 

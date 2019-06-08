@@ -57,17 +57,6 @@ void destruir_clientes() {
 	list_destroy_and_destroy_elements(lista_clientes, &_destruir_elemento);
 }
 
-void sacarCliente(int cliente, int* posicion) {
-	int valor_inicial = -1;
-	cliente_t *clienteReseteado = construir_cliente(valor_inicial);
-	if(posicion == 0) {
-		list_add_in_index(lista_clientes, 0, list_get(lista_clientes, 1));
-		list_add_in_index(lista_clientes, 1, clienteReseteado);
-	} else {
-		list_add_in_index(lista_clientes, 1, clienteReseteado);
-	}
-}
-
 int ejecutar_request(void *request, void *respuesta) {
 	switch(get_msg_id(request)){
 		case SELECT_REQUEST_ID:
@@ -95,45 +84,29 @@ void manejarCliente(int cliente, int* posicion){
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo al recibir el mensaje del cliente");
 		if (error == SOCKET_ERROR || error == CONN_CLOSED) {
-			sacarCliente(cliente, posicion);
+			list_remove_and_destroy_element(lista_clientes, *posicion, free);
+			*posicion -= 1;
 			close(cliente);
 		}
 		return;
 	}
-	
+
 	if(ejecutar_request(buffer, respuesta) < 0) {
 		// log
 		destroy(buffer);
 		return;
 	}
-
 	destroy(buffer);
 	if ((error = send_msg(cliente, respuesta) < 0)) { // intento reconectarme
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo al enviar el mensaje al cliente");
 		if (error == SOCKET_ERROR || error == CONN_CLOSED) {
-			sacarCliente(cliente, posicion);
+			list_remove_and_destroy_element(lista_clientes, *posicion, free);
+			*posicion -= 1;
 			close(cliente);
 		}
 	}
 	destroy(respuesta);
-}
-
-void agregarCliente(int valor_cliente) {
-	cliente_t *clienteNuevo = construir_cliente(valor_cliente);
-	cliente_t *primerCliente = list_get(lista_clientes, 0);
-	cliente_t *segundoCliente = list_get(lista_clientes, 1);;
-	if (primerCliente->cliente_valor == -1 || segundoCliente->cliente_valor == -1) {
-		if(primerCliente->cliente_valor == -1){
-			list_add_in_index(lista_clientes, 0, clienteNuevo);
-		} else {
-			list_add_in_index(lista_clientes, 1, clienteNuevo);
-		}
-	}
-	else{
-		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-				"Se intentó conectar un tercer cliente en la memoria");
-	}
 }
 
 int aceptar_cliente(int servidor) {
@@ -185,8 +158,6 @@ void* correr_servidor_memoria(void* entrada) {
 	FD_SET(STDIN_FILENO, &descriptores);
 
 	int i;
-	cliente_t *cliente;
-	int nuevo_cliente;
 	int select_ret;
 	int mayor_file_descriptor = servidor;
 	struct timespec ts;
@@ -202,20 +173,27 @@ void* correr_servidor_memoria(void* entrada) {
 			break;
 		} else if (select_ret > 0) {
 			if (FD_ISSET(servidor, &copia)) {
-				nuevo_cliente = aceptar_cliente(servidor);
-				if(nuevo_cliente > 0) {
-					if(nuevo_cliente > mayor_file_descriptor) {
-						mayor_file_descriptor = nuevo_cliente;
+				int client_socket = aceptar_cliente(servidor);
+				if(client_socket > 0) {
+					if(client_socket > mayor_file_descriptor) {
+						mayor_file_descriptor = client_socket;
 					}
-					cliente = list_get(lista_clientes, list_size(lista_clientes) - 1);
-					FD_SET(cliente->cliente_valor, &descriptores);
+					cliente_t *nuevo_cliente = malloc(sizeof(cliente_t));
+					if(nuevo_cliente == NULL) {
+						// Mandar mensaje de error
+						close(client_socket);
+					} else {
+						nuevo_cliente->cliente_valor = client_socket;
+						list_add(lista_clientes, nuevo_cliente);
+						FD_SET(nuevo_cliente->cliente_valor, &descriptores);
+					}
 				}
 			}
 			if (FD_ISSET(STDIN_FILENO, &copia)) {
 				leer_siguiente_caracter();
 			}
 			for(i=0; i < list_size(lista_clientes) ; i++) {
-				cliente = list_get(lista_clientes, i);
+				cliente_t *cliente = list_get(lista_clientes, i);
 
 				if(cliente->cliente_valor != -1 && FD_ISSET(cliente->cliente_valor, &copia)) {
 					manejarCliente(cliente->cliente_valor, &i);
