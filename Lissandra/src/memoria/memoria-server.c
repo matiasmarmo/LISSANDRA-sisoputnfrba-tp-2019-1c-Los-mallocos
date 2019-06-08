@@ -78,6 +78,8 @@ int ejecutar_request(void *request, void *respuesta) {
 			return _manejar_create(*((struct create_request *) request), respuesta);
 		case DESCRIBE_REQUEST_ID:
 			return _manejar_describe(*((struct describe_request *) request), respuesta);
+		case GOSSIP_ID:
+			return _manejar_gossip(*((struct gossip *) request), respuesta);
 		default:
 			return -1;
 	}
@@ -113,7 +115,6 @@ void manejarCliente(int cliente, int* posicion){
 			sacarCliente(cliente, posicion);
 			close(cliente);
 		}
-		destroy(respuesta);
 	}
 	destroy(respuesta);
 }
@@ -170,7 +171,6 @@ void* correr_servidor_memoria(void* entrada) {
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) entrada;
 	char puerto[6];
 	sprintf(puerto, "%d", get_puerto_escucha_mem());
-	printf("Puerto: %s, tam: %d\n", puerto, get_tamanio_memoria());
 	int servidor = create_socket_server(puerto, 10);
 	if (servidor < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al crear el servidor");

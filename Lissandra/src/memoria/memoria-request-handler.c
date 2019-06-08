@@ -117,7 +117,8 @@ int _manejar_insert(struct insert_request mensaje, void* respuesta_insert){
 								"La key %d de la tabla %s se encuentra en memoria, la actualizo", mensaje.key, segmento_buscado->tabla);
 			*((uint16_t*)(reg_pagina->puntero_a_pagina)) = mensaje.key;
 			*((uint64_t*)(reg_pagina->puntero_a_pagina + 2)) = mensaje.timestamp;
-			memcpy((char*)(reg_pagina->puntero_a_pagina + 10) , mensaje.valor,10);
+			memset(reg_pagina->puntero_a_pagina + 10, 0, get_tamanio_maximo_pagina());
+			memcpy((char*)(reg_pagina->puntero_a_pagina + 10) , mensaje.valor,strlen(mensaje.valor));
 		}
 	}
 	init_insert_response(0, mensaje.tabla, mensaje.key, mensaje.valor, mensaje.timestamp, respuesta_insert);
@@ -145,7 +146,7 @@ int _manejar_create(struct create_request mensaje, void* respuesta_create){
 	return EXIT_SUCCESS;
 }
 
-int _manejar_describe(struct describe_request mensaje, void* respuesta_describe){
+int _manejar_single_describe(struct describe_request mensaje, void* respuesta_describe){
 	struct single_describe_response respuesta;
 	if(strcmp(mensaje.tabla,"MARINOS")==0){
 		init_single_describe_response(0, "MARINOS", 0, 1, 10000, &respuesta);
@@ -160,7 +161,7 @@ int _manejar_describe(struct describe_request mensaje, void* respuesta_describe)
 	}else if(strcmp(mensaje.tabla,"BEBIDAS")==0){
 		init_single_describe_response(0, "BEBIDAS", 0, 6, 10000, &respuesta);
 	}else if(strcmp(mensaje.tabla,"COSAS")==0){
-		init_single_describe_response(0, "BEBIDAS", 0, 9, 35000, &respuesta);
+		init_single_describe_response(0, "COSAS", 0, 9, 35000, &respuesta);
 	}else if(strcmp(mensaje.tabla,"ANIMALES")==0){
 		init_single_describe_response(0, "ANIMALES", 0, 5, 65000, &respuesta);
 	}else{
@@ -168,4 +169,28 @@ int _manejar_describe(struct describe_request mensaje, void* respuesta_describe)
 	}
 	memcpy(respuesta_describe, &respuesta, sizeof(struct single_describe_response));
 	return EXIT_SUCCESS;
+}
+
+int _manejar_global_describe(struct describe_request mensaje, void *respuesta) {
+	char *nombres_tablas = "MARINOS;AVES;MAMIFEROS;POSTRES;FRUTAS;BEBIDAS;COSAS;ANIMALES";
+	uint8_t consistencias[8] = { 0 };
+	uint8_t n_particiones[8] = { 1, 5, 3, 3, 2, 6, 9, 5 };
+	uint32_t t_compactaciones[8] = { 10000, 50000, 60000, 60000, 50000, 10000, 35000, 65000 };
+	init_global_describe_response(0, nombres_tablas, 8, consistencias, 8, n_particiones, 8, t_compactaciones, respuesta);
+	return 0;
+}
+
+int _manejar_describe(struct describe_request mensaje, void *respuesta) {
+	if(mensaje.todas) {
+		return _manejar_global_describe(mensaje, respuesta);
+	}
+	return _manejar_single_describe(mensaje, respuesta);
+}
+
+int _manejar_gossip(struct gossip mensaje, void *respuesta) {
+	uint32_t ips[1];
+	uint16_t puertos[1];
+	uint8_t numeros[0];
+	init_gossip_response(0, ips, 0, puertos, 0, numeros, respuesta);
+	return 0;
 }

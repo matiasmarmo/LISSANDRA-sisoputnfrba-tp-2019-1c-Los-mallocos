@@ -34,13 +34,11 @@ void finalizar_memoria() {
 int main() {
 	//inicializar_memoria();
 	inicializar_memoria_config();
+	inicializar_memoria_logger();
 	inicializar_clientes();
-	tamanio_maximo_value = 10; // PEDIRSELO AL FS (BYTES)
+	tamanio_maximo_value = 15; // PEDIRSELO AL FS (BYTES)
 	inicializacion_memoria();
 	inicializacion_tabla_segmentos();
-
-	inicializar_memoria_logger();
-	inicializar_memoria_config();
 	lissandra_thread_t l_thread;
 	l_thread_create(&l_thread, &correr_servidor_memoria, NULL);
 
@@ -50,11 +48,10 @@ int main() {
 
 	l_thread_solicitar_finalizacion(&l_thread);
 	l_thread_join(&l_thread, NULL);
-	estado_actual_memoria();
 	destruccion_tabla_registros_paginas();
 	destruccion_tabla_segmentos();
 	destruccion_memoria();
-	destruir_memoria_config();
 	destruir_memoria_logger();
+	destruir_memoria_config();
 	return 0;
 }
