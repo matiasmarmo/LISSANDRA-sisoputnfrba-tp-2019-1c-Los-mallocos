@@ -186,9 +186,7 @@ void replanificar(lissandra_thread_t **runner_thread) {
 		free(*runner_thread);
 		*runner_thread = NULL;
 	}
-	if (alojar_siguiente_script(runner_thread) == 0) {
-		return;
-	}
+
 	admitir_nuevos_scripts();
 	alojar_siguiente_script(runner_thread);
 }
