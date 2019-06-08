@@ -309,7 +309,7 @@ int isConsistency(char* id){ //Controla que id haga match con alguna de las 3 co
 }
 int isPath(char* id){ //Controla que la direccion este conformada solo por letras, numeros , '_' o '-' o '/'
 	for(int i=0 ; i < strlen(id); i++){
-		if(!( isalnum(id[i]) || id[i]=='_' || id[i]=='-' || id[i]=='/')){
+		if(!( isalnum(id[i]) || id[i]=='_' || id[i]=='-' || id[i]=='/' || id[i]=='.')){
 			return FALSE;
 		}
 	}
