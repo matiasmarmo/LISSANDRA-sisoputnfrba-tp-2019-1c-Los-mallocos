@@ -121,7 +121,7 @@ void manejarCliente(int cliente, int* posicion){
 void agregarCliente(int valor_cliente) {
 	cliente_t *clienteNuevo = construir_cliente(valor_cliente);
 	cliente_t *primerCliente = list_get(lista_clientes, 0);
-	cliente_t *segundoCliente = list_get(lista_clientes, 0);;
+	cliente_t *segundoCliente = list_get(lista_clientes, 1);;
 	if (primerCliente->cliente_valor == -1 || segundoCliente->cliente_valor == -1) {
 		if(primerCliente->cliente_valor == -1){
 			list_add_in_index(lista_clientes, 0, clienteNuevo);
