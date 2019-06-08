@@ -68,19 +68,6 @@ void sacarCliente(int cliente, int* posicion) {
 	}
 }
 
-int manejarErrores(int retorno_protocol){
-	if(retorno_protocol == BUFFER_TOO_SMALL) {
-		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-		    "Buffer demasiado pequeño");
-				return -1;
-	} if(retorno_protocol == ALLOC_ERROR) {
-		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-			"El valor de la tabla es NULL");
-				return -1;
-	}
-	return 1;
-}
-
 int ejecutar_request(void *request, void *respuesta) {
 	switch(get_msg_id(request)){
 		case SELECT_REQUEST_ID:
