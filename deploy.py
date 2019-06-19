@@ -5,6 +5,7 @@ from os import chdir, system, getcwd, mkdir
 from sys import argv
 
 config_memoria = """PUERTO_ESCUCHA=8001
+IP_FS=127.0.0.1
 PUERTO_FS=5003
 IP_SEEDS=[]
 PUERTO_SEEDS=[]
@@ -26,8 +27,8 @@ MEMORIAS_REFRESH=15000
 SLEEP_EJECUCION=100
 """
 
-config_lfs = """PUERTO_ESCUCHA=5005
-PUNTO_MONTAJE="/home/utnso/lissandra-checkpoint/"       
+config_lfs = """PUERTO_ESCUCHA=5003
+PUNTO_MONTAJE=/home/utnso/lissandra-checkpoint/
 RETARDO=100
 TAMANIO_VALUE=255
 TIEMPO_DUMP=60000

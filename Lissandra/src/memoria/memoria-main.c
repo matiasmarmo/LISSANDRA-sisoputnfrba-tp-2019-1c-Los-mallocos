@@ -16,18 +16,32 @@
 #include "memoria-server.h"
 #include "memoria-main.h"
 #include "memoria-handler.h"
+#include "conexion-lfs.h"
 
 pthread_mutex_t memoria_main_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t memoria_main_cond = PTHREAD_COND_INITIALIZER;
 
-int tamanio_maximo_value;
+int tamanio_maximo_value = -1;
+
+void set_tamanio_value(int tamanio) {
+	tamanio_maximo_value = tamanio;
+}
 
 void inicializar_memoria(){
 	inicializar_memoria_config();
 	inicializar_memoria_logger();
-	inicializar_clientes();
 	inicializacion_memoria();
 	inicializacion_tabla_segmentos();
+	conectar_lfs();
+}
+
+void liberar_recursos_memoria() {
+	destruccion_tabla_registros_paginas();
+	destruccion_tabla_segmentos();
+	destruccion_memoria();
+	destruir_memoria_logger();
+	destruir_memoria_config();
+	desconectar_lfs();
 }
 
 int get_tamanio_maximo_pagina() {
@@ -41,9 +55,8 @@ void finalizar_memoria() {
 }
 
 int main() {
-	inicializar_memoria();
 
-	tamanio_maximo_value = 15; // PEDIRSELO AL FS (BYTES) HANDSHAKE
+	inicializar_memoria();
 
 	lissandra_thread_t l_thread;
 	l_thread_create(&l_thread, &correr_servidor_memoria, NULL);
@@ -54,10 +67,6 @@ int main() {
 
 	l_thread_solicitar_finalizacion(&l_thread);
 	l_thread_join(&l_thread, NULL);
-	destruccion_tabla_registros_paginas();
-	destruccion_tabla_segmentos();
-	destruccion_memoria();
-	destruir_memoria_logger();
-	destruir_memoria_config();
+	liberar_recursos_memoria();
 	return 0;
 }

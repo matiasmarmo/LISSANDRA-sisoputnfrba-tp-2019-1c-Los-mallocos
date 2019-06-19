@@ -151,6 +151,7 @@ void* correr_servidor_memoria(void* entrada) {
 	}
 
 	iniciar_consola(&manejar_consola_memoria);
+	inicializar_clientes();
 
 	fd_set descriptores, copia;
 	FD_ZERO(&descriptores);

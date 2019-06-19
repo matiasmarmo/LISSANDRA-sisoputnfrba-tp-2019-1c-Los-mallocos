@@ -3,4 +3,7 @@
 
 void finalizar_memoria();
 int get_tamanio_maximo_pagina();
+
+void set_tamanio_value(int);
+
 #endif
