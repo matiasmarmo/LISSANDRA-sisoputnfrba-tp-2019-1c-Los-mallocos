@@ -168,8 +168,8 @@ void destruir_registro_de_pagina(uint16_t key, segmento* segmento){
 }
 
 int obtener_pagina_para_journal(segmento* segmento, registro_tabla_pagina* reg_pagina,void* respuesta_select){
-	struct select_response respuesta;
-	init_select_response(0,
+	struct insert_response respuesta;
+	init_insert_response(0,
 				         segmento->tabla,
 					     *((uint16_t*) (reg_pagina->puntero_a_pagina)),
 					     (char*) (reg_pagina->puntero_a_pagina + 10),
@@ -177,7 +177,7 @@ int obtener_pagina_para_journal(segmento* segmento, registro_tabla_pagina* reg_p
 					     &respuesta);
 	memcpy(respuesta_select,
 		   &respuesta,
-           sizeof(struct select_response));
+           sizeof(struct insert_response));
 	uint16_t key = *((uint16_t*) (reg_pagina->puntero_a_pagina));
 	setear_pagina_a_cero(reg_pagina);
 	destruir_registro_de_pagina(key, segmento);
