@@ -35,5 +35,5 @@ int encontrar_pagina_vacia();
 void crear_registro_nuevo_en_tabla_de_paginas(int, segmento*, int);
 void crear_pagina_nueva(int, uint16_t, uint64_t, char*);
 registro_tabla_pagina* encontrar_pagina_en_memoria(segmento*, uint16_t);
-
+int obtener_pagina_para_journal(segmento*, registro_tabla_pagina*,void*);
 #endif /* MEMORIA_MEMORIA_HANDLER_H_ */

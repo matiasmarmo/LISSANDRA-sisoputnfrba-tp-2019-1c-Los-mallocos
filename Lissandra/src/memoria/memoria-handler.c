@@ -145,6 +145,45 @@ int cantidad_paginas_de_un_segmento(segmento* segmento){
 	return cantidad;
 }
 
+void setear_pagina_a_cero(registro_tabla_pagina* reg_pagina){
+	int corrimiento;
+	for(corrimiento = 0 ; corrimiento < get_tamanio_maximo_pagina() ; corrimiento++){
+		*((uint8_t*) (reg_pagina->puntero_a_pagina)+corrimiento) = 0;
+	}
+}
+
+void destruir_registro_de_pagina(uint16_t key, segmento* segmento){
+	void _destroy_element(void *elemento) {
+		free((registro_tabla_pagina*) elemento);
+	}
+	bool _condition(void *elemento) {
+		registro_tabla_pagina *reg = (registro_tabla_pagina*) elemento;
+		pagina final;
+		final.key = (uint16_t*)(reg->puntero_a_pagina);
+		return *(final.key) == key;
+	}
+	list_remove_and_destroy_by_condition(segmento->registro_base,
+			&_condition,
+			&_destroy_element);
+}
+
+int obtener_pagina_para_journal(segmento* segmento, registro_tabla_pagina* reg_pagina,void* respuesta_select){
+	struct select_response respuesta;
+	init_select_response(0,
+				         segmento->tabla,
+					     *((uint16_t*) (reg_pagina->puntero_a_pagina)),
+					     (char*) (reg_pagina->puntero_a_pagina + 10),
+					     *((uint64_t*) (reg_pagina->puntero_a_pagina + 2)),
+					     &respuesta);
+	memcpy(respuesta_select,
+		   &respuesta,
+           sizeof(struct select_response));
+	uint16_t key = *((uint16_t*) (reg_pagina->puntero_a_pagina));
+	setear_pagina_a_cero(reg_pagina);
+	destruir_registro_de_pagina(key, segmento);
+	return 0;
+}
+
 
 
 
