@@ -92,7 +92,8 @@ void manejarCliente(int cliente, int* posicion){
 	}
 
 	if(ejecutar_request(buffer, respuesta) < 0) {
-		// log
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Fallo al ejecutar request");
 		destroy(buffer);
 		return;
 	}
