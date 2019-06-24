@@ -53,6 +53,7 @@ def create_config_files(project_dir):
 def deploy():
     file_dir = abspath(dirname(argv[0]))
     original_pwd = getcwd()
+    system('rm -r ' + file_dir + '/deployed')
     mkdir(file_dir + '/deployed')
     chdir(file_dir + '/Lissandra')
     compile_and_move_executables(file_dir)
