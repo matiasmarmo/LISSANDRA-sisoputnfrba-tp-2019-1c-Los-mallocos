@@ -12,7 +12,7 @@ typedef struct registro_tabla_pagina_t{
 	uint16_t numero_pagina;
 	uint8_t* puntero_a_pagina; //MARCO
 	uint8_t flag_modificado;
-	uint64_t timestamp_accedido;
+	struct timeval timestamp_accedido;
 }registro_tabla_pagina;
 
 typedef struct pagina_t{
@@ -35,7 +35,7 @@ void crear_segmento_nuevo(char*);
 segmento* encontrar_segmento_en_memoria(char*);
 int cantidad_paginas_de_un_segmento(segmento*);
 int encontrar_pagina_vacia();
-void crear_registro_nuevo_en_tabla_de_paginas(int, segmento*, int);
+void crear_registro_nuevo_en_tabla_de_paginas(int, segmento*, int,struct timeval);
 void crear_pagina_nueva(int, uint16_t, uint64_t, char*);
 registro_tabla_pagina* encontrar_pagina_en_memoria(segmento*, uint16_t);
 int obtener_pagina_para_journal(segmento*, registro_tabla_pagina*,void*);

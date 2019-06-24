@@ -7,6 +7,7 @@
 #include <commons/collections/list.h>
 #include <commons/log.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "../commons/comunicacion/protocol.h"
 #include "../commons/lissandra-threads.h"
@@ -81,11 +82,13 @@ uint16_t numero_de_pagina_libre(segmento* segmento){
 	return cantidad_paginas;
 }
 
-void crear_registro_nuevo_en_tabla_de_paginas(int lugar_pagina_vacia, segmento* segmento, int flag_modificado){
+void crear_registro_nuevo_en_tabla_de_paginas(int lugar_pagina_vacia, segmento* segmento, int flag_modificado,struct timeval timestamp_accedido){
 	registro_tabla_pagina* nuevo_registro_pagina = malloc(sizeof(registro_tabla_pagina));
 	nuevo_registro_pagina->numero_pagina = numero_de_pagina_libre(segmento);
 	nuevo_registro_pagina->puntero_a_pagina = memoria + lugar_pagina_vacia;
 	nuevo_registro_pagina->flag_modificado = flag_modificado;
+	nuevo_registro_pagina->timestamp_accedido.tv_sec = timestamp_accedido.tv_sec;
+	nuevo_registro_pagina->timestamp_accedido.tv_usec = timestamp_accedido.tv_usec;
 	list_add(segmento->registro_base, nuevo_registro_pagina);
 }
 

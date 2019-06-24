@@ -7,6 +7,7 @@
 #include <commons/collections/list.h>
 #include <commons/log.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "../commons/comunicacion/protocol.h"
 #include "../commons/lissandra-threads.h"
@@ -21,6 +22,8 @@
 int _manejar_select(struct select_request mensaje, void* respuesta_select) {
 	int lugar_pagina_vacia;
 	int flag_modificado = 0;
+	struct timeval timestamp_accedido;
+	gettimeofday(&timestamp_accedido,NULL);
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
 	if (segmento_buscado == NULL) { // No existe el segmento en memoria
 		// PARA CHECKPOINT //
@@ -41,7 +44,7 @@ int _manejar_select(struct select_request mensaje, void* respuesta_select) {
 			segmento* segmento_actual = encontrar_segmento_en_memoria(
 					"TABLA_4");
 			crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
-					segmento_actual, flag_modificado);
+					segmento_actual, flag_modificado,timestamp_accedido);
 			// TENGO QUE OBTENER EL TIMESTAMP DE ALGUNA FORMA...
 			crear_pagina_nueva(lugar_pagina_vacia, 25, 123456, "martin");
 			// DEVUELVO LA STRUCT QUE ME PASARON
@@ -70,7 +73,7 @@ int _manejar_select(struct select_request mensaje, void* respuesta_select) {
 				// PEDIRSELO AL FS
 				//   me da un struct con el mensaje. Ej.: "[TABLA_4 | KEY= 25 | VALUE= "martin"]"
 				crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
-						segmento_buscado, flag_modificado);
+						segmento_buscado, flag_modificado,timestamp_accedido);
 				// TENGO QUE OBTENER EL TIMESTAMP DE ALGUNA FORMA...
 				crear_pagina_nueva(lugar_pagina_vacia, 25, 123456, "martin");
 				struct select_response respuesta;
@@ -86,6 +89,8 @@ int _manejar_select(struct select_request mensaje, void* respuesta_select) {
 			}
 		} else { // La pagina esta en memoria
 			struct select_response respuesta;
+			reg_pagina->timestamp_accedido.tv_sec = timestamp_accedido.tv_sec;
+			reg_pagina->timestamp_accedido.tv_usec = timestamp_accedido.tv_usec;
 			int aux = init_select_response(0, segmento_buscado->tabla,
 					*((uint16_t*) (reg_pagina->puntero_a_pagina)),
 					(char*) (reg_pagina->puntero_a_pagina + 10),
@@ -106,6 +111,8 @@ int _manejar_select(struct select_request mensaje, void* respuesta_select) {
 int _manejar_insert(struct insert_request mensaje, void* respuesta_insert) {
 	int lugar_pagina_vacia;
 	int flag_modificado = 0;
+	struct timeval timestamp_accedido;
+	gettimeofday(&timestamp_accedido,NULL);
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
 	if (segmento_buscado == NULL) { // No existe el segmento en memoria
 		//printf("   El segmento no esta en memoria\n");
@@ -117,7 +124,7 @@ int _manejar_insert(struct insert_request mensaje, void* respuesta_insert) {
 			segmento* segmento_actual = encontrar_segmento_en_memoria(
 					mensaje.tabla);
 			crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
-					segmento_actual, flag_modificado);
+					segmento_actual, flag_modificado,timestamp_accedido);
 			crear_pagina_nueva(lugar_pagina_vacia, mensaje.key,
 					mensaje.timestamp, mensaje.valor);
 			// DEVUELVO LA STRUCT QUE ME PASARON
@@ -138,7 +145,7 @@ int _manejar_insert(struct insert_request mensaje, void* respuesta_insert) {
 			} else {
 				//PEDIRLE AL FS
 				crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
-						segmento_buscado, flag_modificado);
+						segmento_buscado, flag_modificado,timestamp_accedido);
 				crear_pagina_nueva(lugar_pagina_vacia, mensaje.key,
 						mensaje.timestamp, mensaje.valor);
 				// DEVUELVO LA STRUCT QUE ME PASARON
