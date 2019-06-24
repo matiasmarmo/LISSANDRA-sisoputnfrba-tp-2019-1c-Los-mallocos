@@ -89,8 +89,12 @@ int _manejar_select(struct select_request mensaje, void* respuesta_select) {
 			}
 		} else { // La pagina esta en memoria
 			struct select_response respuesta;
+			memoria_log_to_level(LOG_LEVEL_INFO, false,
+								"Viejo tiemstamp = %d + %d - %d", reg_pagina->timestamp_accedido.tv_sec, reg_pagina->timestamp_accedido.tv_usec, reg_pagina->numero_pagina);
 			reg_pagina->timestamp_accedido.tv_sec = timestamp_accedido.tv_sec;
 			reg_pagina->timestamp_accedido.tv_usec = timestamp_accedido.tv_usec;
+			memoria_log_to_level(LOG_LEVEL_INFO, false,
+								"Nuevo tiemstamp = %d + %d - %d", reg_pagina->timestamp_accedido.tv_sec, reg_pagina->timestamp_accedido.tv_usec, reg_pagina->numero_pagina);
 			int aux = init_select_response(0, segmento_buscado->tabla,
 					*((uint16_t*) (reg_pagina->puntero_a_pagina)),
 					(char*) (reg_pagina->puntero_a_pagina + 10),
@@ -125,6 +129,8 @@ int _manejar_insert(struct insert_request mensaje, void* respuesta_insert) {
 					mensaje.tabla);
 			crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
 					segmento_actual, flag_modificado,timestamp_accedido);
+			memoria_log_to_level(LOG_LEVEL_INFO, false,
+											"Tiemstamp insert= %d + %d ", timestamp_accedido.tv_sec, timestamp_accedido.tv_usec);
 			crear_pagina_nueva(lugar_pagina_vacia, mensaje.key,
 					mensaje.timestamp, mensaje.valor);
 			// DEVUELVO LA STRUCT QUE ME PASARON
@@ -146,6 +152,8 @@ int _manejar_insert(struct insert_request mensaje, void* respuesta_insert) {
 				//PEDIRLE AL FS
 				crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
 						segmento_buscado, flag_modificado,timestamp_accedido);
+				memoria_log_to_level(LOG_LEVEL_INFO, false,
+											"Tiemstamp insert= %d + %d ", timestamp_accedido.tv_sec, timestamp_accedido.tv_usec);
 				crear_pagina_nueva(lugar_pagina_vacia, mensaje.key,
 						mensaje.timestamp, mensaje.valor);
 				// DEVUELVO LA STRUCT QUE ME PASARON
