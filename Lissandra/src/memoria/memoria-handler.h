@@ -12,6 +12,7 @@ typedef struct registro_tabla_pagina_t{
 	uint16_t numero_pagina;
 	uint8_t* puntero_a_pagina; //MARCO
 	uint8_t flag_modificado;
+	uint64_t timestamp_accedido;
 }registro_tabla_pagina;
 
 typedef struct pagina_t{
@@ -19,6 +20,8 @@ typedef struct pagina_t{
 	uint16_t* key;
 	char* value;
 }pagina;
+
+t_list* TABLA_DE_SEGMENTOS;
 uint8_t* get_memoria();
 void inicializacion_memoria();
 void destruccion_memoria();

@@ -18,7 +18,6 @@
 
 #define MAX_TAM_NOMBRE_TABLA 50
 
-t_list* TABLA_DE_SEGMENTOS;
 uint8_t* memoria;
 
 uint8_t* get_memoria(){
