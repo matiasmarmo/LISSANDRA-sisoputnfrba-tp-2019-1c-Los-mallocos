@@ -52,7 +52,6 @@ registro_tabla_pagina* anteultimo_accedido_con_bit_modificado_en_cero_local(t_li
 registro_tabla_pagina* ultimo_accedido_global(registro_tabla_pagina* registros[],int cantidad_registros){
 	registro_tabla_pagina* mas_viejo = registros[0];
 	for(int i=1;i<cantidad_registros;i++){
-		memoria_log_to_level(LOG_LEVEL_TRACE,false, "%d - %d",registros[i]->timestamp_accedido.tv_usec , mas_viejo->timestamp_accedido.tv_usec);
 		if(registros[i]->timestamp_accedido.tv_sec == mas_viejo->timestamp_accedido.tv_sec
 				&& registros[i]->flag_modificado == 0){
 			if(registros[i]->timestamp_accedido.tv_usec < mas_viejo->timestamp_accedido.tv_usec
@@ -66,6 +65,22 @@ registro_tabla_pagina* ultimo_accedido_global(registro_tabla_pagina* registros[]
 		}
 	}
 	return mas_viejo;
+}
+
+segmento* obtener_segmento_a_partir_de_registro(registro_tabla_pagina* registro_LRU){
+	bool _criterio(void* element){
+		return ((registro_tabla_pagina*)element)->timestamp_accedido.tv_sec == registro_LRU->timestamp_accedido.tv_sec &&
+			((registro_tabla_pagina*)element)->timestamp_accedido.tv_usec == registro_LRU->timestamp_accedido.tv_usec;
+	}
+	int cantidad_segmentos = list_size(TABLA_DE_SEGMENTOS);
+	segmento* segmento_temporal;
+	for(int i=0; i< cantidad_segmentos; i++){
+		segmento_temporal = list_get(TABLA_DE_SEGMENTOS,i);
+		if(list_any_satisfy(segmento_temporal->registro_base,&_criterio)){
+			return segmento_temporal;
+		}
+	}
+	return segmento_temporal;
 }
 
 int LRU(){
@@ -90,12 +105,20 @@ int LRU(){
 	if(registro_LRU->timestamp_accedido.tv_sec == 0 && registro_LRU->timestamp_accedido.tv_usec == 0){
 		memoria_log_to_level(LOG_LEVEL_TRACE,false,
 				"LRU: No existen paginas para quitar usando LRU.");
-		return -1;
+		return NO_SE_PUEDE_HACER_LRU;
 	}
+	setear_pagina_a_cero(registro_LRU);
+	pagina final;
+	final.key = (uint16_t*)(registro_LRU->puntero_a_pagina);
+	segmento* segmento = obtener_segmento_a_partir_de_registro(registro_LRU);
+	destruir_registro_de_pagina(*(final.key), segmento);
 	memoria_log_to_level(LOG_LEVEL_TRACE,false,
 				"LRU: La pagina quitada tenia la key \"%d\" y el value \"%s\".",*(registro_LRU->puntero_a_pagina),(char*)(registro_LRU->puntero_a_pagina+10));
-	return 0;
+	return LRU_OK;
 }
+
+
+
 
 
 
