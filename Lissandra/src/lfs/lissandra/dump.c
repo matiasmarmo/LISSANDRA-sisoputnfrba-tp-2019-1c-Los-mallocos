@@ -46,9 +46,7 @@ void manejar_datos_no_dumpeador(char *tabla, void *valor) {
 }
 
 void bajar_a_archivo_tmp(char *tabla, void *valor) {
-	bloquear_tabla(tabla, 'r');
 	_iteracion_dump(tabla, valor, datos_no_dumpeados);
-	desbloquear_tabla(tabla);
 }
 
 void *dumpear(void *entrada) {

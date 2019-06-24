@@ -107,19 +107,18 @@ void compactar_particion(char *nombre_tabla, int nro_particion,
 }
 
 int compactar(char *nombre_tabla) {
-	bloquear_tabla(nombre_tabla, 'w');
 	static int metadata_cargada = 0;
 	static metadata_t metadata;
 
 	if (!metadata_cargada) {
 		if (obtener_metadata_tabla(nombre_tabla, &metadata) < 0) {
 			// log
-			desbloquear_tabla(nombre_tabla);
 			return -1;
 		}
 		metadata_cargada = 1;
 	}
 
+	bloquear_tabla(nombre_tabla, 'w');
 	registro_t *datos_tmpc;
 	convertir_todos_tmp_a_tmpc(nombre_tabla);
 	int cantidad_registros_tmpc = obtener_datos_de_tmpcs(nombre_tabla,
