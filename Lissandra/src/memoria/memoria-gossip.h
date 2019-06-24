@@ -1,12 +1,18 @@
 #ifndef LISSANDRA_SRC_MEMORIA_MEMORIA_GOSSIP_H_
 #define LISSANDRA_SRC_MEMORIA_MEMORIA_GOSSIP_H_
 
-typedef struct memoria_gossip_t{
+#include <stdint.h>
+
+typedef struct memoria_gossip {
 	uint32_t ip_memoria;
 	uint16_t puerto_memoria;
 	uint8_t numero_memoria;
-}memoria_gossip;
+} memoria_gossip_t;
 
-int realizar_gossip(struct gossip , void* );
+int inicializacion_tabla_gossip();
+void destruccion_tabla_gossip();
+int agregar_esta_memoria_a_tabla_de_gossip();
+int obtener_respuesta_gossip(void *);
+void *realizar_gossip_threaded(void *entrada);
 
 #endif

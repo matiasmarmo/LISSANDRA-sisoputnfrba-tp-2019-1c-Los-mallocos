@@ -13,6 +13,7 @@
 #include "../commons/lissandra-threads.h"
 #include "../commons/parser.h"
 #include "memoria-request-handler.h"
+#include "memoria-gossip.h"
 #include "memoria-handler.h"
 #include "memoria-logger.h"
 #include "memoria-config.h"
@@ -250,9 +251,5 @@ int _manejar_describe(struct describe_request mensaje, void *respuesta) {
 }
 
 int _manejar_gossip(struct gossip mensaje, void *respuesta) {
-	uint32_t ips[1];
-	uint16_t puertos[1];
-	uint8_t numeros[0];
-	init_gossip_response(0, ips, 0, puertos, 0, numeros, respuesta);
-	return 0;
+	return obtener_respuesta_gossip(respuesta);
 }

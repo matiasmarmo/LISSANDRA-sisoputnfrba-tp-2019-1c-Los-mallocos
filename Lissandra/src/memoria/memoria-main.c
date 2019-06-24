@@ -10,6 +10,7 @@
 
 #include "../commons/comunicacion/protocol.h"
 #include "../commons/lissandra-threads.h"
+#include "memoria-gossip.h"
 #include "memoria-request-handler.h"
 #include "memoria-logger.h"
 #include "memoria-config.h"
@@ -28,14 +29,19 @@ void set_tamanio_value(int tamanio) {
 }
 
 void inicializar_memoria(){
+	// Verificar si alguno falla. Si lo hace alguno, 
+	// terminar la memoria
+	// La terminamos con exit(EXIT_FAILURE);
 	inicializar_memoria_config();
 	inicializar_memoria_logger();
 	inicializacion_memoria();
 	inicializacion_tabla_segmentos();
+	inicializacion_tabla_gossip();
 	conectar_lfs();
 }
 
 void liberar_recursos_memoria() {
+	destruccion_tabla_gossip();
 	destruccion_tabla_registros_paginas();
 	destruccion_tabla_segmentos();
 	destruccion_memoria();
@@ -59,14 +65,19 @@ int main() {
 	inicializar_memoria();
 
 	lissandra_thread_t l_thread;
+	lissandra_thread_periodic_t thread_gossip;
 	l_thread_create(&l_thread, &correr_servidor_memoria, NULL);
+	l_thread_periodic_create(&thread_gossip, &realizar_gossip_threaded, &get_tiempo_gossiping, NULL);
 
 	pthread_mutex_lock(&memoria_main_mutex);
 	pthread_cond_wait(&memoria_main_cond, &memoria_main_mutex);
 	pthread_mutex_unlock(&memoria_main_mutex);
 
 	l_thread_solicitar_finalizacion(&l_thread);
+	l_thread_solicitar_finalizacion(&thread_gossip.l_thread);
 	l_thread_join(&l_thread, NULL);
+	l_thread_join(&thread_gossip.l_thread, NULL);
+
 	liberar_recursos_memoria();
 	return 0;
 }
