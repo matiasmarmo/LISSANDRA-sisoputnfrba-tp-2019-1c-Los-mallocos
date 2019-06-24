@@ -35,45 +35,50 @@ void inicializar_lfs() {
 		destruir_lfs_logger();
 		exit(EXIT_FAILURE);
 	}
-    if(inicializar_filesystem() < 0) {
-        lfs_log_to_level(LOG_LEVEL_ERROR, false,
-                "Error al inicializar filesystem. Abortando.");
-        destruir_lfs_logger();
-        destruir_lfs_config();
-        exit(EXIT_FAILURE);   
-    }
-    if(inicializar_memtable() < 0) {
-        lfs_log_to_level(LOG_LEVEL_ERROR, false,
-                "Error al inicializar la memtable. Abortando.");
-        destruir_lfs_logger();
-        destruir_lfs_config();
-        exit(EXIT_FAILURE);   
-    }
-    if(inicializar_dumper() < 0) {
-        lfs_log_to_level(LOG_LEVEL_ERROR, false,
-                "Error al inicializar el dumper. Abortando.");
-        destruir_lfs_logger();
-        destruir_lfs_config();
-        destruir_memtable();
-        exit(EXIT_FAILURE);   
-    }
-    if(inicializar_compactador() < 0) {
-        lfs_log_to_level(LOG_LEVEL_ERROR, false,
-                "Error al inicializar el compactador. Abortando.");
-        destruir_lfs_logger();
-        destruir_lfs_config();
-        destruir_memtable();
-        destruir_dumper();
-        exit(EXIT_FAILURE);   
-    }
+	if (inicializar_filesystem() < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al inicializar filesystem. Abortando.");
+		destruir_lfs_logger();
+		destruir_lfs_config();
+		exit(EXIT_FAILURE);
+	}
+	if (inicializar_memtable() < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al inicializar la memtable. Abortando.");
+		destruir_lfs_logger();
+		destruir_lfs_config();
+		exit(EXIT_FAILURE);
+	}
+	if (inicializar_dumper() < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al inicializar el dumper. Abortando.");
+		destruir_lfs_logger();
+		destruir_lfs_config();
+		destruir_memtable();
+		exit(EXIT_FAILURE);
+	}
+
+	crear_diccionario_bloqueo();
+
+	if (inicializar_compactador() < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al inicializar el compactador. Abortando.");
+		destruir_lfs_logger();
+		destruir_lfs_config();
+		destruir_memtable();
+		destruir_dumper();
+		exit(EXIT_FAILURE);
+	}
+
 }
 
 void liberar_recursos_lfs() {
-    destruir_compactador();
-    destruir_dumper();
-    destruir_memtable();
-    destruir_lfs_config();
-    destruir_lfs_logger();
+	destruir_compactador();
+	destruir_dumper();
+	destruir_memtable();
+	destruir_lfs_config();
+	destruir_lfs_logger();
+	destruir_diccionario_bloqueo();
 }
 
 void finalizar_thread(lissandra_thread_t *l_thread) {
@@ -92,17 +97,17 @@ int main() {
 	int rets[3];
 	inicializar_lfs();
 	lissandra_thread_t servidor, inotify;
-    lissandra_thread_periodic_t dumper;
+	lissandra_thread_periodic_t dumper;
 
 	rets[0] = l_thread_create(&servidor, &correr_servidor, NULL);
 	rets[1] = inicializar_lfs_inotify(&inotify);
-    rets[2] = instanciar_hilo_dumper(&dumper);
+	rets[2] = instanciar_hilo_dumper(&dumper);
 
 	for (int i = 0; i < 3; i++) {
 		if (rets[i] != 0) {
 			finalizar_thread_si_se_creo(&servidor, rets[0]);
 			finalizar_thread_si_se_creo(&inotify, rets[1]);
-            finalizar_thread_si_se_creo(&(dumper.l_thread), rets[2]);
+			finalizar_thread_si_se_creo(&(dumper.l_thread), rets[2]);
 			liberar_recursos_lfs();
 			exit(EXIT_FAILURE);
 		}
@@ -116,9 +121,9 @@ int main() {
 
 	finalizar_thread(&servidor);
 	finalizar_thread(&inotify);
-    finalizar_thread(&(dumper.l_thread));
-    dumpear(NULL);
-    compactar_todas_las_tablas();
+	finalizar_thread(&(dumper.l_thread));
+	dumpear(NULL);
+	compactar_todas_las_tablas();
 	lfs_log_to_level(LOG_LEVEL_INFO, false, "Finalizando.");
 	liberar_recursos_lfs();
 	return 0;

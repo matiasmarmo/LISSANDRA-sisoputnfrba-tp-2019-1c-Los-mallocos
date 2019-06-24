@@ -40,4 +40,12 @@ int iterar_directorio_tabla(char *tabla,
 
 int cantidad_tmp_en_tabla(char *nombre_tabla);
 
+void crear_diccionario_bloqueo();
+
+int bloquear_tabla(char *nombre_tabla, char forma);
+
+int desbloquear_tabla(char *nombre_tabla);
+
+void destruir_diccionario_bloqueo();
+
 #endif

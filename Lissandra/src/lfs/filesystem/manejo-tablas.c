@@ -9,6 +9,7 @@
 #include <commons/config.h>
 #include <commons/string.h>
 #include <commons/collections/list.h>
+#include <commons/collections/dictionary.h>
 
 #include "../../commons/comunicacion/protocol.h"
 #include "../compactador.h"
@@ -19,12 +20,46 @@
 #include "config-with-locks.h"
 #include "manejo-datos.h"
 
+pthread_rwlock_t semaforo_dict_bloque = PTHREAD_RWLOCK_INITIALIZER;
+t_dictionary *diccionario_bloqueo_tablas;
+
+int bloquear_tabla(char *nombre_tabla, char forma) {
+	pthread_rwlock_wrlock(&semaforo_dict_bloque);
+	if (!dictionary_has_key(diccionario_bloqueo_tablas, nombre_tabla)) {
+		pthread_rwlock_unlock(&semaforo_dict_bloque);
+		return -1;
+	}
+	pthread_rwlock_t *lock = dictionary_get(diccionario_bloqueo_tablas,
+			nombre_tabla);
+	if (forma == 'w') {
+		pthread_rwlock_wrlock(lock);
+	} else if (forma == 'r') {
+		pthread_rwlock_rdlock(lock);
+	}
+	pthread_rwlock_unlock(&semaforo_dict_bloque);
+	return 0;
+}
+
+int desbloquear_tabla(char *nombre_tabla) {
+	pthread_rwlock_wrlock(&semaforo_dict_bloque);
+	if (!dictionary_has_key(diccionario_bloqueo_tablas, nombre_tabla)) {
+		pthread_rwlock_unlock(&semaforo_dict_bloque);
+		return -1;
+	}
+	pthread_rwlock_t *lock = dictionary_get(diccionario_bloqueo_tablas,
+			nombre_tabla);
+	pthread_rwlock_unlock(lock);
+	pthread_rwlock_unlock(&semaforo_dict_bloque);
+	return 0;
+}
+
 int crear_directorio_tabla(char* nombre_tabla) {
 	char path_tabla[TAMANIO_PATH];
 
 	obtener_path_tabla(nombre_tabla, path_tabla);
-	if (mkdir(path_tabla, S_IRUSR | S_IWUSR | S_IXUSR 
-		| S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) == -1) {
+	if (mkdir(path_tabla,
+	S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
+			== -1) {
 		return -1;
 	}
 	return 0;
@@ -157,11 +192,26 @@ int crear_tabla(char* nombre_tabla, metadata_t metadata) {
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
-	if(instanciar_hilo_compactador(nombre_tabla, metadata.t_compactaciones) < 0) {
+	if (instanciar_hilo_compactador(nombre_tabla, metadata.t_compactaciones)
+			< 0) {
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
-
+	pthread_rwlock_wrlock(&semaforo_dict_bloque);
+	pthread_rwlock_t *nuevo_lock = malloc(sizeof(pthread_rwlock_t));
+	if (nuevo_lock == NULL) {
+		borrar_tabla(nombre_tabla);
+		pthread_rwlock_unlock(&semaforo_dict_bloque);
+		return -1;
+	}
+	if (pthread_rwlock_init(nuevo_lock, NULL) != 0) {
+		borrar_tabla(nombre_tabla);
+		pthread_rwlock_unlock(&semaforo_dict_bloque);
+		free(nuevo_lock);
+		return -1;
+	}
+	dictionary_put(diccionario_bloqueo_tablas, nombre_tabla, nuevo_lock);
+	pthread_rwlock_unlock(&semaforo_dict_bloque);
 	return 0;
 }
 
@@ -236,6 +286,15 @@ int borrar_tabla(char *tabla) {
 		remove(path);
 		return 0;
 	}
+
+	pthread_rwlock_wrlock(&semaforo_dict_bloque);
+	if (dictionary_has_key(diccionario_bloqueo_tablas, tabla)) {
+		pthread_rwlock_t *lock = dictionary_remove(diccionario_bloqueo_tablas,
+				tabla);
+		pthread_rwlock_destroy(lock);
+		free(lock);
+	}
+	pthread_rwlock_unlock(&semaforo_dict_bloque);
 
 	char path_tabla[TAMANIO_PATH] = { 0 };
 	obtener_path_tabla(tabla, path_tabla);
@@ -368,7 +427,6 @@ void obtener_campos_metadatas(uint8_t* consistencias,
 }
 
 int cantidad_tmp_en_tabla(char *nombre_tabla) {
-
 	int numero = 0;
 
 	int _cantidad_tmp_en_tabla(const char* path_tmp, const struct stat* stat,
@@ -380,9 +438,24 @@ int cantidad_tmp_en_tabla(char *nombre_tabla) {
 		return 0;
 	}
 
-	if(iterar_directorio_tabla(nombre_tabla, &_cantidad_tmp_en_tabla) < 0) {
+	if (iterar_directorio_tabla(nombre_tabla, &_cantidad_tmp_en_tabla) < 0) {
 		return -1;
 	}
-
 	return numero;
+}
+
+void crear_diccionario_bloqueo() {
+	diccionario_bloqueo_tablas = dictionary_create();
+}
+
+void destruir_diccionario_bloqueo() {
+	pthread_rwlock_wrlock(&semaforo_dict_bloque);
+	void _destruir_lock(void *lock_cast) {
+		pthread_rwlock_t *lock = (pthread_rwlock_t*) lock_cast;
+		pthread_rwlock_destroy(lock);
+		free(lock);
+	}
+	dictionary_destroy_and_destroy_elements(diccionario_bloqueo_tablas,
+			&_destruir_lock);
+	pthread_rwlock_unlock(&semaforo_dict_bloque);
 }
