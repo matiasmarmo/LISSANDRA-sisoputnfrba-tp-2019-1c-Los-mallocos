@@ -20,98 +20,125 @@
 #include "memoria-server.h"
 #include "memoria-main.h"
 
+int _manejar_select_segmento_encontrado(struct select_request, void*,segmento*);
+int _manejar_select_segmento_no_encontrado(struct select_request, void*,segmento*);
+int _manejar_select_pagina_en_memoria(struct select_request, void*,segmento*,registro_tabla_pagina*);
+int _manejar_select_pagina_no_en_memoria(struct select_request, void*,segmento*);
+
 int _manejar_select(struct select_request mensaje, void* respuesta_select) {
-	int lugar_pagina_vacia;
-	int flag_modificado = 0;
-	struct timeval timestamp_accedido;
-	gettimeofday(&timestamp_accedido,NULL);
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
 	if (segmento_buscado == NULL) { // No existe el segmento en memoria
-		// PARA CHECKPOINT //
-
-		init_select_response(1, mensaje.tabla, mensaje.key, "", 0,
-				respuesta_select);
-		return 0;
-
-		// Igual el código de abajo de pruebas boludas no tendría que haber estado acá
-
-		lugar_pagina_vacia = encontrar_pagina_vacia();
-		if (lugar_pagina_vacia == -1) {
-			// HACER JOURNAL
-		} else {
-			// PEDIRSELO AL FS
-			//   me da un struct con el mensaje. Ej.: "[TABLA_4 | KEY= 25 | VALUE= "martin"]"
-			crear_segmento_nuevo("TABLA_4");
-			segmento* segmento_actual = encontrar_segmento_en_memoria(
-					"TABLA_4");
-			crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
-					segmento_actual, flag_modificado,timestamp_accedido);
-			// TENGO QUE OBTENER EL TIMESTAMP DE ALGUNA FORMA...
-			crear_pagina_nueva(lugar_pagina_vacia, 25, 123456, "martin");
-			// DEVUELVO LA STRUCT QUE ME PASARON
-			// FIN
-		}
+		int a = _manejar_select_segmento_no_encontrado(mensaje,
+													respuesta_select,
+													segmento_buscado);
+		return a;
 	} else { // El segmento esta en memoria
-		registro_tabla_pagina* reg_pagina = encontrar_pagina_en_memoria(
-				segmento_buscado, mensaje.key);
-		if (reg_pagina == NULL) { // No existe la pagina en memoria
-			memoria_log_to_level(LOG_LEVEL_INFO, false,
-					"La key %d de la tabla %s no se encuentra en memoria, voy a pedirla al FS",
-					mensaje.key, segmento_buscado->tabla);
-
-			// PARA CHECKPOINT //
-
-			init_select_response(1, mensaje.tabla, mensaje.key, "", 0,
-					respuesta_select);
-			return 0;
-
-			// Igual el código de abajo de pruebas boludas no tendría que haber estado acá
-
-			lugar_pagina_vacia = encontrar_pagina_vacia();
-			if (lugar_pagina_vacia == -1) {
-				// HACER JOURNAL
-			} else {
-				// PEDIRSELO AL FS
-				//   me da un struct con el mensaje. Ej.: "[TABLA_4 | KEY= 25 | VALUE= "martin"]"
-				crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
-						segmento_buscado, flag_modificado,timestamp_accedido);
-				// TENGO QUE OBTENER EL TIMESTAMP DE ALGUNA FORMA...
-				crear_pagina_nueva(lugar_pagina_vacia, 25, 123456, "martin");
-				struct select_response respuesta;
-				int aux = init_select_response(0, "tablaPrueba", 25, "martin",
-						123456, &respuesta);
-				if (aux < 0) {
-					memoria_log_to_level(LOG_LEVEL_TRACE, false,
-							"Falló la respuesta del SELECT, error en init_select_response()");
-					return ERROR;
-				}
-				memcpy(respuesta_select, &respuesta,
-						sizeof(struct select_response));
-			}
-		} else { // La pagina esta en memoria
-			struct select_response respuesta;
-			memoria_log_to_level(LOG_LEVEL_INFO, false,
-								"Viejo tiemstamp = %d + %d - %d", reg_pagina->timestamp_accedido.tv_sec, reg_pagina->timestamp_accedido.tv_usec, reg_pagina->numero_pagina);
-			reg_pagina->timestamp_accedido.tv_sec = timestamp_accedido.tv_sec;
-			reg_pagina->timestamp_accedido.tv_usec = timestamp_accedido.tv_usec;
-			memoria_log_to_level(LOG_LEVEL_INFO, false,
-								"Nuevo tiemstamp = %d + %d - %d", reg_pagina->timestamp_accedido.tv_sec, reg_pagina->timestamp_accedido.tv_usec, reg_pagina->numero_pagina);
-			int aux = init_select_response(0, segmento_buscado->tabla,
-					*((uint16_t*) (reg_pagina->puntero_a_pagina)),
-					(char*) (reg_pagina->puntero_a_pagina + 10),
-					*((uint64_t*) (reg_pagina->puntero_a_pagina + 2)),
-					&respuesta);
-			if (aux < 0) {
-				memoria_log_to_level(LOG_LEVEL_TRACE, false,
-						"Falló la respuesta del SELECT, error en init_select_response()");
-				return ERROR;
-			}
-			memcpy(respuesta_select, &respuesta,
-					sizeof(struct select_response));
-		}
+		int a = _manejar_select_segmento_encontrado(mensaje,
+													respuesta_select,
+													segmento_buscado);
+		return a;
 	}
 	return EXIT_SUCCESS;
 }
+
+int _manejar_select_segmento_encontrado(struct select_request mensaje, void* respuesta_select, segmento* segmento_buscado){
+	registro_tabla_pagina* reg_pagina = encontrar_pagina_en_memoria(
+									segmento_buscado, mensaje.key);
+	if (reg_pagina == NULL) { // No existe la pagina en memoria
+		int a = _manejar_select_pagina_no_en_memoria(mensaje,
+													 respuesta_select,
+													 segmento_buscado);
+		return a;
+	} else { // La pagina esta en memoria
+		int a = _manejar_select_pagina_en_memoria(mensaje,
+												  respuesta_select,
+												  segmento_buscado,
+												  reg_pagina);
+		return a;
+	}
+	return EXIT_SUCCESS;
+}
+
+int _manejar_select_segmento_no_encontrado(struct select_request mensaje, void* respuesta_select,segmento* segmento_buscado){
+	int lugar_pagina_vacia;
+	int flag_modificado = 0;
+	struct select_response respuesta;
+	struct timeval timestamp_accedido;
+	gettimeofday(&timestamp_accedido,NULL);
+	lugar_pagina_vacia = encontrar_pagina_vacia();
+	if (lugar_pagina_vacia == -1) {
+		// INTENTAR HACER LRU
+		// SI NO PUEDO, HACER JOURNAL
+	}
+	// PEDIRSELO AL FS
+	crear_segmento_nuevo("TABLA_4");
+	segmento* segmento_actual = encontrar_segmento_en_memoria("TABLA_4");
+	crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
+			segmento_actual, flag_modificado,timestamp_accedido);
+	crear_pagina_nueva(lugar_pagina_vacia, 25, 123456, "martin");
+	int aux = init_select_response(0, "tablaPrueba", 25, "martin",
+			123456, &respuesta);
+	if (aux < 0) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Falló la respuesta del SELECT, error en init_select_response()");
+		return ERROR;
+	}
+	memcpy(respuesta_select, &respuesta,sizeof(struct select_response));
+	return 0;
+}
+
+int _manejar_select_pagina_en_memoria(struct select_request mensaje, void* respuesta_select, segmento* segmento_buscado, registro_tabla_pagina* reg_pagina){
+	struct select_response respuesta;
+	struct timeval timestamp_accedido;
+	gettimeofday(&timestamp_accedido,NULL);
+	reg_pagina->timestamp_accedido.tv_sec = timestamp_accedido.tv_sec;
+	reg_pagina->timestamp_accedido.tv_usec = timestamp_accedido.tv_usec;
+	int aux = init_select_response(0, segmento_buscado->tabla,
+			*((uint16_t*) (reg_pagina->puntero_a_pagina)),
+			(char*) (reg_pagina->puntero_a_pagina + 10),
+			*((uint64_t*) (reg_pagina->puntero_a_pagina + 2)),
+			&respuesta);
+	if (aux < 0) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Falló la respuesta del SELECT, error en init_select_response()");
+		return ERROR;
+	}
+	memcpy(respuesta_select, &respuesta,sizeof(struct select_response));
+	return 0;
+}
+
+int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* respuesta_select,segmento* segmento_buscado){
+	struct select_response respuesta;
+	struct timeval timestamp_accedido;
+	gettimeofday(&timestamp_accedido,NULL);
+	int lugar_pagina_vacia = 0;
+	int flag_modificado = 0;
+	memoria_log_to_level(LOG_LEVEL_INFO, false,
+			"La key %d de la tabla %s no se encuentra en memoria, voy a pedirla al FS",
+			mensaje.key, segmento_buscado->tabla);
+	lugar_pagina_vacia = encontrar_pagina_vacia();
+	if (lugar_pagina_vacia == -1) {
+		// INTENTAR HACER LRU
+		// SI NO PUEDO, HACER JOURNAL
+	}
+	// PEDIRSELO AL FS
+	crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
+			segmento_buscado, flag_modificado,timestamp_accedido);
+	crear_pagina_nueva(lugar_pagina_vacia, 25, 123456, "martin");
+	int aux = init_select_response(0, "tablaPrueba", 25, "martin",
+			123456, &respuesta);
+	if (aux < 0) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Falló la respuesta del SELECT, error en init_select_response()");
+		return ERROR;
+	}
+	memcpy(respuesta_select, &respuesta,
+			sizeof(struct select_response));
+	return 0;
+}
+
+//------------------------------------------------------------
+//------------------------------------------------------------
 
 int _manejar_insert(struct insert_request mensaje, void* respuesta_insert) {
 	int lugar_pagina_vacia;

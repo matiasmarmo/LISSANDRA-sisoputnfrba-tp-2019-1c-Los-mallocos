@@ -107,13 +107,13 @@ int LRU(){
 				"LRU: No existen paginas para quitar usando LRU.");
 		return NO_SE_PUEDE_HACER_LRU;
 	}
-	setear_pagina_a_cero(registro_LRU);
 	pagina final;
 	final.key = (uint16_t*)(registro_LRU->puntero_a_pagina);
 	segmento* segmento = obtener_segmento_a_partir_de_registro(registro_LRU);
-	destruir_registro_de_pagina(*(final.key), segmento);
 	memoria_log_to_level(LOG_LEVEL_TRACE,false,
 				"LRU: La pagina quitada tenia la key \"%d\" y el value \"%s\".",*(registro_LRU->puntero_a_pagina),(char*)(registro_LRU->puntero_a_pagina+10));
+	setear_pagina_a_cero(registro_LRU);
+	destruir_registro_de_pagina(*(final.key), segmento);
 	return LRU_OK;
 }
 
