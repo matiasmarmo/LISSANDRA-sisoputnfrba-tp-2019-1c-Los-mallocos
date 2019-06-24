@@ -7,4 +7,6 @@ typedef struct memoria_gossip_t{
 	uint8_t numero_memoria;
 }memoria_gossip;
 
+int realizar_gossip(struct gossip , void* );
+
 #endif
