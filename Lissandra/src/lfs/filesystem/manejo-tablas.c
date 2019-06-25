@@ -54,6 +54,23 @@ int desbloquear_tabla(char *nombre_tabla) {
 	return 0;
 }
 
+int crear_semaforo_tabla(char *nombre_tabla) {
+	pthread_rwlock_wrlock(&semaforo_dict_bloque);
+	pthread_rwlock_t *nuevo_lock = malloc(sizeof(pthread_rwlock_t));
+	if (nuevo_lock == NULL) {
+		pthread_rwlock_unlock(&semaforo_dict_bloque);
+		return -1;
+	}
+	if (pthread_rwlock_init(nuevo_lock, NULL) != 0) {
+		pthread_rwlock_unlock(&semaforo_dict_bloque);
+		free(nuevo_lock);
+		return -1;
+	}
+	dictionary_put(diccionario_bloqueo_tablas, nombre_tabla, nuevo_lock);
+	pthread_rwlock_unlock(&semaforo_dict_bloque);
+	return 0;
+}
+
 int crear_directorio_tabla(char* nombre_tabla) {
 	char path_tabla[TAMANIO_PATH];
 
@@ -198,21 +215,10 @@ int crear_tabla(char* nombre_tabla, metadata_t metadata) {
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
-	pthread_rwlock_wrlock(&semaforo_dict_bloque);
-	pthread_rwlock_t *nuevo_lock = malloc(sizeof(pthread_rwlock_t));
-	if (nuevo_lock == NULL) {
+	if (crear_semaforo_tabla(nombre_tabla) < 0) {
 		borrar_tabla(nombre_tabla);
-		pthread_rwlock_unlock(&semaforo_dict_bloque);
 		return -1;
 	}
-	if (pthread_rwlock_init(nuevo_lock, NULL) != 0) {
-		borrar_tabla(nombre_tabla);
-		pthread_rwlock_unlock(&semaforo_dict_bloque);
-		free(nuevo_lock);
-		return -1;
-	}
-	dictionary_put(diccionario_bloqueo_tablas, nombre_tabla, nuevo_lock);
-	pthread_rwlock_unlock(&semaforo_dict_bloque);
 	return 0;
 }
 
@@ -237,9 +243,11 @@ int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla) {
 	obtener_path_tabla(nombre_tabla, buffer);
 	strcat(buffer, nombre_tabla);
 	strcat(buffer, "-metadata.bin");
-	lfs_log_to_level(LOG_LEVEL_TRACE, false, "Bloqueando semaforo obtener metadata tablas\n");
+	lfs_log_to_level(LOG_LEVEL_TRACE, false,
+			"Bloqueando semaforo obtener metadata tablas\n");
 	bloquear_tabla(nombre_tabla, 'r');
-	lfs_log_to_level(LOG_LEVEL_TRACE, false, "Bloqueado semaforo obtener metadata tablas\n");
+	lfs_log_to_level(LOG_LEVEL_TRACE, false,
+			"Bloqueado semaforo obtener metadata tablas\n");
 	t_config* metadata_config_tabla = config_create(buffer);
 	desbloquear_tabla(nombre_tabla);
 
@@ -293,7 +301,8 @@ int borrar_tabla(char *tabla) {
 	}
 
 	pthread_rwlock_wrlock(&semaforo_dict_bloque);
-	pthread_rwlock_t *lock = dictionary_remove(diccionario_bloqueo_tablas, tabla);
+	pthread_rwlock_t *lock = dictionary_remove(diccionario_bloqueo_tablas,
+			tabla);
 	pthread_rwlock_wrlock(lock);
 	pthread_rwlock_unlock(lock);
 	pthread_rwlock_destroy(lock);

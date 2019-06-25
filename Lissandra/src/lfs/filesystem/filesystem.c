@@ -9,15 +9,19 @@
 #include <string.h>
 #include <sys/file.h>
 #include <errno.h>
+#include <ftw.h>
 #include <commons/config.h>
 #include <commons/bitarray.h>
+#include <commons/string.h>
 
 #include "../lfs-config.h"
+#include "../lfs-logger.h"
+#include "../compactador.h"
 #include "filesystem.h"
 #include "bitmap.h"
 #include "manejo-datos.h"
+#include "manejo-tablas.h"
 #include "bitmap.h"
-#include "../lfs-logger.h"
 
 int tamanio_bloque = -1;
 int cantidad_bloques = -1;
@@ -28,6 +32,48 @@ int get_tamanio_bloque() {
 
 int get_cantidad_bloques() {
 	return cantidad_bloques;
+}
+
+int iterar_tablas(int (funcion)(const char*, const struct stat*, int)) {
+	char path[TAMANIO_PATH] = { 0 };
+	sprintf(path, "%sTables/", get_punto_montaje());
+	return ftw(path, funcion, 10);
+}
+
+int crear_compactador_tabla(char *tabla) {
+	metadata_t metadata;
+	if(obtener_metadata_tabla(tabla, &metadata) < 0) {
+		return -1;
+	}
+	if(instanciar_hilo_compactador(tabla, metadata.t_compactaciones) < 0) {
+		return -1;
+	}
+	if(crear_semaforo_tabla(tabla) < 0) {
+		finalizar_hilo_compactador(tabla);
+		return -1;
+	}
+	return 0;
+}
+
+int crear_compactadores_de_tablas_existentes() {
+	int _crear(const char* path, const struct stat* stat, int flag) {
+		if(!string_ends_with((char*)path, ".bin") && !string_ends_with((char*)path, ".tmp")
+				&& !string_ends_with((char*)path, ".tmpc") && !string_ends_with((char*)path, "Tables")) {
+			char **partes_path = string_split((char*) path, "/");
+			if(partes_path == NULL) {
+				return 1;
+			}
+			char anterior[80];
+			for(char **i = partes_path; *i != NULL; i++) {
+				strcpy(anterior, *i);
+				free(*i);
+			}
+			free(partes_path);
+			return crear_compactador_tabla(anterior);
+		}
+		return 0;
+	}
+	return iterar_tablas(&_crear);
 }
 
 int inicializar_filesystem(){
@@ -65,6 +111,11 @@ int inicializar_filesystem(){
 
 	if(crear_bitmap(cantidad_bloques) < 0){
 		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear el bitmap");
+		return -1;
+	}
+
+	if(crear_compactadores_de_tablas_existentes() < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear compactadores de tablas existentes");
 		return -1;
 	}
 

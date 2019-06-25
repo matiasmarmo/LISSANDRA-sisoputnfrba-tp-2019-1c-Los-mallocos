@@ -13,6 +13,8 @@ typedef struct metadata {
 
 int crear_tabla(char* nombre, metadata_t metadata);
 
+int crear_semaforo_tabla(char *nombre_tabla);
+
 int existe_tabla(char* nombre_tabla);
 
 int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla);

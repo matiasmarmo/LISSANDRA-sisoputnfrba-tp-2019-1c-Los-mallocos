@@ -26,6 +26,7 @@ void finalizar_lfs() {
 }
 
 void inicializar_lfs() {
+	crear_diccionario_bloqueo();
 	if (inicializar_lfs_logger() < 0) {
 		exit(EXIT_FAILURE);
 	}
@@ -35,11 +36,19 @@ void inicializar_lfs() {
 		destruir_lfs_logger();
 		exit(EXIT_FAILURE);
 	}
+	if (inicializar_compactador() < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al inicializar el compactador. Abortando.");
+		destruir_lfs_logger();
+		destruir_lfs_config();
+		exit(EXIT_FAILURE);
+	}
 	if (inicializar_filesystem() < 0) {
 		lfs_log_to_level(LOG_LEVEL_ERROR, false,
 				"Error al inicializar filesystem. Abortando.");
 		destruir_lfs_logger();
 		destruir_lfs_config();
+		destruir_compactador();
 		exit(EXIT_FAILURE);
 	}
 	if (inicializar_memtable() < 0) {
@@ -47,6 +56,7 @@ void inicializar_lfs() {
 				"Error al inicializar la memtable. Abortando.");
 		destruir_lfs_logger();
 		destruir_lfs_config();
+		destruir_compactador();
 		exit(EXIT_FAILURE);
 	}
 	if (inicializar_dumper() < 0) {
@@ -55,21 +65,9 @@ void inicializar_lfs() {
 		destruir_lfs_logger();
 		destruir_lfs_config();
 		destruir_memtable();
+		destruir_compactador();
 		exit(EXIT_FAILURE);
 	}
-
-	crear_diccionario_bloqueo();
-
-	if (inicializar_compactador() < 0) {
-		lfs_log_to_level(LOG_LEVEL_ERROR, false,
-				"Error al inicializar el compactador. Abortando.");
-		destruir_lfs_logger();
-		destruir_lfs_config();
-		destruir_memtable();
-		destruir_dumper();
-		exit(EXIT_FAILURE);
-	}
-
 }
 
 void liberar_recursos_lfs() {
