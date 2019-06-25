@@ -196,11 +196,8 @@ int finalizar_hilo_compactador(char *tabla) {
 
 void compactar_todas_las_tablas() {
 
-	int resultado = 0;
-
 	void _compactar(char *tabla, void *valor) {
-		int res_compactacion = compactar(tabla);
-		resultado = resultado || res_compactacion;
+		compactar(tabla);
 	}
 
 	pthread_mutex_lock(&hilos_compactadores_mutex);
