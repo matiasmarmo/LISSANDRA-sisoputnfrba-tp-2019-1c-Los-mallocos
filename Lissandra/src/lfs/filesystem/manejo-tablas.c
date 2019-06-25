@@ -19,6 +19,7 @@
 #include "bitmap.h"
 #include "config-with-locks.h"
 #include "manejo-datos.h"
+#include "../lfs-logger.h"
 
 pthread_rwlock_t semaforo_dict_bloque = PTHREAD_RWLOCK_INITIALIZER;
 t_dictionary *diccionario_bloqueo_tablas;
@@ -236,8 +237,12 @@ int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla) {
 	obtener_path_tabla(nombre_tabla, buffer);
 	strcat(buffer, nombre_tabla);
 	strcat(buffer, "-metadata.bin");
-
+	lfs_log_to_level(LOG_LEVEL_TRACE, false, "Bloqueando semaforo obtener metadata tablas\n");
+	bloquear_tabla(nombre_tabla, 'r');
+	lfs_log_to_level(LOG_LEVEL_TRACE, false, "Bloqueado semaforo obtener metadata tablas\n");
 	t_config* metadata_config_tabla = config_create(buffer);
+	desbloquear_tabla(nombre_tabla);
+
 	if (metadata_config_tabla == NULL) {
 		return -1;
 	}
@@ -288,19 +293,19 @@ int borrar_tabla(char *tabla) {
 	}
 
 	pthread_rwlock_wrlock(&semaforo_dict_bloque);
-	if (dictionary_has_key(diccionario_bloqueo_tablas, tabla)) {
-		pthread_rwlock_t *lock = dictionary_remove(diccionario_bloqueo_tablas,
-				tabla);
-		pthread_rwlock_destroy(lock);
-		free(lock);
-	}
-	pthread_rwlock_unlock(&semaforo_dict_bloque);
+	pthread_rwlock_t *lock = dictionary_remove(diccionario_bloqueo_tablas, tabla);
+	pthread_rwlock_wrlock(lock);
+	pthread_rwlock_unlock(lock);
+	pthread_rwlock_destroy(lock);
+	free(lock);
 
 	char path_tabla[TAMANIO_PATH] = { 0 };
 	obtener_path_tabla(tabla, path_tabla);
 	finalizar_hilo_compactador(tabla);
 	iterar_directorio_tabla(tabla, &_borrar_archivo);
-	return rmdir(path_tabla);
+	int res = rmdir(path_tabla);
+	pthread_rwlock_unlock(&semaforo_dict_bloque);
+	return res;
 }
 
 void borrar_todos_los_tmpc(char *tabla) {
@@ -438,9 +443,13 @@ int cantidad_tmp_en_tabla(char *nombre_tabla) {
 		return 0;
 	}
 
+	bloquear_tabla(nombre_tabla, 'r');
 	if (iterar_directorio_tabla(nombre_tabla, &_cantidad_tmp_en_tabla) < 0) {
+		desbloquear_tabla(nombre_tabla);
 		return -1;
 	}
+
+	desbloquear_tabla(nombre_tabla);
 	return numero;
 }
 

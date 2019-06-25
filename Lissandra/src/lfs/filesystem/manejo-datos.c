@@ -272,15 +272,21 @@ int iterar_archivo_de_datos(char *path, operacion_t operacion) {
 int iterar_particion(char* nombre_tabla, int numero_particion,
 		operacion_t operacion) {
 	char path_particion[TAMANIO_PATH];
+	bloquear_tabla(nombre_tabla, 'r');
 	obtener_path_particion(numero_particion, nombre_tabla, path_particion);
-	return iterar_archivo_de_datos(path_particion, operacion);
+	int res = iterar_archivo_de_datos(path_particion, operacion);
+	desbloquear_tabla(nombre_tabla);
+	return res;
 }
 
 int iterar_archivo_temporal(char *nombre_tabla, int numero_temporal,
 		operacion_t operacion) {
 	char path_particion[TAMANIO_PATH];
+	bloquear_tabla(nombre_tabla, 'r');
 	obtener_path_temporal(numero_temporal, nombre_tabla, path_particion);
-	return iterar_archivo_de_datos(path_particion, operacion);
+	int res = iterar_archivo_de_datos(path_particion, operacion);
+	desbloquear_tabla(nombre_tabla);
+	return res;
 }
 
 int leer_archivo_de_datos(char *path, registro_t **resultado) {
@@ -727,7 +733,10 @@ int bajar_a_archivo_temporal(char* tabla, registro_t* registros,
 		return -1;
 	}
 
+	bloquear_tabla(tabla, 'r');
+
 	if (crear_temporal(numero, tabla) < 0) {
+		desbloquear_tabla(tabla);
 		return -1;
 	}
 
@@ -735,9 +744,11 @@ int bajar_a_archivo_temporal(char* tabla, registro_t* registros,
 
 	if ((escribir_en_archivo_de_datos(path_tmp, registros, cantidad_registros))
 			== -1) {
+		desbloquear_tabla(tabla);
 		return -1;
 	}
 
+	desbloquear_tabla(tabla);
 	return 0;
 }
 
