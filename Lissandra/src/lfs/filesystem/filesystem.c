@@ -9,15 +9,18 @@
 #include <string.h>
 #include <sys/file.h>
 #include <errno.h>
+#include <dirent.h>
 #include <commons/config.h>
 #include <commons/bitarray.h>
+#include <commons/string.h>
 
 #include "../lfs-config.h"
+#include "../lfs-logger.h"
+#include "manejo-tablas.h"
+#include "manejo-datos.h"
+#include "../compactador.h"
 #include "filesystem.h"
 #include "bitmap.h"
-#include "manejo-datos.h"
-#include "bitmap.h"
-#include "../lfs-logger.h"
 
 int tamanio_bloque = -1;
 int cantidad_bloques = -1;
@@ -28,6 +31,51 @@ int get_tamanio_bloque() {
 
 int get_cantidad_bloques() {
 	return cantidad_bloques;
+}
+
+int inicializar_tablas_ya_existentes() {
+	// Cuando se inicializar el filesystem, puede que ya
+	// existan tablas creadas. Esta funcion, para cada una
+	// de esas tablas, crea el semáforo para bloquearla
+	// y el hilo que la compacta.
+	int hubo_error = 0;
+	DIR *directorio;
+	struct dirent *directorio_datos;
+
+	char directorio_path[TAMANIO_PATH];
+	char* punto_montaje = get_punto_montaje();
+	sprintf(directorio_path, "%sTables/", punto_montaje);
+
+	directorio = opendir(directorio_path);
+
+	if (directorio == NULL) {
+		return -1;
+	}
+
+	metadata_t metadata;
+	while ((directorio_datos = readdir(directorio))) {
+		if (string_starts_with(directorio_datos->d_name, ".")) {
+			continue;
+		}
+		if(obtener_metadata_tabla(directorio_datos->d_name, &metadata) < 0) {
+			hubo_error = 1;
+			break;
+		}
+		if(crear_semaforo_tabla(directorio_datos->d_name) < 0) {
+			hubo_error = 1;
+			break;
+		}
+		if(instanciar_hilo_compactador(directorio_datos->d_name, metadata.t_compactaciones) < 0) {
+			// No hace falta destruir el semaforo porque el lfs
+			// va a finalizar si falla esta función
+			hubo_error = 1;
+			break;
+		}
+	}
+
+	closedir(directorio);
+
+	return hubo_error ? -1 : 0;
 }
 
 int inicializar_filesystem(){
@@ -65,6 +113,11 @@ int inicializar_filesystem(){
 
 	if(crear_bitmap(cantidad_bloques) < 0){
 		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear el bitmap");
+		return -1;
+	}
+
+	if(inicializar_tablas_ya_existentes() < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al inicializar estructuras de tablas ya existentes");
 		return -1;
 	}
 

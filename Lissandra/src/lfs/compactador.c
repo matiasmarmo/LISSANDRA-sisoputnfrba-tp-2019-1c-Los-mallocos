@@ -8,6 +8,7 @@
 #include "filesystem/filesystem.h"
 #include "filesystem/manejo-tablas.h"
 #include "filesystem/manejo-datos.h"
+#include "lfs-logger.h"
 
 pthread_mutex_t hilos_compactadores_mutex = PTHREAD_MUTEX_INITIALIZER;
 t_dictionary *hilos_compactadores;
@@ -117,7 +118,6 @@ int compactar(char *nombre_tabla) {
 		}
 		metadata_cargada = 1;
 	}
-
 	bloquear_tabla(nombre_tabla, 'w');
 	registro_t *datos_tmpc;
 	convertir_todos_tmp_a_tmpc(nombre_tabla);

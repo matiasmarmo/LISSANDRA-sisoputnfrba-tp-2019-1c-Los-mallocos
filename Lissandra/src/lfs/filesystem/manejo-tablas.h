@@ -46,6 +46,10 @@ int bloquear_tabla(char *nombre_tabla, char forma);
 
 int desbloquear_tabla(char *nombre_tabla);
 
+int crear_semaforo_tabla(char *nombre_tabla);
+
+int destruir_semaforo_tabla(char *nombre_tabla);
+
 void destruir_diccionario_bloqueo();
 
 #endif

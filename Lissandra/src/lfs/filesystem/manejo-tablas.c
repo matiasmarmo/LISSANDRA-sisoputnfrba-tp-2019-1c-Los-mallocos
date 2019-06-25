@@ -54,6 +54,36 @@ int desbloquear_tabla(char *nombre_tabla) {
 	return 0;
 }
 
+int crear_semaforo_tabla(char *nombre_tabla) {
+	pthread_rwlock_wrlock(&semaforo_dict_bloque);
+	pthread_rwlock_t *nuevo_lock = malloc(sizeof(pthread_rwlock_t));
+	if (nuevo_lock == NULL) {
+		pthread_rwlock_unlock(&semaforo_dict_bloque);
+		return -1;
+	}
+	if (pthread_rwlock_init(nuevo_lock, NULL) != 0) {
+		pthread_rwlock_unlock(&semaforo_dict_bloque);
+		free(nuevo_lock);
+		return -1;
+	}
+	dictionary_put(diccionario_bloqueo_tablas, nombre_tabla, nuevo_lock);
+	pthread_rwlock_unlock(&semaforo_dict_bloque);
+	return 0;
+}
+
+int destruir_semaforo_tabla(char *nombre_tabla) {
+	pthread_rwlock_wrlock(&semaforo_dict_bloque);
+	pthread_rwlock_t *lock = dictionary_remove(diccionario_bloqueo_tablas, nombre_tabla);
+	if(lock != NULL) {
+		pthread_rwlock_wrlock(lock);
+		pthread_rwlock_unlock(lock);
+		pthread_rwlock_destroy(lock);
+		free(lock);
+	}
+	pthread_rwlock_unlock(&semaforo_dict_bloque);
+	return 0;
+}
+
 int crear_directorio_tabla(char* nombre_tabla) {
 	char path_tabla[TAMANIO_PATH];
 
@@ -193,35 +223,23 @@ int crear_tabla(char* nombre_tabla, metadata_t metadata) {
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
+	if(crear_semaforo_tabla(nombre_tabla) < 0) {
+		borrar_tabla(nombre_tabla);
+		return -1;
+	}
 	if (instanciar_hilo_compactador(nombre_tabla, metadata.t_compactaciones)
 			< 0) {
+		destruir_semaforo_tabla(nombre_tabla);
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
-	pthread_rwlock_wrlock(&semaforo_dict_bloque);
-	pthread_rwlock_t *nuevo_lock = malloc(sizeof(pthread_rwlock_t));
-	if (nuevo_lock == NULL) {
-		borrar_tabla(nombre_tabla);
-		pthread_rwlock_unlock(&semaforo_dict_bloque);
-		return -1;
-	}
-	if (pthread_rwlock_init(nuevo_lock, NULL) != 0) {
-		borrar_tabla(nombre_tabla);
-		pthread_rwlock_unlock(&semaforo_dict_bloque);
-		free(nuevo_lock);
-		return -1;
-	}
-	dictionary_put(diccionario_bloqueo_tablas, nombre_tabla, nuevo_lock);
-	pthread_rwlock_unlock(&semaforo_dict_bloque);
 	return 0;
 }
 
 int existe_tabla(char* nombre_tabla) {
-	char path_tabla[TAMANIO_PATH];
+	char path_tabla[TAMANIO_PATH] = { 0 };
 	struct stat buffer;
-
 	obtener_path_tabla(nombre_tabla, path_tabla);
-
 	if (stat(path_tabla, &buffer) < 0) {
 		if (errno == ENOENT) {
 			return 1;
@@ -294,10 +312,12 @@ int borrar_tabla(char *tabla) {
 
 	pthread_rwlock_wrlock(&semaforo_dict_bloque);
 	pthread_rwlock_t *lock = dictionary_remove(diccionario_bloqueo_tablas, tabla);
-	pthread_rwlock_wrlock(lock);
-	pthread_rwlock_unlock(lock);
-	pthread_rwlock_destroy(lock);
-	free(lock);
+	if(lock != NULL) {
+		pthread_rwlock_wrlock(lock);
+		pthread_rwlock_unlock(lock);
+		pthread_rwlock_destroy(lock);
+		free(lock);
+	}
 
 	char path_tabla[TAMANIO_PATH] = { 0 };
 	obtener_path_tabla(tabla, path_tabla);
