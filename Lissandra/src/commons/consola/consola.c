@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <errno.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
@@ -12,7 +13,7 @@
 
 handler_t handler_actual;
 
-pthread_mutex_t consola_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t consola_mutex;
 
 void imprimir(char* linea) {
 	rl_save_prompt();
@@ -22,7 +23,8 @@ void imprimir(char* linea) {
 }
 
 void imprimir_async(char* linea) {
-	if (pthread_mutex_lock(&consola_mutex) != 0) {
+	int res_lock = pthread_mutex_lock(&consola_mutex);
+	if (res_lock != 0 && res_lock != EDEADLK) {
 		return;
 	}
 	char *linea_guardada;
@@ -65,7 +67,15 @@ void ejecutar_nueva_linea(char *linea) {
 	free(linea);
 }
 
+void inicializar_mutex_consola() {
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+	pthread_mutex_init(&consola_mutex, &attr);
+}
+
 void iniciar_consola(handler_t handler) {
+	inicializar_mutex_consola();
 	pthread_mutex_lock(&consola_mutex);
 	handler_actual = handler;
 	rl_callback_handler_install("> ", ejecutar_nueva_linea);
