@@ -124,21 +124,11 @@ int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* re
 		// SI NO PUEDO, HACER JOURNAL
 	}
 	// pido al fs
-	uint8_t buffer_mensaje[get_max_msg_size()];
-	memset(buffer_mensaje, 0, get_max_msg_size());
-	uint8_t buffer_respuesta[get_max_msg_size()];
-    memset(buffer_respuesta, 0, get_max_msg_size());
-
-    memcpy((struct select_request*) buffer_mensaje,&mensaje,sizeof(struct select_request));
-    memcpy((struct select_response*) buffer_respuesta,&respuesta,sizeof(struct select_response));
-
-	if(enviar_mensaje_lfs(buffer_mensaje, buffer_respuesta) < 0) {
+	if(enviar_mensaje_lfs(&mensaje, &respuesta) < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo la comunicacion con file system para pedirle una pagina");
 		return ERROR;
 	}
-
-	//memcpy(respuesta,&buffer_respuesta,sizeof(struct select_response));
 
 	crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
 			segmento_buscado, flag_modificado,timestamp_accedido);
