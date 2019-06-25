@@ -24,8 +24,14 @@ uint8_t* memoria;
 uint8_t* get_memoria(){
 	return memoria;
 }
-void inicializacion_memoria(){
+int inicializacion_memoria(){
 	memoria = calloc(get_tamanio_memoria(), sizeof(char));
+	if (memoria == NULL) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Construcción de memoria fallida, error en calloc");
+		return -1;
+	}
+	return 0;
 }
 void destruccion_memoria(){
 	free(memoria);

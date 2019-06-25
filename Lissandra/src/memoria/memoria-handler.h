@@ -23,7 +23,7 @@ typedef struct pagina_t{
 
 t_list* TABLA_DE_SEGMENTOS;
 uint8_t* get_memoria();
-void inicializacion_memoria();
+int inicializacion_memoria();
 void destruccion_memoria();
 //-----------------------------------
 void inicializacion_tabla_segmentos();

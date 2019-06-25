@@ -29,15 +29,51 @@ void set_tamanio_value(int tamanio) {
 }
 
 void inicializar_memoria(){
-	// Verificar si alguno falla. Si lo hace alguno, 
-	// terminar la memoria
-	// La terminamos con exit(EXIT_FAILURE);
-	inicializar_memoria_config();
-	inicializar_memoria_logger();
-	inicializacion_memoria();
-	inicializacion_tabla_segmentos();
-	inicializacion_tabla_gossip();
-	conectar_lfs();
+	if(inicializar_memoria_config() < 0) {
+		memoria_log_to_level(LOG_LEVEL_ERROR, false,
+			"Error al inicializar archivo de configuración de la memoria. Abortando.");
+		destruir_memoria_config();
+		exit(EXIT_FAILURE);
+	}
+	if(inicializar_memoria_logger() < 0) {
+		memoria_log_to_level(LOG_LEVEL_ERROR, false,
+			"Error al inicializar memoria logger. Abortando.");
+		destruir_memoria_config();
+		destruir_memoria_logger();
+		exit(EXIT_FAILURE);
+	}
+	if(inicializacion_memoria() < 0) {
+		memoria_log_to_level(LOG_LEVEL_ERROR, false,
+			"Error al inicializar memoria en calloc. Abortando.");
+		destruir_memoria_config();
+		destruir_memoria_logger();
+		destruccion_memoria();
+		exit(EXIT_FAILURE);
+	}
+
+	inicializacion_tabla_segmentos(); // solamente creo una lista
+
+	if(inicializacion_tabla_gossip() < 0) {
+		memoria_log_to_level(LOG_LEVEL_ERROR, false,
+			"Error al inicializar tabla de gossip. Abortando.");
+		destruir_memoria_config();
+		destruir_memoria_logger();
+		destruccion_memoria();
+		destruccion_tabla_segmentos();
+		destruccion_tabla_gossip();
+		exit(EXIT_FAILURE);
+	}
+	if(conectar_lfs() < 0) {
+		memoria_log_to_level(LOG_LEVEL_ERROR, false,
+			"Error al conectar memoria con lfs. Abortando.");
+		destruir_memoria_config();
+		destruir_memoria_logger();
+		destruccion_memoria();
+		destruccion_tabla_gossip();
+		destruccion_tabla_segmentos();
+		desconectar_lfs();
+		exit(EXIT_FAILURE);
+	}
 }
 
 void liberar_recursos_memoria() {
