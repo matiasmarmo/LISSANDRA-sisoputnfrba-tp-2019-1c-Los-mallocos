@@ -57,12 +57,14 @@ int enviar_mensaje_lfs(void *request, void *respuesta) {
         return -1;
     }
     if(send_msg(socket_lfs, request) < 0) {
-        // SE PERDIO LA CONEXION
+    	memoria_log_to_level(LOG_LEVEL_ERROR, false,
+    		"Se perdio la conexion");
         pthread_mutex_unlock(&mutex_conexion_lfs);
         return -1;
     }
     if(recv_msg(socket_lfs, respuesta, get_max_msg_size()) < 0) {
-        // SE PERDIO LA CONEXION
+    	memoria_log_to_level(LOG_LEVEL_ERROR, false,
+    		"Se perdio la conexion");
         pthread_mutex_unlock(&mutex_conexion_lfs);
         return -1;
     }

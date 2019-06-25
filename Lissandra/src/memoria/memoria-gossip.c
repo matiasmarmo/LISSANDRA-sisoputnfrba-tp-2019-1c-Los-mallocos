@@ -43,12 +43,14 @@ int agregar_seeds() {
 	char **ips_seeds, **puertos_seeds, **ips_iterator, **puertos_iterator;
 	ips_seeds = get_ip_seeds();
 	if(ips_seeds == NULL) {
-		// ver si hay que loguear
+		memoria_log_to_level(LOG_LEVEL_ERROR, false,
+			"Error al obtener los seeds");
 		return -1;
 	}
 	puertos_seeds = get_puertos_seed();
 	if(puertos_seeds == NULL) {
-		// ver si hay que loguear
+		memoria_log_to_level(LOG_LEVEL_ERROR, false,
+			"Error al obtener los puertos");
 		liberar_lista_strings(ips_seeds);
 		return -1;
 	}

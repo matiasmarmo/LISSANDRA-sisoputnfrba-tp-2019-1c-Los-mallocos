@@ -182,7 +182,8 @@ void* correr_servidor_memoria(void* entrada) {
 					}
 					cliente_t *nuevo_cliente = malloc(sizeof(cliente_t));
 					if(nuevo_cliente == NULL) {
-						// Mandar mensaje de error
+						memoria_log_to_level(LOG_LEVEL_ERROR, false,
+							"Error pedir nuevo cliente. Erro de malloc");
 						close(client_socket);
 					} else {
 						nuevo_cliente->cliente_valor = client_socket;
