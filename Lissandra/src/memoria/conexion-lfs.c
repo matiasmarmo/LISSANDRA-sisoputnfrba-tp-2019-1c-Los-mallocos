@@ -4,9 +4,12 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <commons/log.h>
 #include "../commons/comunicacion/sockets.h"
 #include "../commons/comunicacion/protocol.h"
 #include "memoria-config.h"
+#include "memoria-logger.h"
+#include "conexion-lfs.h"
 #include "memoria-main.h"
 
 pthread_mutex_t mutex_conexion_lfs = PTHREAD_MUTEX_INITIALIZER;

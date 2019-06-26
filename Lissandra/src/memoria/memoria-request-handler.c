@@ -129,16 +129,18 @@ int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* re
 				"Fallo la comunicacion con file system para pedirle una pagina");
 		return ERROR;
 	}
-
-	crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
-			segmento_buscado, flag_modificado,timestamp_accedido);
-	crear_pagina_nueva(lugar_pagina_vacia, respuesta.key, respuesta.timestamp, respuesta.valor);
-	int aux = init_select_response(0, segmento_buscado->tabla, respuesta.key, respuesta.valor,
-			respuesta.timestamp, &respuesta);
-	if (aux < 0) {
-		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-				"Falló la respuesta del SELECT, error en init_select_response()");
-		return ERROR;
+	printf("-------supuestamente se envio mensaje al lfs-----\n");
+	if(respuesta.fallo == 0){
+		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
+				segmento_buscado, flag_modificado,timestamp_accedido);
+		crear_pagina_nueva(lugar_pagina_vacia, respuesta.key, respuesta.timestamp, respuesta.valor);
+		int aux = init_select_response(0, segmento_buscado->tabla, respuesta.key, respuesta.valor,
+				respuesta.timestamp, &respuesta);
+		if (aux < 0) {
+			memoria_log_to_level(LOG_LEVEL_TRACE, false,
+					"Falló la respuesta del SELECT, error en init_select_response()");
+			return ERROR;
+		}
 	}
 	memcpy(respuesta_select, &respuesta,
 			sizeof(struct select_response));
