@@ -130,6 +130,7 @@ int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* re
 		return ERROR;
 	}
 	printf("-------supuestamente se envio mensaje al lfs-----\n");
+	// if(get_msg_id(respuesta) != ERROR_MSG_ID)
 	if(respuesta.fallo == 0){
 		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
 				segmento_buscado, flag_modificado,timestamp_accedido);

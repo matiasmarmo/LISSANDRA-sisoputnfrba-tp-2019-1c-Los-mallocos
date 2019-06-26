@@ -101,9 +101,10 @@ int main() {
 	inicializar_memoria();
 
 	lissandra_thread_t l_thread;
-	lissandra_thread_periodic_t thread_gossip;
+	lissandra_thread_periodic_t thread_gossip, thread_journal;
 	l_thread_create(&l_thread, &correr_servidor_memoria, NULL);
 	l_thread_periodic_create(&thread_gossip, &realizar_gossip_threaded, &get_tiempo_gossiping, NULL);
+	l_thread_periodic_create(&thread_journal, &realizar_journal_threaded, &get_tiempo_journal, NULL);
 
 	pthread_mutex_lock(&memoria_main_mutex);
 	pthread_cond_wait(&memoria_main_cond, &memoria_main_mutex);
@@ -111,8 +112,10 @@ int main() {
 
 	l_thread_solicitar_finalizacion(&l_thread);
 	l_thread_solicitar_finalizacion(&thread_gossip.l_thread);
+	l_thread_solicitar_finalizacion(&thread_journal.l_thread);
 	l_thread_join(&l_thread, NULL);
 	l_thread_join(&thread_gossip.l_thread, NULL);
+	l_thread_join(&thread_journal.l_thread, NULL);
 
 	liberar_recursos_memoria();
 	return 0;

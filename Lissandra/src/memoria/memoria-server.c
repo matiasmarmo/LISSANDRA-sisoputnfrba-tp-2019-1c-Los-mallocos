@@ -51,30 +51,48 @@ void destruir_cliente(cliente_t *cliente) {
 
 void destruir_clientes() {
 	void _destruir_elemento(void *elemento) {
-			destruir_cliente((cliente_t*) elemento);
-		}
+		destruir_cliente((cliente_t*) elemento);
+	}
 
 	list_destroy_and_destroy_elements(lista_clientes, &_destruir_elemento);
 }
 
 int ejecutar_request(void *request, void *respuesta) {
-	switch(get_msg_id(request)){
-		case SELECT_REQUEST_ID:
-			return _manejar_select(*((struct select_request *) request), respuesta);
-		case INSERT_REQUEST_ID:
-			return _manejar_insert(*((struct insert_request *) request), respuesta);
-		case CREATE_REQUEST_ID:
-			return _manejar_create(*((struct create_request *) request), respuesta);
-		case DESCRIBE_REQUEST_ID:
-			return _manejar_describe(*((struct describe_request *) request), respuesta);
-		case GOSSIP_ID:
-			return _manejar_gossip(*((struct gossip *) request), respuesta);
-		default:
-			return -1;
+	int resultado = 0;
+	switch (get_msg_id(request)) {
+	case SELECT_REQUEST_ID:
+		bloquear_memoria();
+		resultado = _manejar_select(*((struct select_request *) request),
+				respuesta);
+		desbloquear_memoria();
+		return resultado;
+	case INSERT_REQUEST_ID:
+		bloquear_memoria();
+		resultado = _manejar_insert(*((struct insert_request *) request),
+				respuesta);
+		desbloquear_memoria();
+		return resultado;
+	case CREATE_REQUEST_ID:
+		return _manejar_create(*((struct create_request *) request), respuesta);
+	case DESCRIBE_REQUEST_ID:
+		return _manejar_describe(*((struct describe_request *) request),
+				respuesta);
+	case GOSSIP_ID:
+		return _manejar_gossip(*((struct gossip *) request), respuesta);
+	case DROP_REQUEST_ID:
+		return 0;
+	case JOURNAL_REQUEST_ID:
+		bloquear_memoria();
+		resultado = realizar_journal();
+		init_journal_response(resultado, respuesta);
+		desbloquear_memoria();
+		return resultado;
+	default:
+		return -1;
 	}
 }
 
-void manejarCliente(int cliente, int* posicion){
+void manejarCliente(int cliente, int* posicion) {
 	int error;
 	int tamanio_buffers = get_max_msg_size();
 	uint8_t buffer[tamanio_buffers], respuesta[tamanio_buffers];
@@ -91,7 +109,7 @@ void manejarCliente(int cliente, int* posicion){
 		return;
 	}
 
-	if(ejecutar_request(buffer, respuesta) < 0) {
+	if (ejecutar_request(buffer, respuesta) < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo al ejecutar request");
 		destroy(buffer);
@@ -132,7 +150,7 @@ void manejar_consola_memoria(char* linea, void* request) {
 	int tamanio_buffers = get_max_msg_size();
 	uint8_t respuesta[tamanio_buffers];
 	memset(respuesta, 0, tamanio_buffers);
-	if(ejecutar_request(request, respuesta) < 0) {
+	if (ejecutar_request(request, respuesta) < 0) {
 		imprimir("Error al procesar el request\n");
 		return;
 	}
@@ -147,7 +165,8 @@ void* correr_servidor_memoria(void* entrada) {
 	sprintf(puerto, "%d", get_puerto_escucha_mem());
 	int servidor = create_socket_server(puerto, 10);
 	if (servidor < 0) {
-		memoria_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al crear el servidor");
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Fallo al crear el servidor");
 		pthread_exit(NULL);
 	}
 
@@ -168,7 +187,8 @@ void* correr_servidor_memoria(void* entrada) {
 
 	while (!l_thread_debe_finalizar(l_thread)) {
 		copia = descriptores;
-		select_ret = pselect(mayor_file_descriptor + 1, &copia, NULL, NULL, &ts, NULL);
+		select_ret = pselect(mayor_file_descriptor + 1, &copia, NULL, NULL, &ts,
+				NULL);
 		if (select_ret == -1) {
 			memoria_log_to_level(LOG_LEVEL_TRACE, false,
 					"Fallo en la ejecucion del select del servidor");
@@ -176,14 +196,14 @@ void* correr_servidor_memoria(void* entrada) {
 		} else if (select_ret > 0) {
 			if (FD_ISSET(servidor, &copia)) {
 				int client_socket = aceptar_cliente(servidor);
-				if(client_socket > 0) {
-					if(client_socket > mayor_file_descriptor) {
+				if (client_socket > 0) {
+					if (client_socket > mayor_file_descriptor) {
 						mayor_file_descriptor = client_socket;
 					}
 					cliente_t *nuevo_cliente = malloc(sizeof(cliente_t));
-					if(nuevo_cliente == NULL) {
+					if (nuevo_cliente == NULL) {
 						memoria_log_to_level(LOG_LEVEL_ERROR, false,
-							"Error pedir nuevo cliente. Erro de malloc");
+								"Error pedir nuevo cliente. Erro de malloc");
 						close(client_socket);
 					} else {
 						nuevo_cliente->cliente_valor = client_socket;
@@ -195,10 +215,11 @@ void* correr_servidor_memoria(void* entrada) {
 			if (FD_ISSET(STDIN_FILENO, &copia)) {
 				leer_siguiente_caracter();
 			}
-			for(i=0; i < list_size(lista_clientes) ; i++) {
+			for (i = 0; i < list_size(lista_clientes); i++) {
 				cliente_t *cliente = list_get(lista_clientes, i);
 
-				if(cliente->cliente_valor != -1 && FD_ISSET(cliente->cliente_valor, &copia)) {
+				if (cliente->cliente_valor
+						!= -1&& FD_ISSET(cliente->cliente_valor, &copia)) {
 					manejarCliente(cliente->cliente_valor, &i);
 				}
 			}

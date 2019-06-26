@@ -23,6 +23,8 @@ typedef struct pagina_t{
 
 t_list* TABLA_DE_SEGMENTOS;
 uint8_t* get_memoria();
+void bloquear_memoria();
+void desbloquear_memoria();
 int inicializacion_memoria();
 void destruccion_memoria();
 //-----------------------------------
@@ -38,7 +40,10 @@ int encontrar_pagina_vacia();
 void crear_registro_nuevo_en_tabla_de_paginas(int, segmento*, int,struct timeval);
 void crear_pagina_nueva(int, uint16_t, uint64_t, char*);
 registro_tabla_pagina* encontrar_pagina_en_memoria(segmento*, uint16_t);
-int obtener_pagina_para_journal(segmento*, registro_tabla_pagina*,void*);
+int obtener_pagina_para_journal(segmento*, registro_tabla_pagina*);
 void setear_pagina_a_cero(registro_tabla_pagina*);
 void destruir_registro_de_pagina(uint16_t, segmento*);
+int realizar_journal();
+void *realizar_journal_threaded(void *);
+
 #endif /* MEMORIA_MEMORIA_HANDLER_H_ */
