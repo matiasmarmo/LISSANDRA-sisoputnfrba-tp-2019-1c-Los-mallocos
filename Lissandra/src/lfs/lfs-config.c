@@ -1,5 +1,7 @@
+#include <string.h>
 #include <pthread.h>
 #include <commons/config.h>
+#include <commons/string.h>
 
 #include "lfs-config.h"
 #include "../commons/lissandra-config.h"
@@ -18,12 +20,36 @@
 t_config* configuracion_lfs;
 pthread_rwlock_t lfs_config_lock = PTHREAD_RWLOCK_INITIALIZER;
 
+char *get_punto_montaje();
+
+void normalizar_punto_montaje() {
+    
+    // Si el punto de montaje no termina con '/', la agregamos
+
+    char punto_montaje[256] = { 0 };
+    strcpy(punto_montaje, get_punto_montaje());
+    if(!string_ends_with(punto_montaje, "/")) {
+        strcat(punto_montaje, "/");
+    }
+    pthread_rwlock_wrlock(&lfs_config_lock);
+    config_set_value(configuracion_lfs, PUNTO_MONTAJE, punto_montaje);
+    pthread_rwlock_unlock(&lfs_config_lock);
+}
+
 int inicializar_lfs_config() {
-	return inicializar_configuracion(&configuracion_lfs, CONFIG_PATH, &lfs_config_lock);
+	int res = inicializar_configuracion(&configuracion_lfs, CONFIG_PATH, &lfs_config_lock);
+    if(res == 0) {
+        normalizar_punto_montaje();
+    }
+    return res;
 }
 
 int actualizar_lfs_config() {
-	return actualizar_configuracion(&configuracion_lfs, CONFIG_PATH, &lfs_config_lock);
+	int res = actualizar_configuracion(&configuracion_lfs, CONFIG_PATH, &lfs_config_lock);
+    if(res == 0) {
+        normalizar_punto_montaje();
+    }
+    return res;
 }
 
 int inicializar_lfs_inotify(lissandra_thread_t* l_thread){
