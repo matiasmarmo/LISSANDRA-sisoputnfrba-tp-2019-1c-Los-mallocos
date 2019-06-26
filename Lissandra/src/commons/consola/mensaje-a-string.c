@@ -295,6 +295,17 @@ int metrics_response_to_string(void* mensaje, char* buffer, int tamanio_maximo) 
 	return 0;
 }
 
+int error_msg_a_string(void *mensaje, char *buffer, int tamanio_maximo) {
+	struct error_msg *response = (struct error_msg*) mensaje;
+	char temporal[TAMANIO_MAX_STRING] = { 0 };
+	sprintf(temporal, "ERROR: %s\n", response->description);
+	if (tamanio_maximo < strlen(temporal) + 1) {
+		return -1;
+	}
+	strcpy(buffer, temporal);
+	return 0;
+}
+
 void cargar_convertidor(uint8_t id, convertidor_t convertidor) {
 	char id_string[4];
 	obtener_key_string(id, id_string);
@@ -314,6 +325,7 @@ void llenar_diccionario() {
 	cargar_convertidor(ADD_RESPONSE_ID, &add_response_to_string);
 	cargar_convertidor(RUN_RESPONSE_ID, &run_response_to_string);
 	cargar_convertidor(METRICS_RESPONSE_ID, &metrics_response_to_string);
+	cargar_convertidor(ERROR_MSG_ID, &error_msg_a_string);
 }
 
 void iniciar_diccionario() {
