@@ -260,8 +260,9 @@ int manejar_select(void* select_request, void* select_response) {
 
 	if (resultado.value == NULL) {
 		lfs_log_to_level(LOG_LEVEL_WARNING, false, "No existe el registro");
-		select_rp->id = SELECT_RESPONSE_ID;
-		select_rp->fallo = 1;
+		if(init_select_response(1, select_rq->tabla, select_rq->key, "", 0, select_rp) < 0) {
+			return -1;
+		}
 		return 0;
 	}
 
