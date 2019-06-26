@@ -40,7 +40,7 @@ void *manejar_cliente(void* entrada) {
 					"Fallo en la ejecucion del select del cliente");
 			break;
 		} else if (select_ret > 0) {
-			if ((error = recv_msg(cliente, buffer, tamanio_buffers) < 0)) {
+			if ((error = recv_msg(cliente, buffer, tamanio_buffers)) < 0) {
 				lfs_log_to_level(LOG_LEVEL_TRACE, false,
 						"Fallo al recibir el mensaje del cliente %d, %d, %d", error, SOCKET_ERROR, CONN_CLOSED);
 				if (error == SOCKET_ERROR || error == CONN_CLOSED) {
@@ -55,7 +55,7 @@ void *manejar_cliente(void* entrada) {
 			}
 
 			destroy(buffer);
-			if ((error = send_msg(cliente, respuesta) < 0)) {
+			if ((error = send_msg(cliente, respuesta)) < 0) {
 				destroy(respuesta);
 				lfs_log_to_level(LOG_LEVEL_TRACE, false,
 						"Fallo al enviar el mensaje al cliente");
