@@ -67,25 +67,40 @@ int _manejar_select_segmento_no_encontrado(struct select_request mensaje, void* 
 	struct select_response respuesta;
 	struct timeval timestamp_accedido;
 	gettimeofday(&timestamp_accedido,NULL);
+	memoria_log_to_level(LOG_LEVEL_TRACE, false,
+			"La tabla \"%s\" no esta en memoria, se le pide al FS",mensaje.tabla);
 	lugar_pagina_vacia = encontrar_pagina_vacia();
 	if (lugar_pagina_vacia == -1) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+					"No hay espacio en memoria para una nueva pagina, se intentara hacer LRU");
 		// INTENTAR HACER LRU
 		// SI NO PUEDO, HACER JOURNAL
 	}
-	// PEDIRSELO AL FS
-	crear_segmento_nuevo("TABLA_4");
-	segmento* segmento_actual = encontrar_segmento_en_memoria("TABLA_4");
-	crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
-			segmento_actual, flag_modificado,timestamp_accedido);
-	crear_pagina_nueva(lugar_pagina_vacia, 25, 123456, "martin");
-	int aux = init_select_response(0, "tablaPrueba", 25, "martin",
-			123456, &respuesta);
-	if (aux < 0) {
+	/*----PEDIDO AL FS----*/
+	if(enviar_mensaje_lfs(&mensaje, &respuesta) < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-				"Falló la respuesta del SELECT, error en init_select_response()");
+				"Fallo la comunicacion con file system para pedirle una pagina");
 		return ERROR;
 	}
-	memcpy(respuesta_select, &respuesta,sizeof(struct select_response));
+	//if(get_msg_id(&respuesta) != ERROR_MSG_ID){printf("Mensaje OK\n");}
+	if(respuesta.fallo == 0){
+		crear_segmento_nuevo(respuesta.tabla);
+		segmento* segmento_actual = encontrar_segmento_en_memoria(respuesta.tabla);
+		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
+				segmento_actual, flag_modificado,timestamp_accedido);
+		crear_pagina_nueva(lugar_pagina_vacia, respuesta.key, respuesta.timestamp, respuesta.valor);
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+					"Se agrego correctamente a memoria la tabla \"%s\", y la pagina que posee key = %d y valor = \"%s\".",mensaje.tabla,respuesta.key,respuesta.valor);
+		int aux = init_select_response(0, segmento_buscado->tabla, respuesta.key, respuesta.valor,
+				respuesta.timestamp, &respuesta);
+		if (aux < 0) {
+			memoria_log_to_level(LOG_LEVEL_TRACE, false,
+					"Falló la respuesta del SELECT, error en init_select_response()");
+			return ERROR;
+		}
+	}
+	memcpy(respuesta_select, &respuesta,
+			sizeof(struct select_response));
 	return 0;
 }
 
@@ -95,6 +110,8 @@ int _manejar_select_pagina_en_memoria(struct select_request mensaje, void* respu
 	gettimeofday(&timestamp_accedido,NULL);
 	reg_pagina->timestamp_accedido.tv_sec = timestamp_accedido.tv_sec;
 	reg_pagina->timestamp_accedido.tv_usec = timestamp_accedido.tv_usec;
+	memoria_log_to_level(LOG_LEVEL_TRACE, false,
+			"Se solicitó la key = %d de la tabla \"%s\" que se encontraba en memoria.",respuesta.key,mensaje.tabla);
 	int aux = init_select_response(0, segmento_buscado->tabla,
 			*((uint16_t*) (reg_pagina->puntero_a_pagina)),
 			(char*) (reg_pagina->puntero_a_pagina + 10),
@@ -120,21 +137,24 @@ int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* re
 			mensaje.key, segmento_buscado->tabla);
 	lugar_pagina_vacia = encontrar_pagina_vacia();
 	if (lugar_pagina_vacia == -1) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+							"No hay espacio en memoria para una nueva pagina, se intentara hacer LRU");
 		// INTENTAR HACER LRU
 		// SI NO PUEDO, HACER JOURNAL
 	}
-	// pido al fs
+	/*----PEDIDO AL FS----*/
 	if(enviar_mensaje_lfs(&mensaje, &respuesta) < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-				"Fallo la comunicacion con file system para pedirle una pagina");
+				"Fallo la comunicacion con FS para pedirle una pagina");
 		return ERROR;
 	}
-	printf("-------supuestamente se envio mensaje al lfs-----\n");
-	// if(get_msg_id(respuesta) != ERROR_MSG_ID)
+	//if(get_msg_id(&respuesta) != ERROR_MSG_ID){printf("Mensaje OK\n");}
 	if(respuesta.fallo == 0){
 		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
 				segmento_buscado, flag_modificado,timestamp_accedido);
 		crear_pagina_nueva(lugar_pagina_vacia, respuesta.key, respuesta.timestamp, respuesta.valor);
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Se agrego correctamente a la tabla \"%s\" --> la pagina que posee key = %d y valor = \"%s\".",mensaje.tabla,respuesta.key,respuesta.valor);
 		int aux = init_select_response(0, segmento_buscado->tabla, respuesta.key, respuesta.valor,
 				respuesta.timestamp, &respuesta);
 		if (aux < 0) {
