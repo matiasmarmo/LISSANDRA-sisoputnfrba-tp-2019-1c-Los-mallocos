@@ -188,7 +188,7 @@ void* correr_servidor_memoria(void* entrada) {
 	while (!l_thread_debe_finalizar(l_thread)) {
 		copia = descriptores;
 		select_ret = pselect(mayor_file_descriptor + 1, &copia, NULL, NULL, &ts,
-				NULL);
+		NULL);
 		if (select_ret == -1) {
 			memoria_log_to_level(LOG_LEVEL_TRACE, false,
 					"Fallo en la ejecucion del select del servidor");

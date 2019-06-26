@@ -215,77 +215,13 @@ int _manejar_insert(struct insert_request mensaje, void* respuesta_insert) {
 			mensaje.timestamp, respuesta_insert);
 	return EXIT_SUCCESS;
 }
-/*----PARA CHECKPOINT----*/
+
 int _manejar_create(struct create_request mensaje, void* respuesta_create) {
-	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
-	if (segmento_buscado == NULL) { // No existe el segmento en memoria
-		crear_segmento_nuevo(mensaje.tabla);
-		memoria_log_to_level(LOG_LEVEL_INFO, false,
-				"Creo un nuevo segmento para la tabla %s", mensaje.tabla);
-		struct create_response respuesta;
-		int aux = init_create_response(0, mensaje.tabla, mensaje.consistencia,
-				mensaje.n_particiones, mensaje.t_compactaciones, &respuesta);
-		if (aux < 0) {
-			memoria_log_to_level(LOG_LEVEL_TRACE, false,
-					"Falló la respuesta del CREATE, error en init_create_response()");
-			return ERROR;
-		}
-		memcpy(respuesta_create, &respuesta, sizeof(struct create_response));
-	} else {
-		return ERROR;
-	}
-	return EXIT_SUCCESS;
-}
-
-int _manejar_single_describe(struct describe_request mensaje,
-		void* respuesta_describe) {
-	struct single_describe_response respuesta;
-	if (strcmp(mensaje.tabla, "MARINOS") == 0) {
-		init_single_describe_response(0, "MARINOS", 0, 1, 10000, &respuesta);
-	} else if (strcmp(mensaje.tabla, "AVES") == 0) {
-		init_single_describe_response(0, "AVES", 0, 5, 50000, &respuesta);
-	} else if (strcmp(mensaje.tabla, "MAMIFEROS") == 0) {
-		init_single_describe_response(0, "MAMIFEROS", 0, 3, 60000, &respuesta);
-	} else if (strcmp(mensaje.tabla, "POSTRES") == 0) {
-		init_single_describe_response(0, "POSTRES", 0, 3, 60000, &respuesta);
-	} else if (strcmp(mensaje.tabla, "FRUTAS") == 0) {
-		init_single_describe_response(0, "FRUTAS", 0, 2, 50000, &respuesta);
-	} else if (strcmp(mensaje.tabla, "BEBIDAS") == 0) {
-		init_single_describe_response(0, "BEBIDAS", 0, 6, 10000, &respuesta);
-	} else if (strcmp(mensaje.tabla, "COSAS") == 0) {
-		init_single_describe_response(0, "COSAS", 0, 9, 35000, &respuesta);
-	} else if (strcmp(mensaje.tabla, "ANIMALES") == 0) {
-		init_single_describe_response(0, "ANIMALES", 0, 5, 65000, &respuesta);
-	} else if (strcmp(mensaje.tabla, "COLORES") == 0) {
-		init_single_describe_response(0, "COLORES", 0, 2, 35000, &respuesta);
-	} else if (strcmp(mensaje.tabla, "PLATOS_PRINCIPALES") == 0) {
-		init_single_describe_response(0, "PLATOS_PRINCIPALES", 0, 2, 10000,
-				&respuesta);
-	} else {
-		return ERROR;
-	}
-	memcpy(respuesta_describe, &respuesta,
-			sizeof(struct single_describe_response));
-	return EXIT_SUCCESS;
-}
-
-int _manejar_global_describe(struct describe_request mensaje, void *respuesta) {
-	char *nombres_tablas =
-			"MARINOS;AVES;MAMIFEROS;POSTRES;FRUTAS;BEBIDAS;COSAS;ANIMALES;COLORES;PLATOS_PRINCIPALES";
-	uint8_t consistencias[10] = { 0 };
-	uint8_t n_particiones[10] = { 1, 5, 3, 3, 2, 6, 9, 5, 2, 2 };
-	uint32_t t_compactaciones[10] = { 10000, 50000, 60000, 60000, 50000, 10000,
-			35000, 65000, 35000, 10000 };
-	init_global_describe_response(0, nombres_tablas, 10, consistencias, 10,
-			n_particiones, 10, t_compactaciones, respuesta);
-	return 0;
+	return enviar_mensaje_lfs(&mensaje, respuesta_create);
 }
 
 int _manejar_describe(struct describe_request mensaje, void *respuesta) {
-	if (mensaje.todas) {
-		return _manejar_global_describe(mensaje, respuesta);
-	}
-	return _manejar_single_describe(mensaje, respuesta);
+	return enviar_mensaje_lfs(&mensaje, respuesta);
 }
 
 int _manejar_gossip(struct gossip mensaje, void *respuesta) {
