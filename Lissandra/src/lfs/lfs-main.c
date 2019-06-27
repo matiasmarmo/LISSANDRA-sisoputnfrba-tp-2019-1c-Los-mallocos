@@ -94,6 +94,7 @@ void finalizar_thread_si_se_creo(lissandra_thread_t *l_thread, int create_ret) {
 int main() {
 	int rets[3];
 	inicializar_lfs();
+	lfs_log_to_level(LOG_LEVEL_INFO, false, "LFS Inicializado.");
 	lissandra_thread_t servidor, inotify;
 	lissandra_thread_periodic_t dumper;
 
@@ -123,7 +124,7 @@ int main() {
 	finalizar_hilos_compactadores();
 	dumpear(NULL);
 	compactar_todas_las_tablas();
-	lfs_log_to_level(LOG_LEVEL_INFO, false, "Finalizando.");
+	lfs_log_to_level(LOG_LEVEL_INFO, false, "Finalizando LFS.");
 	liberar_recursos_lfs();
 	return 0;
 

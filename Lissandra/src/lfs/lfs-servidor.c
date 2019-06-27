@@ -108,7 +108,7 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 
 	if (l_thread_create(nuevo_hilo, &manejar_cliente, nuevo_cliente) < 0) {
 		lfs_log_to_level(LOG_LEVEL_TRACE, false,
-				"Fallo al crear el hilo del Cliente: %d", cliente);
+				"Fallo al crear el hilo del cliente");
 		free(nuevo_cliente);
 		free(nuevo_hilo);
 		send_error_msg(INTERNAL_SERVER_ERROR,
@@ -130,6 +130,7 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 }
 
 bool termino_cliente(void *elemento) {
+	lfs_log_to_level(LOG_LEVEL_INFO, false, "Un cliente se ha desconectado del LFS.");
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) elemento;
 	return (bool) l_thread_finalizo(l_thread);
 }
@@ -148,6 +149,7 @@ void manejar_consola(char* linea, void* request) {
 		finalizar_lfs();
 		return;
 	}
+	lfs_log_to_level(LOG_LEVEL_INFO, false, "Se ha realizado un request por la consola del LFS.");
 
 	res = manejar_request(request, respuesta);
 	if(res != -1){
@@ -158,7 +160,7 @@ void manejar_consola(char* linea, void* request) {
 	destroy(request);
 }
 
-void* correr_servidor(void* entrada) {
+void correr_servidor(void* entrada) {
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) entrada;
 	// Usamos 6 caracteres porque el puerto llega hasta 65535 (o algo asi)
 	// 5 caracters + el \0
@@ -193,6 +195,7 @@ void* correr_servidor(void* entrada) {
 			break;
 		} else if (select_ret > 0) {
 			if (FD_ISSET(servidor, &copia)) {
+				lfs_log_to_level(LOG_LEVEL_INFO, false, "Se ha conectado un nuevo cliente.");
 				crear_hilo_cliente(hilos_clientes, servidor);
 			}
 			if (FD_ISSET(STDIN_FILENO, &copia)) {
