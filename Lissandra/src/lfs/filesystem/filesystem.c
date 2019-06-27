@@ -57,15 +57,19 @@ int inicializar_tablas_ya_existentes() {
 		if (string_starts_with(directorio_datos->d_name, ".")) {
 			continue;
 		}
-		if(obtener_metadata_tabla(directorio_datos->d_name, &metadata) < 0) {
+		if (obtener_metadata_tabla(directorio_datos->d_name, &metadata) < 0) {
+			lfs_log_to_level(LOG_LEVEL_TRACE, false,
+					"NO se pudo obtener la metadata de la tabla %s",
+					directorio_datos->d_name);
 			hubo_error = 1;
 			break;
 		}
-		if(crear_semaforo_tabla(directorio_datos->d_name) < 0) {
+		if (crear_semaforo_tabla(directorio_datos->d_name) < 0) {
 			hubo_error = 1;
 			break;
 		}
-		if(instanciar_hilo_compactador(directorio_datos->d_name, metadata.t_compactaciones) < 0) {
+		if (instanciar_hilo_compactador(directorio_datos->d_name,
+				metadata.t_compactaciones) < 0) {
 			// No hace falta destruir el semaforo porque el lfs
 			// va a finalizar si falla esta función
 			hubo_error = 1;
@@ -78,13 +82,14 @@ int inicializar_tablas_ya_existentes() {
 	return hubo_error ? -1 : 0;
 }
 
-int inicializar_filesystem(){
+int inicializar_filesystem() {
 	char path[256];
 	char* punto_montaje = get_punto_montaje();
-	sprintf(path,"%s/Metadata/Metadata.bin", punto_montaje);
+	sprintf(path, "%s/Metadata/Metadata.bin", punto_montaje);
 	t_config *metadata = config_create(path);
-	if (metadata == NULL){
-		lfs_log_to_level(LOG_LEVEL_ERROR, false, "No se pudo abrir el archivo metadata");
+	if (metadata == NULL) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false,
+				"No se pudo abrir el archivo metadata");
 		return -1;
 	}
 
@@ -94,30 +99,34 @@ int inicializar_filesystem(){
 
 	int _crear_directorio_en_punto_montaje(char *nombre) {
 		sprintf(path, "%s/%s", punto_montaje, nombre);
-		if(mkdir(path, S_IRUSR | S_IWUSR | S_IXUSR 
-			| S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) == -1) {
+		if (mkdir(path,
+		S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
+				== -1) {
 			return errno != EEXIST ? -1 : 0;
 		}
 		return 0;
 	}
 
 	if (_crear_directorio_en_punto_montaje("Tables") < 0) {
-		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear el directorio Tables en el punto de montaje");
+		lfs_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al crear el directorio Tables en el punto de montaje");
 		return -1;
 	}
 
 	if (_crear_directorio_en_punto_montaje("Bloques") < 0) {
-		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear el directorio Bloques en el punto de montaje");
+		lfs_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al crear el directorio Bloques en el punto de montaje");
 		return -1;
 	}
 
-	if(crear_bitmap(cantidad_bloques) < 0){
+	if (crear_bitmap(cantidad_bloques) < 0) {
 		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear el bitmap");
 		return -1;
 	}
 
-	if(inicializar_tablas_ya_existentes() < 0) {
-		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al inicializar estructuras de tablas ya existentes");
+	if (inicializar_tablas_ya_existentes() < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al inicializar estructuras de tablas ya existentes");
 		return -1;
 	}
 
@@ -149,7 +158,7 @@ void obtener_path_particion(int numero, char* nombre_tabla, char* path) {
 	strcpy(path, temporal);
 }
 
-void obtener_path_temporal(int numero, char* nombre_tabla, char* path){
+void obtener_path_temporal(int numero, char* nombre_tabla, char* path) {
 	char temporal[TAMANIO_PATH];
 	char path_tabla[TAMANIO_PATH];
 	char numero_string[10];
@@ -167,8 +176,4 @@ void obtener_path_temporal(int numero, char* nombre_tabla, char* path){
 void campo_entero_a_string(int entero, char* string) {
 	sprintf(string, "%d", entero);
 }
-
-
-
-
 
