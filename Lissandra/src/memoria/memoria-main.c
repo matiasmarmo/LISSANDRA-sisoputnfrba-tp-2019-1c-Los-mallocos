@@ -29,17 +29,13 @@ void set_tamanio_value(int tamanio) {
 }
 
 void inicializar_memoria(){
-	if(inicializar_memoria_config() < 0) {
-		memoria_log_to_level(LOG_LEVEL_ERROR, false,
-			"Error al inicializar archivo de configuración de la memoria. Abortando.");
+	if(inicializar_memoria_logger() < 0) {
 		destruir_memoria_config();
 		exit(EXIT_FAILURE);
 	}
-	if(inicializar_memoria_logger() < 0) {
+	if(inicializar_memoria_config() < 0) {
 		memoria_log_to_level(LOG_LEVEL_ERROR, false,
-			"Error al inicializar memoria logger. Abortando.");
-		destruir_memoria_config();
-		destruir_memoria_logger();
+			"Error al inicializar archivo de configuración de la memoria. Abortando.");
 		exit(EXIT_FAILURE);
 	}
 	if(inicializacion_memoria() < 0) {
@@ -47,7 +43,6 @@ void inicializar_memoria(){
 			"Error al inicializar memoria en calloc. Abortando.");
 		destruir_memoria_config();
 		destruir_memoria_logger();
-		destruccion_memoria();
 		exit(EXIT_FAILURE);
 	}
 
@@ -60,7 +55,6 @@ void inicializar_memoria(){
 		destruir_memoria_logger();
 		destruccion_memoria();
 		destruccion_tabla_segmentos();
-		destruccion_tabla_gossip();
 		exit(EXIT_FAILURE);
 	}
 	if(conectar_lfs() < 0) {
@@ -71,7 +65,6 @@ void inicializar_memoria(){
 		destruccion_memoria();
 		destruccion_tabla_gossip();
 		destruccion_tabla_segmentos();
-		desconectar_lfs();
 		exit(EXIT_FAILURE);
 	}
 }

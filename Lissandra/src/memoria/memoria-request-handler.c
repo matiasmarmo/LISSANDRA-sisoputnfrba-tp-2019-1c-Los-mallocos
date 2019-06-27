@@ -29,14 +29,14 @@ int _manejar_select_segmento_no_encontrado(struct select_request, void*,segmento
 int _manejar_select_pagina_en_memoria(struct select_request, void*,segmento*,registro_tabla_pagina*);
 int _manejar_select_pagina_no_en_memoria(struct select_request, void*,segmento*);
 
-/*
+
 int _manejar_insert(struct insert_request mensaje, void* respuesta_insert);
 int _manejar_insert_no_existe_segmento_en_tabla(struct insert_request mensaje, void* respuesta_insert);
 int _manejar_insert_crear_segmento_nuevo(struct insert_request mensaje, void* respuesta_insert, int lugar_pagina_vacia);
 int _manejar_insert_existe_segmento_en_tabla(struct insert_request mensaje, void* respuesta_insert,segmento* segmento_buscado);
 int _insert_pagina_en_memoria(struct insert_request mensaje, void* respuesta_insert,segmento* segmento_buscado, registro_tabla_pagina* reg_pagina);
 int _insert_pagina_no_en_memoria(struct insert_request mensaje, void* respuesta_insert,segmento* segmento_buscado);
-*/
+
 
 int _manejar_select(struct select_request mensaje, void* respuesta_select) {
 	string_to_upper(mensaje.tabla);
@@ -201,73 +201,9 @@ int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* re
 //------------------------------------------------------------
 //------------------------------------------------------------
 
-int _manejar_insert(struct insert_request mensaje, void* respuesta_insert) {
-	int lugar_pagina_vacia;
-	int flag_modificado = 0;
-	struct timeval timestamp_accedido;
-	gettimeofday(&timestamp_accedido,NULL);
-	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
-	if (segmento_buscado == NULL) { // No existe el segmento en memoria
-		//printf("   El segmento no esta en memoria\n");
-		lugar_pagina_vacia = encontrar_pagina_vacia();
-		if (lugar_pagina_vacia == -1) {
-			// HACER JOURNAL
-		} else {
-			crear_segmento_nuevo(mensaje.tabla);
-			segmento* segmento_actual = encontrar_segmento_en_memoria(
-					mensaje.tabla);
-			crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
-					segmento_actual, flag_modificado,timestamp_accedido);
-			memoria_log_to_level(LOG_LEVEL_INFO, false,
-											"Tiemstamp insert= %d + %d ", timestamp_accedido.tv_sec, timestamp_accedido.tv_usec);
-			crear_pagina_nueva(lugar_pagina_vacia, mensaje.key,
-					mensaje.timestamp, mensaje.valor);
-			// DEVUELVO LA STRUCT QUE ME PASARON
-			// FIN
-		}
-	} else { // El segmento esta en memoria
-		registro_tabla_pagina* reg_pagina = encontrar_pagina_en_memoria(
-				segmento_buscado, mensaje.key);
-		if (reg_pagina == NULL) { // No existe la pagina en memoria
-			memoria_log_to_level(LOG_LEVEL_INFO, false,
-					"La key %d de la tabla %s no se encuentra en memoria, creo una pagina nueva",
-					mensaje.key, segmento_buscado->tabla);
-			lugar_pagina_vacia = encontrar_pagina_vacia();
-			if (lugar_pagina_vacia == -1) {
-				memoria_log_to_level(LOG_LEVEL_INFO, false,
-						"La memoria esta FULL, hago un JOURNAL");
-				// HACER JOURNAL
-			} else {
-				//le pido al fs
-				crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
-						segmento_buscado, flag_modificado,timestamp_accedido);
-				memoria_log_to_level(LOG_LEVEL_INFO, false,
-											"Tiemstamp insert= %d + %d ", timestamp_accedido.tv_sec, timestamp_accedido.tv_usec);
-				crear_pagina_nueva(lugar_pagina_vacia, mensaje.key,
-						mensaje.timestamp, mensaje.valor);
-				// DEVUELVO LA STRUCT QUE ME PASARON
-				// FIN
-			}
-		} else { // La pagina esta en memoria
-			memoria_log_to_level(LOG_LEVEL_INFO, false,
-					"La key %d de la tabla %s se encuentra en memoria, la actualizo",
-					mensaje.key, segmento_buscado->tabla);
-			*((uint16_t*) (reg_pagina->puntero_a_pagina)) = mensaje.key;
-			*((uint64_t*) (reg_pagina->puntero_a_pagina + 2)) =
-					mensaje.timestamp;
-			memset(reg_pagina->puntero_a_pagina + 10, 0,
-					get_tamanio_maximo_pagina());
-			memcpy((char*) (reg_pagina->puntero_a_pagina + 10), mensaje.valor,
-					strlen(mensaje.valor));
-		}
-	}
-	init_insert_response(0, mensaje.tabla, mensaje.key, mensaje.valor,
-			mensaje.timestamp, respuesta_insert);
-	return EXIT_SUCCESS;
-}
 
 ////////////////////////////////////////////////////////////
-/*
+
 int _manejar_insert(struct insert_request mensaje, void* respuesta_insert) {
 
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
@@ -311,11 +247,12 @@ int _manejar_insert_crear_segmento_nuevo(struct insert_request mensaje, void* re
 									"Tiemstamp insert= %d + %d ", timestamp_accedido.tv_sec, timestamp_accedido.tv_usec);
 	crear_pagina_nueva(lugar_pagina_vacia, mensaje.key,
 		mensaje.timestamp, mensaje.valor);
+	if(init_insert_response(0, mensaje.tabla, mensaje.key, mensaje.valor, mensaje.timestamp, respuesta_insert) < 0) {
+		return -1;
+	}
 
 	return 0;
 
-	memcpy(respuesta_insert, &respuesta_insert,
-			sizeof(struct insert_response));
 	// DEVUELVO LA STRUCT QUE ME PASARON
 	// FIN
 }
@@ -368,14 +305,15 @@ int _insert_pagina_no_en_memoria(struct insert_request mensaje, void* respuesta_
 		crear_pagina_nueva(lugar_pagina_vacia, mensaje.key,
 				mensaje.timestamp, mensaje.valor);
 
-		memcpy(respuesta_insert, &respuesta_insert,
-				sizeof(struct insert_response));
+		if(init_insert_response(0, mensaje.tabla, mensaje.key, mensaje.valor, mensaje.timestamp, respuesta_insert) < 0) {
+			return -1;
+		}
 		// DEVUELVO LA STRUCT QUE ME PASARON
 		// FIN
 	}
 	return 0;
 }
-*/
+
 ////////////////////////////////////////////////////////////
 
 int _manejar_create(struct create_request mensaje, void* respuesta_create) {
