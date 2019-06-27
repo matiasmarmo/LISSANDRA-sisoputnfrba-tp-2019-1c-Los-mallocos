@@ -32,15 +32,15 @@ int crear_bitmap(int cantidad_bloques) {
 		return -1;
 	}
 
-	if(fseek(archivo_bitmap, 0, SEEK_END) < 0) {
+	if (fseek(archivo_bitmap, 0, SEEK_END) < 0) {
 		fclose(archivo_bitmap);
 		return -1;
 	}
-	if((res_ftell = ftell(archivo_bitmap)) < 0) {
+	if ((res_ftell = ftell(archivo_bitmap)) < 0) {
 		fclose(archivo_bitmap);
-		return -1;	
+		return -1;
 	}
-	if(res_ftell != 0) {
+	if (res_ftell != 0) {
 		// El bitmap ya estaba creado y tiene datos de una 
 		// ejecución anterior del lfs. Lo utilizamos a partir
 		// de su estado actual
@@ -50,7 +50,7 @@ int crear_bitmap(int cantidad_bloques) {
 
 	if (fwrite(datos_iniciales_bitmap, cantidad_bytes_bitmap, 1, archivo_bitmap)
 			!= 1) {
-		lfs_log_to_level(LOG_LEVEL_TRACE, false, "No se pudo leer");
+		lfs_log_to_level(LOG_LEVEL_TRACE, false, "No se pudo leer el bitmap");
 		fclose(archivo_bitmap);
 		return -1;
 	}
@@ -62,6 +62,7 @@ int crear_bitmap(int cantidad_bloques) {
 t_bitarray* leer_bitmap(FILE *archivo, char *buffer) {
 
 	if (fread(buffer, cantidad_bytes_bitmap, 1, archivo) != 1) {
+		lfs_log_to_level(LOG_LEVEL_TRACE, false, "No se pudo leer el bitmap");
 		fclose(archivo);
 		return NULL;
 	}
@@ -72,6 +73,8 @@ t_bitarray* leer_bitmap(FILE *archivo, char *buffer) {
 int guardar_bitmap_archivo(FILE* archivo, t_bitarray* bitmap) {
 	fseek(archivo, 0, SEEK_SET);
 	if (fwrite(bitmap->bitarray, cantidad_bytes_bitmap, 1, archivo) != 1) {
+		lfs_log_to_level(LOG_LEVEL_TRACE, false,
+				"No se pudo escribir el bitmap");
 		fclose(archivo);
 		bitarray_destroy(bitmap);
 		return -1;
@@ -84,12 +87,14 @@ int guardar_bitmap_archivo(FILE* archivo, t_bitarray* bitmap) {
 int pedir_bloque_bitmap() {
 	FILE* bitmap_f = abrir_archivo_para_lectoescritura(bitmap_path);
 	if (bitmap_f == NULL) {
+		lfs_log_to_level(LOG_LEVEL_TRACE, false, "No se pudo pedir bloque");
 		return -1;
 	}
 	char buffer[cantidad_bytes_bitmap];
 	t_bitarray* bitmap = leer_bitmap(bitmap_f, buffer);
 
 	if (bitmap == NULL) {
+		lfs_log_to_level(LOG_LEVEL_TRACE, false, "No se pudo leer bitmap");
 		fclose(bitmap_f);
 		return -1;
 	}
@@ -105,24 +110,28 @@ int pedir_bloque_bitmap() {
 	}
 
 	if (bloque_elegido == -1) {
-		// No hay bloques disponibles
+		lfs_log_to_level(LOG_LEVEL_TRACE, false, "No ha bloques disponibles");
 		fclose(bitmap_f);
 		bitarray_destroy(bitmap);
 		return -1;
 	}
 
 	if (guardar_bitmap_archivo(bitmap_f, bitmap) < 0) {
+		lfs_log_to_level(LOG_LEVEL_TRACE, false,
+				"No se pudo guardar en el bitmap");
 		return -1;
 	}
 	return bloque_elegido;
 }
 
 int liberar_bloque_bitmap(int indice) {
-	if(_cantidad_bloques < indice){
+	if (_cantidad_bloques < indice) {
 		return -1;
 	}
 	FILE* bitmap_f = abrir_archivo_para_lectoescritura(bitmap_path);
 	if (bitmap_f == NULL) {
+		lfs_log_to_level(LOG_LEVEL_TRACE, false,
+				"No se pudo librerar bloque en bitmap");
 		return -1;
 	}
 	char buffer[cantidad_bytes_bitmap];
@@ -143,6 +152,8 @@ int liberar_bloque_bitmap(int indice) {
 	bitarray_clean_bit(bitmap, indice);
 
 	if (guardar_bitmap_archivo(bitmap_f, bitmap) < 0) {
+		lfs_log_to_level(LOG_LEVEL_TRACE, false,
+				"No se pudo guardar en el bitmap");
 		return -1;
 	}
 
