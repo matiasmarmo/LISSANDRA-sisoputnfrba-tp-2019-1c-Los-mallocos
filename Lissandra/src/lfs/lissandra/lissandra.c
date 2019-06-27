@@ -18,16 +18,19 @@ int manejar_create(void* create_request, void* create_response) {
 
 	memset(create_response, 0, CREATE_RESPONSE_SIZE);
 	string_to_upper(create_rq->tabla);
+
+	if (existe_tabla(create_rq->tabla) == 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla ya existe");
+		if (init_error_msg(0, "La tabla ya existe", create_response) < 0) {
+			return -1;
+		}
+		return 0;
+	}
+
 	if (init_create_response(0, create_rq->tabla, create_rq->consistencia,
 			create_rq->n_particiones, create_rq->t_compactaciones, create_rp)
 			< 0) {
-		create_rp->fallo = 1;
 		return -1;
-	}
-	if (existe_tabla(create_rq->tabla) == 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla ya existe");
-		create_rp->fallo = 1;
-		return 0;
 	}
 
 	metadata_t metadata;
@@ -54,8 +57,10 @@ int manejar_single_describe(void* single_describe_request,
 
 	if (existe_tabla(s_describe_rq->tabla) != 0) {
 		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla no existe");
-		init_single_describe_response(1, s_describe_rq->tabla, 0, 0, 0,
-				s_describe_rp);
+		if (init_error_msg(0, "La tabla no existe", single_describe_response)
+				< 0) {
+			return -1;
+		}
 		return 0;
 	}
 
@@ -148,13 +153,16 @@ int manejar_drop(void* drop_request, void* drop_response) {
 
 	memset(drop_response, 0, DROP_RESPONSE_SIZE);
 	string_to_upper(drop_rq->tabla);
-	if (init_drop_response(0, drop_rq->tabla, drop_rp) < 0) {
-		return -1;
-	}
 
 	if (existe_tabla(drop_rq->tabla) != 0) {
-		drop_rp->fallo = 1;
+		if (init_error_msg(0, "La tabla no existe", drop_response) < 0) {
+			return -1;
+		}
 		return 0;
+	}
+
+	if (init_drop_response(0, drop_rq->tabla, drop_rp) < 0) {
+		return -1;
 	}
 
 	int resultado = borrar_tabla(drop_rq->tabla);
@@ -173,14 +181,11 @@ int manejar_insert(void* insert_request, void* insert_response) {
 	memset(insert_response, 0, INSERT_RESPONSE_SIZE);
 	string_to_upper(insert_rq->tabla);
 
-	if (init_insert_response(0, insert_rq->tabla, insert_rq->key,
-			insert_rq->valor, insert_rq->timestamp, insert_rp) < 0) {
-		return -1;
-	}
-
 	if (existe_tabla(insert_rq->tabla) != 0) {
 		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla no existe");
-		insert_rp->fallo = 1;
+		if (init_error_msg(0, "La tabla no existe", insert_response) < 0) {
+			return -1;
+		}
 		return 0;
 	}
 
@@ -193,8 +198,12 @@ int manejar_insert(void* insert_request, void* insert_response) {
 	}
 
 	if (insertar_en_memtable(registro, insert_rq->tabla) < 0) {
-		insert_rp->fallo = 1;
-		return 0;
+		return -1;
+	}
+
+	if (init_insert_response(0, insert_rq->tabla, insert_rq->key,
+			insert_rq->valor, insert_rq->timestamp, insert_rp) < 0) {
+		return -1;
 	}
 
 	return 0;
@@ -210,14 +219,14 @@ int manejar_select(void* select_request, void* select_response) {
 
 	if (existe_tabla(select_rq->tabla) != 0) {
 		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla no existe");
-		init_select_response(1, select_rq->tabla, select_rq->key, "", 0,
-				select_rp);
+		if (init_error_msg(0, "La tabla no existe", select_response) < 0) {
+			return -1;
+		}
 		return 0;
 	}
 
 	metadata_t metadata_tabla;
 	if (obtener_metadata_tabla(select_rq->tabla, &metadata_tabla) < 0) {
-		destroy(select_rp);
 		return -1;
 	}
 
@@ -238,14 +247,12 @@ int manejar_select(void* select_request, void* select_response) {
 	}
 
 	if ((cantidad_temporales = cantidad_tmp_en_tabla(select_rq->tabla)) < 0) {
-		destroy(select_rp);
 		return -1;
 	}
 
 	int particion = select_rq->key % metadata_tabla.n_particiones;
 
 	if (iterar_particion(select_rq->tabla, particion, &_manejar_registro) < 0) {
-		destroy(select_rp);
 		return -1;
 	}
 
@@ -254,13 +261,12 @@ int manejar_select(void* select_request, void* select_response) {
 	}
 
 	if (iterar_entrada_memtable(select_rq->tabla, &_manejar_registro) < 0) {
-		destroy(select_rp);
 		return -1;
 	}
 
 	if (resultado.value == NULL) {
 		lfs_log_to_level(LOG_LEVEL_WARNING, false, "No existe el registro");
-		if(init_select_response(1, select_rq->tabla, select_rq->key, "", 0, select_rp) < 0) {
+		if (init_error_msg(0, "No existe el registro", select_response) < 0) {
 			return -1;
 		}
 		return 0;

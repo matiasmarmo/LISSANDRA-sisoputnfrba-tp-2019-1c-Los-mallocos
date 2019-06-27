@@ -51,6 +51,7 @@ void *manejar_cliente(void* entrada) {
 			}
 
 			if(manejar_request(buffer, respuesta) == -1){
+				destroy(buffer);
 				break;
 			}
 
