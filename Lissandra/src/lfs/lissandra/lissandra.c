@@ -20,7 +20,8 @@ int manejar_create(void* create_request, void* create_response) {
 	string_to_upper(create_rq->tabla);
 
 	if (existe_tabla(create_rq->tabla) == 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla ya existe");
+		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla %s ya existe",
+				create_rq->tabla);
 		if (init_error_msg(0, "La tabla ya existe", create_response) < 0) {
 			return -1;
 		}
@@ -57,8 +58,9 @@ int manejar_single_describe(void* single_describe_request,
 
 	if (existe_tabla(s_describe_rq->tabla) != 0) {
 		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla no existe");
-		if (init_error_msg(0, "La tabla no existe", single_describe_response)
-				< 0) {
+		char buf[100] = { 0 };
+		sprintf(buf, "La tabla %s no existe", s_describe_rq->tabla);
+		if (init_error_msg(0, buf, single_describe_response) < 0) {
 			return -1;
 		}
 		return 0;
@@ -155,7 +157,9 @@ int manejar_drop(void* drop_request, void* drop_response) {
 	string_to_upper(drop_rq->tabla);
 
 	if (existe_tabla(drop_rq->tabla) != 0) {
-		if (init_error_msg(0, "La tabla no existe", drop_response) < 0) {
+		char buf[100] = { 0 };
+		sprintf(buf, "La tabla %s no existe", drop_rq->tabla);
+		if (init_error_msg(0, buf, drop_response) < 0) {
 			return -1;
 		}
 		return 0;
@@ -182,8 +186,11 @@ int manejar_insert(void* insert_request, void* insert_response) {
 	string_to_upper(insert_rq->tabla);
 
 	if (existe_tabla(insert_rq->tabla) != 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla no existe");
-		if (init_error_msg(0, "La tabla no existe", insert_response) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla %s no existe",
+				insert_rq->tabla);
+		char buf[100] = { 0 };
+		sprintf(buf, "La tabla %s no existe", insert_rq->tabla);
+		if (init_error_msg(0, buf, insert_response) < 0) {
 			return -1;
 		}
 		return 0;
@@ -218,8 +225,11 @@ int manejar_select(void* select_request, void* select_response) {
 	string_to_upper(select_rq->tabla);
 
 	if (existe_tabla(select_rq->tabla) != 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla no existe");
-		if (init_error_msg(0, "La tabla no existe", select_response) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false, "La tabla %s no existe",
+				select_rq->tabla);
+		char buf[100] = { 0 };
+		sprintf(buf, "La tabla %s no existe", select_rq->tabla);
+		if (init_error_msg(0, buf, select_response) < 0) {
 			return -1;
 		}
 		return 0;
@@ -265,8 +275,11 @@ int manejar_select(void* select_request, void* select_response) {
 	}
 
 	if (resultado.value == NULL) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "No existe el registro");
-		if (init_error_msg(0, "No existe el registro", select_response) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false, "No existe el registro %d",
+				select_rq->key);
+		char buf[100] = { 0 };
+		sprintf(buf, "No existe el registro %d", select_rq->key);
+		if (init_error_msg(0, buf, select_response) < 0) {
 			return -1;
 		}
 		return 0;
