@@ -213,22 +213,27 @@ int crear_particiones(int n_particiones, char* nombre_tabla) {
 int crear_tabla(char* nombre_tabla, metadata_t metadata) {
 
 	if (crear_directorio_tabla(nombre_tabla) == -1) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear la tabla %s", nombre_tabla);
 		return -1;
 	}
 	if (crear_metadata_tabla(metadata, nombre_tabla) == -1) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear la metadata de la tabla %s", nombre_tabla);
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
 	if (crear_particiones(metadata.n_particiones, nombre_tabla) == -1) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear las particiones de la tabla %s", nombre_tabla);
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
 	if(crear_semaforo_tabla(nombre_tabla) < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear la tabla %s", nombre_tabla);
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
 	if (instanciar_hilo_compactador(nombre_tabla, metadata.t_compactaciones)
 			< 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear la tabla %s", nombre_tabla);
 		destruir_semaforo_tabla(nombre_tabla);
 		borrar_tabla(nombre_tabla);
 		return -1;
@@ -330,10 +335,13 @@ int borrar_tabla(char *tabla) {
 
 void borrar_todos_los_tmpc(char *tabla) {
 
-	if (existe_tabla(tabla) != 0) {
-		//log no existe tabla o hubo error
-		return;
-	}
+	// No hace falta porque si existe el compactador, existe la tabla y esta
+	// funcion es llamada solo por el compactador
+	// Lo dejamos conectado por las dudas
+//	if (existe_tabla(tabla) != 0) {
+//		lfs_log_to_level(LOG_LEVEL_ERROR, false, "No existe la tabla %s", tabla);
+//		return;
+//	}
 
 	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
 		if (string_ends_with((char*) path, ".tmpc")
@@ -361,11 +369,6 @@ void borrar_todos_los_tmpc(char *tabla) {
 }
 
 void convertir_todos_tmp_a_tmpc(char* tabla) {
-
-	if (existe_tabla(tabla) != 0) {
-		//log no existe tabla o hubo error
-		return;
-	}
 
 	int _renombrar_archivo_a_tmpc(const char *path, const struct stat *stat,
 			int flag) {
