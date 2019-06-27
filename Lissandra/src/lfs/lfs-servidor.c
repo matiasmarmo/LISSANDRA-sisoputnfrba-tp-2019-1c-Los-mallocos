@@ -42,7 +42,7 @@ void *manejar_cliente(void* entrada) {
 		} else if (select_ret > 0) {
 			if ((error = recv_msg(cliente, buffer, tamanio_buffers)) < 0) {
 				lfs_log_to_level(LOG_LEVEL_TRACE, false,
-						"Fallo al recibir el mensaje del cliente %d, %d, %d", error, SOCKET_ERROR, CONN_CLOSED);
+						"Fallo al recibir el mensaje del cliente");
 				if (error == SOCKET_ERROR || error == CONN_CLOSED) {
 					break;
 				} else {

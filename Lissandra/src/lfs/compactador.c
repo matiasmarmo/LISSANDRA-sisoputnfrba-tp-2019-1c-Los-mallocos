@@ -22,7 +22,7 @@ int inicializar_compactador() {
 	return hilos_compactadores == NULL ? -1 : 0;
 }
 
-void destruir_hilo_compactador(void *hilo) {
+void destruir_hilo_compactador(char *tabla, void *hilo) {
 	lissandra_thread_periodic_t *lp_thread = (lissandra_thread_periodic_t*) hilo;
 	l_thread_solicitar_finalizacion(&lp_thread->l_thread);
 	l_thread_join(&lp_thread->l_thread, NULL);
@@ -30,12 +30,21 @@ void destruir_hilo_compactador(void *hilo) {
 	free(hilo);
 }
 
+int finalizar_hilos_compactadores() {
+	if (pthread_mutex_lock(&hilos_compactadores_mutex) != 0) {
+		return -1;
+	}
+	dictionary_iterator(hilos_compactadores,
+			&destruir_hilo_compactador);
+	pthread_mutex_unlock(&hilos_compactadores_mutex);
+	return 0;
+}
+
 int destruir_compactador() {
 	if (pthread_mutex_lock(&hilos_compactadores_mutex) != 0) {
 		return -1;
 	}
-	dictionary_destroy_and_destroy_elements(hilos_compactadores,
-			&destruir_hilo_compactador);
+	dictionary_destroy(hilos_compactadores);
 	pthread_mutex_unlock(&hilos_compactadores_mutex);
 	return 0;
 }
@@ -189,7 +198,7 @@ int finalizar_hilo_compactador(char *tabla) {
 		return -1;
 	}
 	void *hilo_compactador = dictionary_remove(hilos_compactadores, tabla);
-	destruir_hilo_compactador(hilo_compactador);
+	destruir_hilo_compactador(tabla, hilo_compactador);
 	pthread_mutex_unlock(&hilos_compactadores_mutex);
 	return 0;
 }
