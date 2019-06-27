@@ -19,6 +19,7 @@
 #include "bitmap.h"
 #include "config-with-locks.h"
 #include "../lissandra/memtable.h"
+#include "../lfs-logger.h"
 
 #define TIMESTAMP_STR_LEN 20
 
@@ -736,6 +737,8 @@ int bajar_a_archivo_temporal(char* tabla, registro_t* registros,
 	bloquear_tabla(tabla, 'r');
 
 	if (crear_temporal(numero, tabla) < 0) {
+		lfs_log_to_level(LOG_LEVEL_TRACE, false,
+				"Fallo al crear temporal de la tabla %s", tabla);
 		desbloquear_tabla(tabla);
 		return -1;
 	}
@@ -744,6 +747,8 @@ int bajar_a_archivo_temporal(char* tabla, registro_t* registros,
 
 	if ((escribir_en_archivo_de_datos(path_tmp, registros, cantidad_registros))
 			== -1) {
+		lfs_log_to_level(LOG_LEVEL_TRACE, false,
+				"Fallo al escribir en archivo de datos de la tabla %s", tabla);
 		desbloquear_tabla(tabla);
 		return -1;
 	}
