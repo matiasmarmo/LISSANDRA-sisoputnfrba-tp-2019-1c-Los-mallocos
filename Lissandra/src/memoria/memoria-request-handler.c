@@ -8,6 +8,7 @@
 #include <commons/log.h>
 #include <string.h>
 #include <sys/time.h>
+#include <commons/string.h>
 
 #include "../commons/comunicacion/protocol.h"
 #include "../commons/lissandra-threads.h"
@@ -29,6 +30,7 @@ int _manejar_select_pagina_en_memoria(struct select_request, void*,segmento*,reg
 int _manejar_select_pagina_no_en_memoria(struct select_request, void*,segmento*);
 
 int _manejar_select(struct select_request mensaje, void* respuesta_select) {
+	string_to_upper(mensaje.tabla);
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
 	if (segmento_buscado == NULL) { // No existe el segmento en memoria
 		int a = _manejar_select_segmento_no_encontrado(mensaje,
