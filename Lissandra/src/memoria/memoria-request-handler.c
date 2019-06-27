@@ -19,6 +19,7 @@
 #include "memoria-config.h"
 #include "memoria-server.h"
 #include "memoria-main.h"
+#include "memoria-LRU.h"
 #include "conexion-lfs.h"
 
 
@@ -72,8 +73,17 @@ int _manejar_select_segmento_no_encontrado(struct select_request mensaje, void* 
 	lugar_pagina_vacia = encontrar_pagina_vacia();
 	if (lugar_pagina_vacia == -1) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-					"No hay espacio en memoria para una nueva pagina, se intentara hacer LRU");
+				"No hay espacio en memoria para una nueva pagina, se intentara hacer LRU");
 		// INTENTAR HACER LRU
+		if(LRU()<0){
+			memoria_log_to_level(LOG_LEVEL_TRACE, false,
+					"No se pudo hacer el LRU");
+		}
+		else{
+			memoria_log_to_level(LOG_LEVEL_TRACE, false,
+					"Se pudo hacer el LRU --> la pagina quitada se encontraba en la posicion de memoria: %d", encontrar_pagina_vacia());
+			lugar_pagina_vacia = encontrar_pagina_vacia();
+		}
 		// SI NO PUEDO, HACER JOURNAL
 	}
 	/*----PEDIDO AL FS----*/
@@ -91,7 +101,7 @@ int _manejar_select_segmento_no_encontrado(struct select_request mensaje, void* 
 		crear_pagina_nueva(lugar_pagina_vacia, respuesta.key, respuesta.timestamp, respuesta.valor);
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 					"Se agrego correctamente a memoria la tabla \"%s\", y la pagina que posee key = %d y valor = \"%s\".",mensaje.tabla,respuesta.key,respuesta.valor);
-		int aux = init_select_response(0, segmento_buscado->tabla, respuesta.key, respuesta.valor,
+		int aux = init_select_response(0, respuesta.tabla, respuesta.key, respuesta.valor,
 				respuesta.timestamp, &respuesta);
 		if (aux < 0) {
 			memoria_log_to_level(LOG_LEVEL_TRACE, false,
@@ -111,7 +121,7 @@ int _manejar_select_pagina_en_memoria(struct select_request mensaje, void* respu
 	reg_pagina->timestamp_accedido.tv_sec = timestamp_accedido.tv_sec;
 	reg_pagina->timestamp_accedido.tv_usec = timestamp_accedido.tv_usec;
 	memoria_log_to_level(LOG_LEVEL_TRACE, false,
-			"Se solicitó la key = %d de la tabla \"%s\" que se encontraba en memoria.",respuesta.key,mensaje.tabla);
+			"Se solicitó la key = %d de la tabla \"%s\" que se encontraba en memoria.",mensaje.key,mensaje.tabla);
 	int aux = init_select_response(0, segmento_buscado->tabla,
 			*((uint16_t*) (reg_pagina->puntero_a_pagina)),
 			(char*) (reg_pagina->puntero_a_pagina + 10),
@@ -140,6 +150,15 @@ int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* re
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 							"No hay espacio en memoria para una nueva pagina, se intentara hacer LRU");
 		// INTENTAR HACER LRU
+		if(LRU()<0){
+			memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"No se pudo hacer el LRU");
+		}
+		else{
+			memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Se pudo hacer el LRU --> la pagina quitada se encontraba en la posicion de memoria: %d", encontrar_pagina_vacia());
+			lugar_pagina_vacia = encontrar_pagina_vacia();
+		}
 		// SI NO PUEDO, HACER JOURNAL
 	}
 	/*----PEDIDO AL FS----*/
