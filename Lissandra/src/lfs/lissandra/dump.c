@@ -9,6 +9,7 @@
 #include "../filesystem/manejo-tablas.h"
 #include "../lfs-config.h"
 #include "memtable.h"
+#include "../lfs-logger.h"
 
 t_dictionary *datos_no_dumpeados;
 t_dictionary *temporal;
@@ -16,7 +17,12 @@ t_dictionary *temporal;
 int inicializar_dumper() {
 	datos_no_dumpeados = dictionary_create();
 	temporal = dictionary_create();
-	return datos_no_dumpeados == NULL || temporal == NULL ? -1 : 0;
+	if (datos_no_dumpeados == NULL || temporal == NULL) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al inicializar dumper");
+		return -1;
+	}
+	return 0;
 }
 
 void destruir_dumper() {
@@ -55,9 +61,6 @@ void *dumpear(void *entrada) {
 	datos_no_dumpeados = temporal;
 	temporal = dictionary_create();
 	t_dictionary *diccionario = obtener_datos_para_dumpear();
-	if (diccionario == NULL) {
-		return NULL;
-	}
 	dictionary_iterator(diccionario, &bajar_a_archivo_tmp);
 	dictionary_destroy(diccionario);
 	return NULL;
