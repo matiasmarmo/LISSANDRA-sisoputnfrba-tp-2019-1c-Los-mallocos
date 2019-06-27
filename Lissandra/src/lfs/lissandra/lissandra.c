@@ -31,6 +31,8 @@ int manejar_create(void* create_request, void* create_response) {
 	if (init_create_response(0, create_rq->tabla, create_rq->consistencia,
 			create_rq->n_particiones, create_rq->t_compactaciones, create_rp)
 			< 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al inicializar el create_response");
 		return -1;
 	}
 
@@ -40,6 +42,7 @@ int manejar_create(void* create_request, void* create_response) {
 	metadata.t_compactaciones = create_rq->t_compactaciones;
 	if (crear_tabla(create_rq->tabla, metadata) == -1) {
 		destroy(create_rq);
+		lfs_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al crear la tabla");
 		return -1;
 	}
 
@@ -68,12 +71,16 @@ int manejar_single_describe(void* single_describe_request,
 
 	metadata_t metadata_tabla;
 	if (obtener_metadata_tabla(s_describe_rq->tabla, &metadata_tabla) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al obtener la metadata");
 		return -1;
 	}
 
 	if (init_single_describe_response(0, s_describe_rq->tabla,
 			metadata_tabla.consistencia, metadata_tabla.n_particiones,
 			metadata_tabla.t_compactaciones, s_describe_rp) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallor al inicializar single_describe_response");
 		return -1;
 	}
 
@@ -107,6 +114,8 @@ int manejar_global_describe(void* global_describe_response) {
 	t_list* metadatas = list_create();
 
 	if (dar_metadata_tablas(tablas, metadatas) == -1) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo en obtecion de las metadatas de las tablas");
 		return -1;
 	}
 
@@ -126,6 +135,8 @@ int manejar_global_describe(void* global_describe_response) {
 	if (init_global_describe_response(0, nombres_tablas, cantidad_tablas,
 			consistencias, cantidad_tablas, numeros_particiones,
 			cantidad_tablas, tiempos_compactaciones, g_describe_rp)) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al inicializar global_describe_response");
 		return -1;
 	}
 
@@ -166,6 +177,8 @@ int manejar_drop(void* drop_request, void* drop_response) {
 	}
 
 	if (init_drop_response(0, drop_rq->tabla, drop_rp) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al inicializar drop_response");
 		return -1;
 	}
 
@@ -205,11 +218,16 @@ int manejar_insert(void* insert_request, void* insert_response) {
 	}
 
 	if (insertar_en_memtable(registro, insert_rq->tabla) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al insertar en memtable key: %d valor: %s ",
+				insert_rq->key, insert_rq->valor);
 		return -1;
 	}
 
 	if (init_insert_response(0, insert_rq->tabla, insert_rq->key,
 			insert_rq->valor, insert_rq->timestamp, insert_rp) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al inicializar insert_response");
 		return -1;
 	}
 
@@ -237,6 +255,9 @@ int manejar_select(void* select_request, void* select_response) {
 
 	metadata_t metadata_tabla;
 	if (obtener_metadata_tabla(select_rq->tabla, &metadata_tabla) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al obtener la metadata de la tabla %s",
+				select_rq->tabla);
 		return -1;
 	}
 
@@ -257,12 +278,18 @@ int manejar_select(void* select_request, void* select_response) {
 	}
 
 	if ((cantidad_temporales = cantidad_tmp_en_tabla(select_rq->tabla)) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al obtener la cantidad de temporales en la tabla %s",
+				select_rq->tabla);
 		return -1;
 	}
 
 	int particion = select_rq->key % metadata_tabla.n_particiones;
 
 	if (iterar_particion(select_rq->tabla, particion, &_manejar_registro) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al iterar en particion %d tabla %s", particion,
+				select_rq->tabla);
 		return -1;
 	}
 
@@ -271,6 +298,9 @@ int manejar_select(void* select_request, void* select_response) {
 	}
 
 	if (iterar_entrada_memtable(select_rq->tabla, &_manejar_registro) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo iterar entrada de la tabla %s en memtable",
+				select_rq->tabla);
 		return -1;
 	}
 
@@ -287,6 +317,8 @@ int manejar_select(void* select_request, void* select_response) {
 
 	if (init_select_response(0, select_rq->tabla, select_rq->key,
 			resultado.value, resultado.timestamp, select_rp) < 0) {
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al inicializar el select_response");
 		return -1;
 	}
 
