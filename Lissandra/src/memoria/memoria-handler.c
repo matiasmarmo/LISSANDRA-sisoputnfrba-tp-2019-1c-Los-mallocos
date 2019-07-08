@@ -83,7 +83,6 @@ void estado_actual_memoria() {
 				list_size(segmento_temporal->registro_base),
 				segmento_temporal->tabla);
 	}
-
 }
 
 uint16_t numero_de_pagina_libre(segmento* segmento) {
@@ -209,10 +208,10 @@ int obtener_pagina_para_journal(segmento* segmento,
 	destroy(buffer);
 	return 0;
 }
-
+void imprimir_toda_memoria();
 int realizar_journal() {
 	segmento* segmento_temporal;
-
+	int contador=0;
 	void _liberar_pagina(void *elemento) {
 		destruir_registro_de_pagina((registro_tabla_pagina*) elemento);
 	}
@@ -232,10 +231,13 @@ int realizar_journal() {
 				// obtener_pagina_para_journal loguea el error y listo
 				continue;
 			}
+			contador++;
 		}
 		list_destroy_and_destroy_elements(segmento_temporal->registro_base, &_liberar_pagina);
 	}
 	list_clean_and_destroy_elements(TABLA_DE_SEGMENTOS, free);
+	memoria_log_to_level(LOG_LEVEL_TRACE, false,
+					"Se realizó el journal correctamente. Cantidad paginas enviadas: %d",contador);
 	return 0;
 }
 
@@ -273,4 +275,5 @@ void imprimir_toda_memoria() {
 		}
 		printf("\n");
 	}
-}*/
+}
+*/

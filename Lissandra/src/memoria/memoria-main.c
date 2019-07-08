@@ -28,6 +28,10 @@ void set_tamanio_value(int tamanio) {
 	tamanio_maximo_value = tamanio;
 }
 
+int get_tamanio_value() {
+	return tamanio_maximo_value;
+}
+
 void inicializar_memoria(){
 	if(inicializar_memoria_logger() < 0) {
 		destruir_memoria_config();
