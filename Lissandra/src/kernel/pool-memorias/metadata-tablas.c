@@ -54,18 +54,14 @@ int cargar_tabla(metadata_tabla_t *nueva_tabla) {
 	return 0;
 }
 
-int _cargar_tablas() {
-	struct global_describe_response response;
+int cargar_tablas(struct global_describe_response response) {
 	char **tablas_recibidas;
-	if (realizar_describe(&response) < 0) {
-		return -1;
-	}
-	if (response.fallo) {
-		destroy(&response);
+	if (pthread_rwlock_wrlock(&tablas_rwlock) != 0) {
 		return -1;
 	}
 	if ((tablas_recibidas = string_split(response.tablas, ";")) == NULL) {
 		destroy(&response);
+		pthread_rwlock_unlock(&tablas_rwlock);
 		return -1;
 	}
 	for (int i = 0; i < response.consistencias_len; i++) {
@@ -78,20 +74,29 @@ int _cargar_tablas() {
 		cargar_tabla(nueva_tabla);
 	}
 	free(tablas_recibidas);
+	pthread_rwlock_unlock(&tablas_rwlock);
+	return 0;
+}
+
+int pedir_tablas_a_memoria() {
+	struct global_describe_response response;
+	if (realizar_describe(&response) < 0) {
+		return -1;
+	}
+	if (response.fallo) {
+		destroy(&response);
+		return -1;
+	}
+	cargar_tablas(response);
 	destroy(&response);
 	return 0;
 }
 
 int inicializar_tablas() {
-	if (pthread_rwlock_wrlock(&tablas_rwlock) != 0) {
-		return -1;
-	}
 	tablas = list_create();
-	if (_cargar_tablas() < 0) {
-		pthread_rwlock_unlock(&tablas_rwlock);
+	if (pedir_tablas_a_memoria() < 0) {
 		return -1;
 	}
-	pthread_rwlock_unlock(&tablas_rwlock);
 	return 0;
 }
 
@@ -110,13 +115,7 @@ int destruir_tablas() {
 }
 
 int obtener_metadata_tablas() {
-	int resultado;
-	if (pthread_rwlock_wrlock(&tablas_rwlock) != 0) {
-		return -1;
-	}
-	resultado = _cargar_tablas();
-	pthread_rwlock_unlock(&tablas_rwlock);
-	return resultado;
+	return pedir_tablas_a_memoria();
 }
 
 void *actualizar_tablas_threaded(void *entrada) {

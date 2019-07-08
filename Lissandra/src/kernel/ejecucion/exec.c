@@ -12,6 +12,7 @@
 #include "../../commons/lissandra-threads.h"
 #include "../../commons/parser.h"
 #include "../pool-memorias/manager-memorias.h"
+#include "../pool-memorias/metadata-tablas.h"
 #include "../kernel-config.h"
 #include "../metricas.h"
 #include "../kernel-logger.h"
@@ -126,11 +127,14 @@ void ejecutar_request(char **request, SCB *scb) {
 			scb->estado = ERROR_SCRIPT;
 		}
 	}
-	if (scb->es_request_unitario && ret == 0) {
-		mostrar_async(buffer_respuesta);
-	}
 	destroy(buffer_request);
-	if (ret == 0) {
+	if(ret == 0) {
+		if(scb->es_request_unitario) {
+			mostrar_async(buffer_respuesta);	
+		}
+		if(get_msg_id(buffer_respuesta) == GLOBAL_DESCRIBE_RESPONSE_ID) {
+			cargar_tablas(*((struct global_describe_response*) buffer_respuesta));
+		}
 		destroy(buffer_respuesta);
 	}
 	usleep(get_retardo_ejecucion() * 1000);
