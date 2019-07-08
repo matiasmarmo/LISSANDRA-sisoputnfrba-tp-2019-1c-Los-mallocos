@@ -175,7 +175,6 @@ int encontrar_pagina_vacia() {
 
 int cantidad_paginas_de_un_segmento(segmento* segmento) {
 	int cantidad = list_size(segmento->registro_base);
-	//printf("cant_paginas: %d\n", cantidad);
 	return cantidad;
 }
 
@@ -221,6 +220,15 @@ int obtener_pagina_para_journal(segmento* segmento,
 }
 
 int realizar_journal() {
+	segmento* segmento_temporal;
+	for(int i = 0; i < list_size(TABLA_DE_SEGMENTOS); i++) {
+		segmento_temporal = list_get(TABLA_DE_SEGMENTOS, i);
+		for(int j = 0; i < cantidad_paginas_de_un_segmento(list_get(TABLA_DE_SEGMENTOS, i)) ; j++) {
+			if(obtener_pagina_para_journal(segmento_temporal,list_get(segmento_temporal->registro_base,j)) < 0) {
+				return -1;
+			}
+		}
+	}
 	return 0;
 }
 
@@ -248,3 +256,14 @@ void destruccion_segmento(segmento* segmento) {
 	destruccion_todos_los_registros_de_un_segmento(segmento);
 	free(segmento);
 }
+
+/*
+void imprimir_toda_memoria() {
+	printf("\nCOMIENZA LECTURA MEMORIA\n");
+	for(int i = 0; i < get_tamanio_memoria() ; i=i+get_tamanio_maximo_pagina()) {
+		for( int j = 0 ; j < get_tamanio_maximo_pagina() ; j++) {
+			printf("%d ",memoria[j+i]);
+		}
+		printf("\n");
+	}
+}*/

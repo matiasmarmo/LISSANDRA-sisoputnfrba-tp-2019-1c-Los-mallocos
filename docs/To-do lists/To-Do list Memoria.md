@@ -17,8 +17,8 @@
 - [ ] Terminar el INSERT
 - [x] Hacer el CREATE
 - [x] Hacer el DESCRIBE
-- [ ] Hacer el DROP
-- [ ] Hacer el Journaling cuando memoria este Full o cuando 
+- [x] Hacer el DROP
+- [x] Hacer el Journaling cuando memoria este Full o cuando 
       recibe por consola o por el kernel la solicitud o 
       cuando pasa X tiempo
 	- [ ] Hacer que cuando memoria este en Journal no 
@@ -30,8 +30,8 @@
               realizando un Journal a Disco no se podrá operar 
               ningún request que le llegue a la memoria, 
               debiendo esperar a que el primero finalice.
-
-
+ - [ ] Probar el journaling 
+- [ ] Hacer retardos
 
 
 Colocando una x entre los corchetes se pone como marcado
