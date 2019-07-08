@@ -178,57 +178,67 @@ int cantidad_paginas_de_un_segmento(segmento* segmento) {
 	return cantidad;
 }
 
-void setear_pagina_a_cero(registro_tabla_pagina* reg_pagina) {
-	int corrimiento;
-	for (corrimiento = 0; corrimiento < get_tamanio_maximo_pagina();
-			corrimiento++) {
-		*((uint8_t*) (reg_pagina->puntero_a_pagina) + corrimiento) = 0;
-	}
+void setear_pagina_a_cero(uint8_t *puntero_a_pagina) {
+	memset(puntero_a_pagina, 0, get_tamanio_maximo_pagina());
 }
 
-void destruir_registro_de_pagina(uint16_t key, segmento* segmento) {
-	void _destroy_element(void *elemento) {
-		free((registro_tabla_pagina*) elemento);
-	}
-	bool _condition(void *elemento) {
-		registro_tabla_pagina *reg = (registro_tabla_pagina*) elemento;
-		pagina final;
-		final.key = (uint16_t*) (reg->puntero_a_pagina);
-		return *(final.key) == key;
-	}
-	list_remove_and_destroy_by_condition(segmento->registro_base, &_condition,
-			&_destroy_element);
+void destruir_registro_de_pagina(registro_tabla_pagina *registro) {
+	setear_pagina_a_cero(registro->puntero_a_pagina);
+	free(registro);
 }
 
 int obtener_pagina_para_journal(segmento* segmento,
 		registro_tabla_pagina* reg_pagina) {
 	struct insert_request request;
+	uint8_t *puntero_a_pagina = reg_pagina->puntero_a_pagina;
+	memoria_log_to_level(LOG_LEVEL_TRACE, 1, "Mandando página");
 	init_insert_request(segmento->tabla,
-			*((uint16_t*) (reg_pagina->puntero_a_pagina)),
-			(char*) (reg_pagina->puntero_a_pagina + 10),
-			*((uint64_t*) (reg_pagina->puntero_a_pagina + 2)), &request);
-	uint16_t key = *((uint16_t*) (reg_pagina->puntero_a_pagina));
+			*((uint16_t*) puntero_a_pagina),
+			(char*) (puntero_a_pagina + 10),
+			*((uint64_t*) (puntero_a_pagina + 2)), &request);
+	memoria_log_to_level(LOG_LEVEL_TRACE, 1, "Armado");
+	memoria_log_to_level(LOG_LEVEL_TRACE, 1, "Key: %u", *((uint16_t*) puntero_a_pagina));
+	uint16_t key = *((uint16_t*) puntero_a_pagina);
 	uint8_t buffer[get_max_msg_size()];
 	if (enviar_mensaje_lfs(&request, buffer) < 0) {
-		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-				"Fallo la comunicacion con file system");
+		memoria_log_to_level(LOG_LEVEL_ERROR, false,
+				"Fallo la comunicacion con file system, key %d perdida", key);
+		destroy(&request);
 		return -1;
 	}
-	setear_pagina_a_cero(reg_pagina);
-	destruir_registro_de_pagina(key, segmento);
+	destroy(&request);
+	// Acá se puede verificar si falló el insert y loguear
+	// (si no existe la tabla, por ejemplo)
+	destroy(buffer);
 	return 0;
 }
 
 int realizar_journal() {
 	segmento* segmento_temporal;
+
+	void _liberar_pagina(void *elemento) {
+		destruir_registro_de_pagina((registro_tabla_pagina*) elemento);
+	}
+
 	for(int i = 0; i < list_size(TABLA_DE_SEGMENTOS); i++) {
 		segmento_temporal = list_get(TABLA_DE_SEGMENTOS, i);
-		for(int j = 0; i < cantidad_paginas_de_un_segmento(list_get(TABLA_DE_SEGMENTOS, i)) ; j++) {
-			if(obtener_pagina_para_journal(segmento_temporal,list_get(segmento_temporal->registro_base,j)) < 0) {
-				return -1;
+		int cantidad_paginas = cantidad_paginas_de_un_segmento(list_get(TABLA_DE_SEGMENTOS, i));
+		for(int j = 0; j < cantidad_paginas; j++) {
+			registro_tabla_pagina *pagina_actual = list_get(segmento_temporal->registro_base, j);
+			if(pagina_actual->flag_modificado == 0) {
+				// Si la página no está modificada, no la mandamos
+				continue;
+			}
+			if(obtener_pagina_para_journal(segmento_temporal, pagina_actual) < 0) {
+				// Acá había un return -1, pero lo cambio por un continue
+				// porque es peligroso dejar las cosas hechas por la mitad,
+				// obtener_pagina_para_journal loguea el error y listo
+				continue;
 			}
 		}
+		list_destroy_and_destroy_elements(segmento_temporal->registro_base, &_liberar_pagina);
 	}
+	list_clean_and_destroy_elements(TABLA_DE_SEGMENTOS, free);
 	return 0;
 }
 
@@ -245,7 +255,7 @@ void *realizar_journal_threaded(void *entrada) {
 
 void destruccion_todos_los_registros_de_un_segmento(segmento* segmento) {
 	void _destroy_element(void *elemento) {
-		setear_pagina_a_cero((registro_tabla_pagina*) elemento);
+		setear_pagina_a_cero(((registro_tabla_pagina*) elemento)->puntero_a_pagina);
 		free((registro_tabla_pagina*) elemento);
 	}
 	list_destroy_and_destroy_elements(segmento->registro_base,

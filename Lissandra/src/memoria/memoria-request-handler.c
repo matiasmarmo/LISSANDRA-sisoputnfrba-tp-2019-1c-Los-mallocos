@@ -272,6 +272,7 @@ int _insert_pagina_en_memoria(struct insert_request mensaje, void* respuesta_ins
 	memoria_log_to_level(LOG_LEVEL_INFO, false,
 			"La key %d de la tabla %s se encuentra en memoria, la actualizo",
 			mensaje.key, segmento_buscado->tabla);
+	reg_pagina->flag_modificado = 1;
 	*((uint16_t*) (reg_pagina->puntero_a_pagina)) = mensaje.key;
 	*((uint64_t*) (reg_pagina->puntero_a_pagina + 2)) =
 			mensaje.timestamp;
@@ -279,13 +280,12 @@ int _insert_pagina_en_memoria(struct insert_request mensaje, void* respuesta_ins
 			get_tamanio_maximo_pagina());
 	memcpy((char*) (reg_pagina->puntero_a_pagina + 10), mensaje.valor,
 			strlen(mensaje.valor));
-
 	return 0;
 }
 
 int _insert_pagina_no_en_memoria(struct insert_request mensaje, void* respuesta_insert,segmento* segmento_buscado) {
 	int lugar_pagina_vacia;
-	int flag_modificado = 0;
+	int flag_modificado = 1;
 	struct timeval timestamp_accedido;
 	gettimeofday(&timestamp_accedido,NULL);
 	memoria_log_to_level(LOG_LEVEL_INFO, false,
@@ -293,9 +293,9 @@ int _insert_pagina_no_en_memoria(struct insert_request mensaje, void* respuesta_
 		mensaje.key, segmento_buscado->tabla);
 	lugar_pagina_vacia = encontrar_pagina_vacia();
 	if (lugar_pagina_vacia == -1) {
+		// Responder con memory full
 		memoria_log_to_level(LOG_LEVEL_INFO, false,
 				"La memoria esta FULL, hago un JOURNAL");
-		// HACER JOURNAL
 	} else {
 		//le pido al fs
 		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
