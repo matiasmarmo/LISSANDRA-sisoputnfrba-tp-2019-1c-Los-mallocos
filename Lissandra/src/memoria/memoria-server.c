@@ -17,12 +17,13 @@
 #include "../commons/consola/consola.h"
 #include "../commons/comunicacion/protocol-utils.h"
 #include "memoria-insert-request-handler.h"
-#include "memoria-request-handler.h"
+#include "memoria-select-request-handler.h"
 #include "memoria-handler.h"
 #include "memoria-server.h"
 #include "memoria-logger.h"
 #include "memoria-config.h"
 #include "memoria-main.h"
+#include "memoria-other-requests-handler.h"
 
 t_list *lista_clientes;
 

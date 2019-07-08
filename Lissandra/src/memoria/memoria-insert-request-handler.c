@@ -13,7 +13,6 @@
 #include "../commons/comunicacion/protocol.h"
 #include "../commons/lissandra-threads.h"
 #include "../commons/parser.h"
-#include "memoria-request-handler.h"
 #include "memoria-gossip.h"
 #include "memoria-handler.h"
 #include "memoria-logger.h"
@@ -22,6 +21,7 @@
 #include "memoria-main.h"
 #include "memoria-LRU.h"
 #include "conexion-lfs.h"
+#include "memoria-other-requests-handler.h"
 
 int _manejar_insert_no_existe_segmento_en_tabla(struct insert_request mensaje, void* respuesta_insert);
 int _manejar_insert_crear_segmento_nuevo(struct insert_request mensaje, void* respuesta_insert, int lugar_pagina_vacia);
