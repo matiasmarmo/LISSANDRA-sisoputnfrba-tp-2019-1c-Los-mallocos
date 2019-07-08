@@ -80,6 +80,8 @@ int ejecutar_request(void *request, void *respuesta) {
 	case GOSSIP_ID:
 		return _manejar_gossip(*((struct gossip *) request), respuesta);
 	case DROP_REQUEST_ID:
+		return _manejar_drop(*((struct drop_request *) request),
+				respuesta);
 		return 0;
 	case JOURNAL_REQUEST_ID:
 		bloquear_memoria();

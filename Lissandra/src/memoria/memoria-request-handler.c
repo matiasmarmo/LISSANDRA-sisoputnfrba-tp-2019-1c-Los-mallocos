@@ -345,3 +345,22 @@ int _manejar_gossip(struct gossip mensaje, void *respuesta) {
 	}
 	return rta;
 }
+
+////////////////////////////////////////////////////////////
+
+int _manejar_drop(struct drop_request mensaje, void *respuesta) {
+	string_to_upper(mensaje.tabla);
+	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
+	if (segmento_buscado == NULL) { // No existe el segmento en memoria
+		int rta = enviar_mensaje_lfs(&mensaje, respuesta);
+		if(rta < 0) {
+			memoria_log_to_level(LOG_LEVEL_TRACE, false,
+					"Fallo la comunicacion con FS para realizar un drop");
+			return ERROR;
+		}
+		return rta;
+	} else { // El segmento esta en memoria
+		destruccion_segmento(segmento_buscado);
+	}
+	return EXIT_SUCCESS;
+}
