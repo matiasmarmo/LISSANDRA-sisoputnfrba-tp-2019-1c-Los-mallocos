@@ -45,5 +45,6 @@ void setear_pagina_a_cero(registro_tabla_pagina*);
 void destruir_registro_de_pagina(uint16_t, segmento*);
 int realizar_journal();
 void *realizar_journal_threaded(void *);
+void destruccion_segmento(segmento*);
 
 #endif /* MEMORIA_MEMORIA_HANDLER_H_ */

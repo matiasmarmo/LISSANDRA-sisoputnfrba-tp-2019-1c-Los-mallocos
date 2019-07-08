@@ -234,3 +234,17 @@ void *realizar_journal_threaded(void *entrada) {
 	pthread_mutex_unlock(&mutex_memoria);
 	return NULL;
 }
+
+void destruccion_todos_los_registros_de_un_segmento(segmento* segmento) {
+	void _destroy_element(void *elemento) {
+		setear_pagina_a_cero((registro_tabla_pagina*) elemento);
+		free((registro_tabla_pagina*) elemento);
+	}
+	list_destroy_and_destroy_elements(segmento->registro_base,
+			&_destroy_element);
+}
+
+void destruccion_segmento(segmento* segmento) {
+	destruccion_todos_los_registros_de_un_segmento(segmento);
+	free(segmento);
+}
