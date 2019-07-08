@@ -7,6 +7,7 @@
 #include <commons/string.h>
 
 #include "../../commons/comunicacion/protocol.h"
+#include "../kernel-logger.h"
 #include "manager-memorias.h"
 #include "metadata-tablas.h"
 
@@ -81,10 +82,7 @@ int cargar_tablas(struct global_describe_response response) {
 int pedir_tablas_a_memoria() {
 	struct global_describe_response response;
 	if (realizar_describe(&response) < 0) {
-		return -1;
-	}
-	if (response.fallo) {
-		destroy(&response);
+		kernel_log_to_level(LOG_LEVEL_WARNING, false, "Error al pedir metadata de tablas");
 		return -1;
 	}
 	cargar_tablas(response);

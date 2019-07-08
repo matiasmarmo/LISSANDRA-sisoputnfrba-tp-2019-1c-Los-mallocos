@@ -12,6 +12,7 @@
 #include "../../commons/comunicacion/sockets.h"
 #include "../../commons/comunicacion/protocol.h"
 #include "../../commons/comunicacion/protocol-utils.h"
+#include "../../commons/consola/consola.h"
 #include "../kernel-logger.h"
 #include "../kernel-config.h"
 #include "../metricas.h"
@@ -553,10 +554,8 @@ int realizar_describe(struct global_describe_response *response) {
 	}
 	destroy(&request);
 	pthread_mutex_unlock(&memoria->mutex);
-	if (get_msg_id(buffer_local) != GLOBAL_DESCRIBE_RESPONSE_ID) {
-		kernel_log_to_level(LOG_LEVEL_DEBUG, false,
-				"Respuesta inesperada de memoria. Se esperaba %d (GLOBAL_DESCRIBE_RESPONSE), pero se recibio %d",
-				GLOBAL_DESCRIBE_RESPONSE_ID, get_msg_id(buffer_local));
+	if(get_msg_id(buffer_local) == ERROR_MSG_ID) {
+		mostrar_async(buffer_local);
 		destroy(buffer_local);
 		return -1;
 	}
