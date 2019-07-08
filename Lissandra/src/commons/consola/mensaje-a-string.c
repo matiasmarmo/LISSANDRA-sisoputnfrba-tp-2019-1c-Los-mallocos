@@ -306,6 +306,14 @@ int error_msg_a_string(void *mensaje, char *buffer, int tamanio_maximo) {
 	return 0;
 }
 
+int memory_full_a_string(void *mensaje, char *buffer, int tamanio_maximo) {
+	if(tamanio_maximo < 14) {
+		return -1;
+	}
+	strcpy(buffer, "Memoria llena");
+	return 0;
+}
+
 void cargar_convertidor(uint8_t id, convertidor_t convertidor) {
 	char id_string[4];
 	obtener_key_string(id, id_string);
@@ -326,6 +334,7 @@ void llenar_diccionario() {
 	cargar_convertidor(RUN_RESPONSE_ID, &run_response_to_string);
 	cargar_convertidor(METRICS_RESPONSE_ID, &metrics_response_to_string);
 	cargar_convertidor(ERROR_MSG_ID, &error_msg_a_string);
+	cargar_convertidor(MEMORY_FULL_ID, &memory_full_a_string);
 }
 
 void iniciar_diccionario() {
