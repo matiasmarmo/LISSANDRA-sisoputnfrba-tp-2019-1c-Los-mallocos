@@ -1,22 +1,22 @@
 # To-Do list Memoria!
 
 - [ ] Hacer que la parte del checkpoint de errores ande
-- [ ] Ni bien inicializa la memoria pedirle al FS el 
+- [x] Ni bien inicializa la memoria pedirle al FS el 
       maximo tamaño del value (Handshake)
 - [ ] Ajustar el bit de modificado
-- [ ] Hacer funcion que tome los datos de una pagina y 
+- [x] Hacer funcion que tome los datos de una pagina y 
       deje esa porcion de memoria en '0'
-- [ ] Hacer el Gossiping
-- [ ] Hacer error de que si la memoria no puede inicializarse 
+- [x] Hacer el Gossiping
+- [x] Hacer error de que si la memoria no puede inicializarse 
       o si no puede hacer el Handshake aborte el proceso e 
       informe el problema
-- [ ] Hacer el algoritmo LRU 
+- [x] Hacer el algoritmo LRU 
 - [ ] Hacer los logs del programa
-- [ ] Pedir y recibir pagina del FS
-- [ ] Terminar el SELECT
+- [x] Pedir y recibir pagina del FS
+- [x] Terminar el SELECT
 - [ ] Terminar el INSERT
-- [ ] Hacer el CREATE
-- [ ] Hacer el DESCRIBE
+- [x] Hacer el CREATE
+- [x] Hacer el DESCRIBE
 - [ ] Hacer el DROP
 - [ ] Hacer el Journaling cuando memoria este Full o cuando 
       recibe por consola o por el kernel la solicitud o 
