@@ -5,6 +5,7 @@
 #include <commons/string.h>
 
 #include "../../commons/comunicacion/protocol.h"
+#include "../lfs-config.h"
 #include "../lfs-logger.h"
 #include "../filesystem/filesystem.h"
 #include "../filesystem/manejo-tablas.h"
@@ -203,11 +204,14 @@ int manejar_insert(void* insert_request, void* insert_response) {
 				insert_rq->tabla);
 		char buf[100] = { 0 };
 		sprintf(buf, "La tabla %s no existe", insert_rq->tabla);
-		if (init_error_msg(0, buf, insert_response) < 0) {
-			return -1;
-		}
-		return 0;
+		return init_error_msg(0, buf, insert_response);
 	}
+
+    if(strlen(insert_rq->valor) > get_tamanio_value()) {
+        char buf[100] = { 0 };
+        sprintf(buf, "El tamaño máximo del value es %d", get_tamanio_value());
+        return init_error_msg(0, buf, insert_response);
+    }
 
 	registro_t registro;
 	registro.key = insert_rq->key;
