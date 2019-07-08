@@ -58,6 +58,21 @@ void destruir_planificador() {
 	queue_destroy_and_destroy_elements(cola_ready, &_destruir_scb);
 }
 
+void nombre_archivo_desde_path(char *path, char *resultado) {
+	int index_res = 0, path_len = strlen(path);
+	char temp[60] = { 0 };
+	for(int i = 0; i < path_len; i++) {
+		if(path[i] == '/') {
+			index_res = 0;
+			continue;
+		}
+		temp[index_res] = path[i];
+		index_res++;
+	}
+	temp[index_res] = '\0';
+	strcpy(resultado, temp);
+}
+
 int agregar_nuevo_script(bool es_request_unitario, char *str) {
 	nuevo_script_t *nuevo_script = malloc(sizeof(nuevo_script_t));
 	if (nuevo_script == NULL) {
@@ -93,6 +108,9 @@ void despachar_script_detenido(SCB *script) {
 		break;
 	case SCRIPT_FINALIZADO:
 	case ERROR_SCRIPT:
+		if(!script->es_request_unitario) {
+			kernel_log_to_level(LOG_LEVEL_INFO, false, "Finalizando %s", script->name);
+		}
 		script_exec_a_finalizado(script);
 		break;
 	default:
@@ -148,6 +166,7 @@ SCB *construir_scb(nuevo_script_t *nuevo_script) {
 		scb->source = strdup(nuevo_script->str);
 	} else {
 		scb->source = leer_fuente_script(nuevo_script->str);
+		nombre_archivo_desde_path(nuevo_script->str, scb->name);
 	}
 	if (scb->source == NULL) {
 		if(nuevo_script->es_request_unitario) {

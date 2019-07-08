@@ -100,6 +100,9 @@ void ejecutar_request(char **request, SCB *scb) {
 		kernel_log_to_level(LOG_LEVEL_INFO, scb->es_request_unitario, "Error de parseo: %s", *request);
 		return;
 	}
+	if(!scb->es_request_unitario) {
+		kernel_log_to_level(LOG_LEVEL_INFO, false, "Ejecutando: [%s]:[%s]", scb->name, *request);
+	}
 	switch (get_msg_id(buffer_request)) {
 	case ADD_REQUEST_ID:
 		ret = ejecutar_add_request(buffer_request, buffer_respuesta, scb);

@@ -345,7 +345,6 @@ int realizar_journal_en_memoria(memoria_t *memoria) {
 	int tamanio_buffer = get_max_msg_size();
 	uint8_t buffer_local[tamanio_buffer];
 	struct journal_request request;
-	struct journal_response *respuesta;
 	init_journal_request(&request);
 	if (pthread_mutex_lock(&memoria->mutex) != 0) {
 		return -1;

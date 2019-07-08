@@ -18,6 +18,8 @@ typedef struct script_control_block {
 	// Si es un request unitario, deberá mostrarse
 	// el resultado de la ejecución por la consola
 	bool es_request_unitario;
+	// Name contiene el nombre del archivo lql cuando corresponda
+	char name[60];
 	char *source;
 	int request_pointer;
 	estado_runner_thread_t estado;
