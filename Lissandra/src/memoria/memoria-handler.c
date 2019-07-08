@@ -191,13 +191,10 @@ int obtener_pagina_para_journal(segmento* segmento,
 		registro_tabla_pagina* reg_pagina) {
 	struct insert_request request;
 	uint8_t *puntero_a_pagina = reg_pagina->puntero_a_pagina;
-	memoria_log_to_level(LOG_LEVEL_TRACE, 1, "Mandando página");
 	init_insert_request(segmento->tabla,
 			*((uint16_t*) puntero_a_pagina),
 			(char*) (puntero_a_pagina + 10),
 			*((uint64_t*) (puntero_a_pagina + 2)), &request);
-	memoria_log_to_level(LOG_LEVEL_TRACE, 1, "Armado");
-	memoria_log_to_level(LOG_LEVEL_TRACE, 1, "Key: %u", *((uint16_t*) puntero_a_pagina));
 	uint16_t key = *((uint16_t*) puntero_a_pagina);
 	uint8_t buffer[get_max_msg_size()];
 	if (enviar_mensaje_lfs(&request, buffer) < 0) {
