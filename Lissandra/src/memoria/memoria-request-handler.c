@@ -317,13 +317,31 @@ int _insert_pagina_no_en_memoria(struct insert_request mensaje, void* respuesta_
 ////////////////////////////////////////////////////////////
 
 int _manejar_create(struct create_request mensaje, void* respuesta_create) {
-	return enviar_mensaje_lfs(&mensaje, respuesta_create);
+	int rta = enviar_mensaje_lfs(&mensaje, respuesta_create);
+	if(rta < 0) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+					"Fallo la comunicacion con FS para realizar un create");
+		return ERROR;
+	}
+	return rta;
 }
 
 int _manejar_describe(struct describe_request mensaje, void *respuesta) {
-	return enviar_mensaje_lfs(&mensaje, respuesta);
+	int rta = enviar_mensaje_lfs(&mensaje, respuesta);
+	if(rta < 0) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Fallo la comunicacion con FS para realizar un describe");
+		return ERROR;
+	}
+	return rta;
 }
 
 int _manejar_gossip(struct gossip mensaje, void *respuesta) {
-	return obtener_respuesta_gossip(respuesta);
+	int rta = obtener_respuesta_gossip(respuesta);
+	if(rta < 0) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Fallo la comunicacion para realizar el gossip");
+		return ERROR;
+	}
+	return rta;
 }
