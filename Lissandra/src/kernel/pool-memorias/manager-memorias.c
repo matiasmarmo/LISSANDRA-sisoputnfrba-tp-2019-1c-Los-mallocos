@@ -356,14 +356,13 @@ int realizar_journal_en_memoria(memoria_t *memoria) {
 		return -1;
 	}
 	pthread_mutex_unlock(&memoria->mutex);
-	if (get_msg_id(buffer_local) != JOURNAL_RESPONSE_ID) {
-		kernel_log_to_level(LOG_LEVEL_DEBUG, false,
-				"Respuesta inesperada de memoria. Se esperaba %d (JOURNAL_RESPONSE), pero se recibio %d",
-				JOURNAL_RESPONSE_ID, get_msg_id(buffer_local));
+	if(get_msg_id(buffer_local) == ERROR_MSG_ID) {
+		kernel_log_to_level(LOG_LEVEL_WARNING, false, "Error al realizar journal en memoria %d", memoria->id_memoria);
+		destroy(buffer_local);
 		return -1;
 	}
-	respuesta = (struct journal_response*) buffer_local;
-	return !respuesta->fallo;
+	destroy(buffer_local);
+	return 0;
 }
 
 int realizar_journal_a_lista(t_list *lista_memorias) {

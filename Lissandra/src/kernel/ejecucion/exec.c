@@ -97,6 +97,7 @@ void ejecutar_request(char **request, SCB *scb) {
 	}
 	if (parser(*request, buffer_request, tamanio_buffers) < 0) {
 		scb->estado = ERROR_SCRIPT;
+		kernel_log_to_level(LOG_LEVEL_INFO, scb->es_request_unitario, "Error de parseo: %s", *request);
 		return;
 	}
 	switch (get_msg_id(buffer_request)) {
