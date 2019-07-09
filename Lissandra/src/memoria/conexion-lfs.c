@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include <commons/log.h>
 #include "../commons/comunicacion/sockets.h"
@@ -55,7 +56,7 @@ int desconectar_lfs() {
     return 0;
 }
 
-int enviar_mensaje_lfs(void *request, void *respuesta) {
+int enviar_mensaje_lfs(void *request, void *respuesta, bool should_sleep) {
     if(pthread_mutex_lock(&mutex_conexion_lfs) != 0) {
         return -1;
     }
@@ -72,5 +73,8 @@ int enviar_mensaje_lfs(void *request, void *respuesta) {
         return -1;
     }
     pthread_mutex_unlock(&mutex_conexion_lfs);
+    if(should_sleep) {
+        usleep(get_retardo_acceso_file_system() * 1000);
+    }
     return 0;
 }

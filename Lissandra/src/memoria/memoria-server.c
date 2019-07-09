@@ -59,37 +59,45 @@ void destruir_clientes() {
 	list_destroy_and_destroy_elements(lista_clientes, &_destruir_elemento);
 }
 
-int ejecutar_request(void *request, void *respuesta) {
+void sleep_acceso_memoria(bool should_sleep) {
+	if(should_sleep) {
+		usleep(get_retardo_memoria_principal() * 1000);
+	}
+}
+
+int ejecutar_request(void *request, void *respuesta, bool should_sleep) {
 	int resultado = 0;
 	switch (get_msg_id(request)) {
 	case SELECT_REQUEST_ID:
 		bloquear_memoria();
 		resultado = _manejar_select(*((struct select_request *) request),
-				respuesta);
+				respuesta, should_sleep);
 		desbloquear_memoria();
+		sleep_acceso_memoria(should_sleep);
 		return resultado;
 	case INSERT_REQUEST_ID:
 		bloquear_memoria();
 		resultado = _manejar_insert(*((struct insert_request *) request),
 				respuesta);
 		desbloquear_memoria();
+		sleep_acceso_memoria(should_sleep);
 		return resultado;
 	case CREATE_REQUEST_ID:
-		return _manejar_create(*((struct create_request *) request), respuesta);
+		return  _manejar_create(*((struct create_request *) request), respuesta, should_sleep);
 	case DESCRIBE_REQUEST_ID:
 		return _manejar_describe(*((struct describe_request *) request),
-				respuesta);
+				respuesta, should_sleep);
 	case GOSSIP_ID:
 		return _manejar_gossip(*((struct gossip *) request), respuesta);
 	case DROP_REQUEST_ID:
 		return _manejar_drop(*((struct drop_request *) request),
-				respuesta);
-		return 0;
+				respuesta, should_sleep);
 	case JOURNAL_REQUEST_ID:
 		bloquear_memoria();
 		resultado = realizar_journal();
 		init_journal_response(resultado, respuesta);
 		desbloquear_memoria();
+		sleep_acceso_memoria(should_sleep);
 		return resultado;
 	default:
 		return -1;
@@ -97,15 +105,15 @@ int ejecutar_request(void *request, void *respuesta) {
 }
 
 void manejarCliente(int cliente, int* posicion) {
-	int error;
+	int res;
 	int tamanio_buffers = get_max_msg_size();
 	uint8_t buffer[tamanio_buffers], respuesta[tamanio_buffers];
 	memset(buffer, 0, tamanio_buffers);
 	memset(respuesta, 0, tamanio_buffers);
-	if ((error = recv_msg(cliente, buffer, tamanio_buffers) < 0)) {
+	if ((res = recv_msg(cliente, buffer, tamanio_buffers) < 0)) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo al recibir el mensaje del cliente");
-		if (error == SOCKET_ERROR || error == CONN_CLOSED) {
+		if (res == SOCKET_ERROR || res == CONN_CLOSED) {
 			list_remove_and_destroy_element(lista_clientes, *posicion, free);
 			*posicion -= 1;
 			close(cliente);
@@ -113,17 +121,18 @@ void manejarCliente(int cliente, int* posicion) {
 		return;
 	}
 
-	if (ejecutar_request(buffer, respuesta) < 0) {
+	if (ejecutar_request(buffer, respuesta, true) < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo al ejecutar request");
 		destroy(buffer);
 		return;
 	}
+
 	destroy(buffer);
-	if ((error = send_msg(cliente, respuesta) < 0)) { // intento reconectarme
+	if ((res = send_msg(cliente, respuesta) < 0)) { // intento reconectarme
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo al enviar el mensaje al cliente");
-		if (error == SOCKET_ERROR || error == CONN_CLOSED) {
+		if (res == SOCKET_ERROR || res == CONN_CLOSED) {
 			list_remove_and_destroy_element(lista_clientes, *posicion, free);
 			*posicion -= 1;
 			close(cliente);
@@ -154,7 +163,7 @@ void manejar_consola_memoria(char* linea, void* request) {
 	int tamanio_buffers = get_max_msg_size();
 	uint8_t respuesta[tamanio_buffers];
 	memset(respuesta, 0, tamanio_buffers);
-	if (ejecutar_request(request, respuesta) < 0) {
+	if (ejecutar_request(request, respuesta, false) < 0) {
 		imprimir("Error al procesar el request\n");
 		return;
 	}

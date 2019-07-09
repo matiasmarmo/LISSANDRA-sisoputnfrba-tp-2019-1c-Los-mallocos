@@ -23,8 +23,8 @@
 #include "../memoria-principal/memoria-LRU.h"
 #include "../conexion-lfs.h"
 
-int _manejar_create(struct create_request mensaje, void* respuesta_create) {
-	int rta = enviar_mensaje_lfs(&mensaje, respuesta_create);
+int _manejar_create(struct create_request mensaje, void* respuesta_create, bool should_sleep) {
+	int rta = enviar_mensaje_lfs(&mensaje, respuesta_create, should_sleep);
 	if(rta < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 					"Fallo la comunicacion con FS para realizar un create");
@@ -33,8 +33,8 @@ int _manejar_create(struct create_request mensaje, void* respuesta_create) {
 	return rta;
 }
 
-int _manejar_describe(struct describe_request mensaje, void *respuesta) {
-	int rta = enviar_mensaje_lfs(&mensaje, respuesta);
+int _manejar_describe(struct describe_request mensaje, void *respuesta, bool should_sleep) {
+	int rta = enviar_mensaje_lfs(&mensaje, respuesta, should_sleep);
 	if(rta < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo la comunicacion con FS para realizar un describe");
@@ -53,13 +53,11 @@ int _manejar_gossip(struct gossip mensaje, void *respuesta) {
 	return rta;
 }
 
-////////////////////////////////////////////////////////////
-
-int _manejar_drop(struct drop_request mensaje, void *respuesta) {
+int _manejar_drop(struct drop_request mensaje, void *respuesta, bool should_sleep) {
 	string_to_upper(mensaje.tabla);
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
 	if (segmento_buscado == NULL) { // No existe el segmento en memoria
-		int rta = enviar_mensaje_lfs(&mensaje, respuesta);
+		int rta = enviar_mensaje_lfs(&mensaje, respuesta, should_sleep);
 		if(rta < 0) {
 			memoria_log_to_level(LOG_LEVEL_TRACE, false,
 					"Fallo la comunicacion con FS para realizar un drop");

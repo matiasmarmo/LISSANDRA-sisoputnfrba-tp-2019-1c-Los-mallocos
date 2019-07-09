@@ -24,35 +24,38 @@
 #include "memoria-other-requests-handler.h"
 
 
-int _manejar_select_segmento_encontrado(struct select_request, void*,segmento*);
-int _manejar_select_segmento_no_encontrado(struct select_request, void*,segmento*);
+int _manejar_select_segmento_encontrado(struct select_request, void*,segmento*, bool);
+int _manejar_select_segmento_no_encontrado(struct select_request, void*,segmento*, bool);
 int _manejar_select_pagina_en_memoria(struct select_request, void*,segmento*,registro_tabla_pagina*);
-int _manejar_select_pagina_no_en_memoria(struct select_request, void*,segmento*);
+int _manejar_select_pagina_no_en_memoria(struct select_request, void*,segmento*, bool);
 
-int _manejar_select(struct select_request mensaje, void* respuesta_select) {
+int _manejar_select(struct select_request mensaje, void* respuesta_select, bool should_sleep) {
 	string_to_upper(mensaje.tabla);
 	segmento* segmento_buscado = encontrar_segmento_en_memoria(mensaje.tabla);
 	if (segmento_buscado == NULL) { // No existe el segmento en memoria
 		int a = _manejar_select_segmento_no_encontrado(mensaje,
 													respuesta_select,
-													segmento_buscado);
+													segmento_buscado,
+													should_sleep);
 		return a;
 	} else { // El segmento esta en memoria
 		int a = _manejar_select_segmento_encontrado(mensaje,
 													respuesta_select,
-													segmento_buscado);
+													segmento_buscado,
+													should_sleep);
 		return a;
 	}
 	return EXIT_SUCCESS;
 }
 
-int _manejar_select_segmento_encontrado(struct select_request mensaje, void* respuesta_select, segmento* segmento_buscado){
+int _manejar_select_segmento_encontrado(struct select_request mensaje, void* respuesta_select, segmento* segmento_buscado, bool should_sleep){
 	registro_tabla_pagina* reg_pagina = encontrar_pagina_en_memoria(
 									segmento_buscado, mensaje.key);
 	if (reg_pagina == NULL) { // No existe la pagina en memoria
 		int aux = _manejar_select_pagina_no_en_memoria(mensaje,
 													 respuesta_select,
-													 segmento_buscado);
+													 segmento_buscado,
+													 should_sleep);
 		return aux;
 	} else { // La pagina esta en memoria
 		int aux = _manejar_select_pagina_en_memoria(mensaje,
@@ -63,7 +66,7 @@ int _manejar_select_segmento_encontrado(struct select_request mensaje, void* res
 	}
 }
 
-int _manejar_select_segmento_no_encontrado(struct select_request mensaje, void* respuesta_select,segmento* segmento_buscado){
+int _manejar_select_segmento_no_encontrado(struct select_request mensaje, void* respuesta_select,segmento* segmento_buscado, bool should_sleep){
 	int lugar_pagina_vacia;
 	int flag_modificado = 0;
 	uint8_t respuesta_lfs[get_max_msg_size()];
@@ -95,7 +98,7 @@ int _manejar_select_segmento_no_encontrado(struct select_request mensaje, void* 
 		}
 	}
 	/*----PEDIDO AL FS----*/
-	if(enviar_mensaje_lfs(&mensaje, &respuesta_lfs) < 0) {
+	if(enviar_mensaje_lfs(&mensaje, &respuesta_lfs, should_sleep) < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo la comunicacion con FS para pedirle una pagina");
 		return ERROR;
@@ -142,7 +145,7 @@ int _manejar_select_pagina_en_memoria(struct select_request mensaje, void* respu
 	return 0;
 }
 
-int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* respuesta_select,segmento* segmento_buscado){
+int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* respuesta_select,segmento* segmento_buscado, bool should_sleep){
 	uint8_t respuesta_lfs[get_max_msg_size()];
 	struct timeval timestamp_accedido;
 	gettimeofday(&timestamp_accedido,NULL);
@@ -175,7 +178,7 @@ int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* re
 		}
 	}
 	/*----PEDIDO AL FS----*/
-	if(enviar_mensaje_lfs(&mensaje, &respuesta_lfs) < 0) {
+	if(enviar_mensaje_lfs(&mensaje, &respuesta_lfs, should_sleep) < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo la comunicacion con FS para pedirle una pagina");
 		return ERROR;

@@ -196,7 +196,7 @@ int obtener_pagina_para_journal(segmento* segmento,
 			*((uint64_t*) (puntero_a_pagina + 2)), &request);
 	uint16_t key = *((uint16_t*) puntero_a_pagina);
 	uint8_t buffer[get_max_msg_size()];
-	if (enviar_mensaje_lfs(&request, buffer) < 0) {
+	if (enviar_mensaje_lfs(&request, buffer, false) < 0) {
 		memoria_log_to_level(LOG_LEVEL_ERROR, false,
 				"Fallo la comunicacion con file system, key %d perdida", key);
 		destroy(&request);
