@@ -16,14 +16,14 @@
 #include "../commons/lissandra-threads.h"
 #include "../commons/consola/consola.h"
 #include "../commons/comunicacion/protocol-utils.h"
-#include "memoria-insert-request-handler.h"
-#include "memoria-select-request-handler.h"
-#include "memoria-handler.h"
+#include "memoria-principal/memoria-handler.h"
+#include "requests/memoria-insert-request-handler.h"
+#include "requests/memoria-select-request-handler.h"
+#include "requests/memoria-other-requests-handler.h"
 #include "memoria-server.h"
 #include "memoria-logger.h"
 #include "memoria-config.h"
 #include "memoria-main.h"
-#include "memoria-other-requests-handler.h"
 
 t_list *lista_clientes;
 

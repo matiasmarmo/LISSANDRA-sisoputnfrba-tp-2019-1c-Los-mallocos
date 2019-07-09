@@ -12,7 +12,7 @@
 #include "../commons/comunicacion/protocol-utils.h"
 #include "../commons/comunicacion/sockets.h"
 #include "../commons/lissandra-threads.h"
-#include "memoria-handler.h"
+#include "memoria-principal/memoria-handler.h"
 #include "memoria-logger.h"
 #include "memoria-config.h"
 #include "memoria-server.h"
