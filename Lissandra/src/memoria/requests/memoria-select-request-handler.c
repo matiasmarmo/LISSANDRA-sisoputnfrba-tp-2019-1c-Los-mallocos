@@ -99,8 +99,6 @@ int _manejar_select_segmento_no_encontrado(struct select_request mensaje, void* 
 	}
 	/*----PEDIDO AL FS----*/
 	if(enviar_mensaje_lfs(&mensaje, &respuesta_lfs, should_sleep) < 0) {
-		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-				"Fallo la comunicacion con FS para pedirle una pagina");
 		return ERROR;
 	}
 	if(get_msg_id(&respuesta_lfs) != ERROR_MSG_ID){
@@ -179,8 +177,6 @@ int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* re
 	}
 	/*----PEDIDO AL FS----*/
 	if(enviar_mensaje_lfs(&mensaje, &respuesta_lfs, should_sleep) < 0) {
-		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-				"Fallo la comunicacion con FS para pedirle una pagina");
 		return ERROR;
 	}
 	if(get_msg_id(&respuesta_lfs) != ERROR_MSG_ID){
