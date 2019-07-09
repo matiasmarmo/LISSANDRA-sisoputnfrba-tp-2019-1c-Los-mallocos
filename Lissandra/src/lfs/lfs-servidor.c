@@ -70,6 +70,7 @@ void *manejar_cliente(void* entrada) {
 		}
 		memset(buffer, 0, tamanio_buffers);
 		memset(respuesta, 0, tamanio_buffers);
+		usleep(get_retardo() * 1000);
 	}
 
 	close(cliente);
