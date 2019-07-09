@@ -409,8 +409,6 @@ int agregar_memoria_a_sc(uint16_t id_memoria, int es_request_unitario) {
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
-		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario,
-				"Memoria numero %d desconocida", id_memoria);
 		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_sc, memoria);
@@ -435,8 +433,6 @@ int agregar_memoria_a_shc(uint16_t id_memoria, int es_request_unitario) {
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
-		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario,
-				"Memoria numero %d desconocida", id_memoria);
 		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_shc, memoria);
@@ -452,8 +448,6 @@ int agregar_memoria_a_ec(uint16_t id_memoria, int es_request_unitario) {
 	}
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
-		kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario,
-				"Memoria numero %d desconocida", id_memoria);
 		return MEMORIA_DESCONOCIDA;
 	}
 	agregar_memoria_a_lista(criterio_ec, memoria);
