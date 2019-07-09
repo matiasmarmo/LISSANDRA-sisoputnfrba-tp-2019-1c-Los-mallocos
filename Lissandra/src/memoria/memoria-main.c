@@ -114,6 +114,7 @@ int main() {
 	l_thread_join(&thread_gossip.l_thread, NULL);
 	l_thread_join(&thread_journal.l_thread, NULL);
 
+	realizar_journal();
 	liberar_recursos_memoria();
 	return 0;
 }
