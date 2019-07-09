@@ -109,25 +109,12 @@ int _manejar_select_segmento_no_encontrado(struct select_request mensaje, void* 
 		crear_pagina_nueva(lugar_pagina_vacia, resp.key, resp.timestamp, resp.valor);
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Se agrego correctamente a memoria la tabla \"%s\", y la pagina que posee key = %d y valor = \"%s\".",mensaje.tabla,resp.key,resp.valor);
-		int aux = init_select_response(0, resp.tabla, resp.key, resp.valor,
-				resp.timestamp, &resp);
-		if (aux < 0) {
-			memoria_log_to_level(LOG_LEVEL_TRACE, false,
-					"Falló la respuesta del SELECT, error en init_select_response()");
-			return ERROR;
-		}
 		memcpy(respuesta_select, &resp, sizeof(struct select_response));
 	}
 	else{
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"No se pudo traer a memoria --> la pagina que posee key = %d de la tabla \"%s\", dado que esta no existe en el FS",mensaje.key,mensaje.tabla);
 		struct error_msg resp = *((struct error_msg*) respuesta_lfs);
-		int aux = init_error_msg(resp.error_code,resp.description,&resp);
-		if (aux < 0) {
-			memoria_log_to_level(LOG_LEVEL_TRACE, false,
-					"Falló la respuesta del SELECT, error en init_error_response()");
-			return ERROR;
-		}
 		memcpy(respuesta_select, &resp, sizeof(struct error_msg));
 	}
 	return 0;
@@ -200,25 +187,12 @@ int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* re
 		crear_pagina_nueva(lugar_pagina_vacia, resp.key, resp.timestamp, resp.valor);
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Se agrego correctamente a la tabla \"%s\" --> la pagina que posee key = %d y valor = \"%s\".",mensaje.tabla,resp.key,resp.valor);
-		int aux = init_select_response(0, segmento_buscado->tabla, resp.key, resp.valor,
-				resp.timestamp, &resp);
-		if (aux < 0) {
-			memoria_log_to_level(LOG_LEVEL_TRACE, false,
-					"Falló la respuesta del SELECT, error en init_select_response()");
-			return ERROR;
-		}
-		memcpy(respuesta_select, &resp,sizeof(struct select_response));
+		memcpy(respuesta_select, &resp, sizeof(struct select_response));
 	}
 	else{
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"No se pudo traer a memoria --> la pagina que posee key = %d de la tabla \"%s\", dado que esta no existe en el FS",mensaje.key,mensaje.tabla);
 		struct error_msg resp = *((struct error_msg*) respuesta_lfs);
-		int aux = init_error_msg(resp.error_code,resp.description,&resp);
-		if (aux < 0) {
-			memoria_log_to_level(LOG_LEVEL_TRACE, false,
-					"Falló la respuesta del SELECT, error en init_error_response()");
-			return ERROR;
-		}
 		memcpy(respuesta_select, &resp, sizeof(struct error_msg));
 	}
 	return 0;
