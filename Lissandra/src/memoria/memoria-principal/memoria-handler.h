@@ -48,6 +48,5 @@ void destruir_registro_de_pagina(registro_tabla_pagina *);
 int realizar_journal();
 void *realizar_journal_threaded(void *);
 void destruccion_segmento(segmento* segmento);
-//void imprimir_toda_memoria();
 
 #endif /* MEMORIA_MEMORIA_HANDLER_H_ */

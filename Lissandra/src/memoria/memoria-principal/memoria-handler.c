@@ -265,15 +265,3 @@ void destruccion_segmento(segmento* segmento) {
 	destruccion_todos_los_registros_de_un_segmento(segmento);
 	free(segmento);
 }
-
-/*
-void imprimir_toda_memoria() {
-	printf("\nCOMIENZA LECTURA MEMORIA\n");
-	for(int i = 0; i < get_tamanio_memoria() ; i=i+get_tamanio_maximo_pagina()) {
-		for( int j = 0 ; j < get_tamanio_maximo_pagina() ; j++) {
-			printf("%d ",memoria[j+i]);
-		}
-		printf("\n");
-	}
-}
-*/
