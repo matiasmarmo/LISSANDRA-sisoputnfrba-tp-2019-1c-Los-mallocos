@@ -93,26 +93,47 @@ void finalizar_memoria() {
 	pthread_mutex_unlock(&memoria_main_mutex);
 }
 
-int main() {
+void finalizar_thread(lissandra_thread_t *l_thread) {
+	l_thread_solicitar_finalizacion(l_thread);
+	l_thread_join(l_thread, NULL);
+}
 
+void finalizar_thread_si_se_creo(lissandra_thread_t *l_thread, int create_ret) {
+	// Si el create al thread retornó 0 (fue exitoso), la finalizamos.
+	if (create_ret == 0) {
+		finalizar_thread(l_thread);
+	}
+}
+
+int main() {
+	int rets[4];
 	inicializar_memoria();
 
-	lissandra_thread_t l_thread;
+	lissandra_thread_t servidor, inotify;
 	lissandra_thread_periodic_t thread_gossip, thread_journal;
-	l_thread_create(&l_thread, &correr_servidor_memoria, NULL);
-	l_thread_periodic_create(&thread_gossip, &realizar_gossip_threaded, &get_tiempo_gossiping, NULL);
-	l_thread_periodic_create(&thread_journal, &realizar_journal_threaded, &get_tiempo_journal, NULL);
+	rets[0] = l_thread_create(&servidor, &correr_servidor_memoria, NULL);
+	rets[1] = inicializar_memoria_inotify(&inotify);
+	rets[2] = l_thread_periodic_create(&thread_gossip, &realizar_gossip_threaded, &get_tiempo_gossiping, NULL);
+	rets[3] = l_thread_periodic_create(&thread_journal, &realizar_journal_threaded, &get_tiempo_journal, NULL);
+
+	for(int i = 0; i < 4; i++) {
+		if(rets[i] != 0) {
+			finalizar_thread_si_se_creo(&servidor, rets[0]);
+			finalizar_thread_si_se_creo(&inotify, rets[1]);
+			finalizar_thread_si_se_creo(&thread_gossip.l_thread, rets[2]);
+			finalizar_thread_si_se_creo(&thread_journal.l_thread, rets[3]);
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	pthread_mutex_lock(&memoria_main_mutex);
 	pthread_cond_wait(&memoria_main_cond, &memoria_main_mutex);
 	pthread_mutex_unlock(&memoria_main_mutex);
 
-	l_thread_solicitar_finalizacion(&l_thread);
-	l_thread_solicitar_finalizacion(&thread_gossip.l_thread);
-	l_thread_solicitar_finalizacion(&thread_journal.l_thread);
-	l_thread_join(&l_thread, NULL);
-	l_thread_join(&thread_gossip.l_thread, NULL);
-	l_thread_join(&thread_journal.l_thread, NULL);
+	finalizar_thread(&servidor);
+	finalizar_thread(&inotify);
+	finalizar_thread(&thread_gossip.l_thread);
+	finalizar_thread(&thread_journal.l_thread);
 
 	realizar_journal();
 	liberar_recursos_memoria();
