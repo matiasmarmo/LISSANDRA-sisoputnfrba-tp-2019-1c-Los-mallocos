@@ -34,12 +34,12 @@ int get_tamanio_value() {
 
 void inicializar_memoria(){
 	if(inicializar_memoria_logger() < 0) {
-		destruir_memoria_config();
 		exit(EXIT_FAILURE);
 	}
 	if(inicializar_memoria_config() < 0) {
 		memoria_log_to_level(LOG_LEVEL_ERROR, false,
 			"Error al inicializar archivo de configuración de la memoria. Abortando.");
+		destruir_memoria_logger();
 		exit(EXIT_FAILURE);
 	}
 	if(inicializacion_memoria() < 0) {
@@ -127,7 +127,7 @@ int main() {
 			exit(EXIT_FAILURE);
 		}
 	}
-
+	
 	pthread_cond_wait(&memoria_main_cond, &memoria_main_mutex);
 	pthread_mutex_unlock(&memoria_main_mutex);
 

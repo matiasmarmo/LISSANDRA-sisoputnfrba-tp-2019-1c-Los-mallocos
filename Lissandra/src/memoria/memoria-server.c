@@ -47,7 +47,7 @@ void inicializar_clientes() {
 	list_add(lista_clientes, cliente2);
 }
 
-void destruir_cliente(cliente_t *cliente) {
+void destruir_cliente( cliente_t *cliente) {
 	free(cliente);
 }
 
@@ -104,19 +104,18 @@ int ejecutar_request(void *request, void *respuesta, bool should_sleep) {
 	}
 }
 
-void manejarCliente(int cliente, int* posicion) {
+void manejarCliente(cliente_t *cliente) {
 	int res;
 	int tamanio_buffers = get_max_msg_size();
 	uint8_t buffer[tamanio_buffers], respuesta[tamanio_buffers];
 	memset(buffer, 0, tamanio_buffers);
 	memset(respuesta, 0, tamanio_buffers);
-	if ((res = recv_msg(cliente, buffer, tamanio_buffers)) < 0) {
+	if ((res = recv_msg(cliente->cliente_valor, buffer, tamanio_buffers)) < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-				"Fallo al recibir el mensaje del cliente");
+				"Fallo al recibir el mensaje del cliente, pudo haberse desconectado");
 		if (res == SOCKET_ERROR || res == CONN_CLOSED) {
-			list_remove_and_destroy_element(lista_clientes, *posicion, free);
-			*posicion -= 1;
-			close(cliente);
+			close(cliente->cliente_valor);
+			cliente->cliente_valor = -1;
 		}
 		return;
 	}
@@ -129,16 +128,19 @@ void manejarCliente(int cliente, int* posicion) {
 	}
 
 	destroy(buffer);
-	if ((res = send_msg(cliente, respuesta)) < 0) { // intento reconectarme
+	if ((res = send_msg(cliente->cliente_valor, respuesta)) < 0) { // intento reconectarme
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
-				"Fallo al enviar el mensaje al cliente");
+				"Fallo al enviar el mensaje al cliente, pudo haberse desconectado");
 		if (res == SOCKET_ERROR || res == CONN_CLOSED) {
-			list_remove_and_destroy_element(lista_clientes, *posicion, free);
-			*posicion -= 1;
-			close(cliente);
+			close(cliente->cliente_valor);
+			cliente->cliente_valor = -1;
 		}
 	}
 	destroy(respuesta);
+}
+
+bool cliente_esta_desconectado(void *cliente) {
+	return ((cliente_t*) cliente)->cliente_valor == -1;
 }
 
 int aceptar_cliente(int servidor) {
@@ -205,7 +207,7 @@ void* correr_servidor_memoria(void* entrada) {
 		NULL);
 		if (select_ret == -1) {
 			memoria_log_to_level(LOG_LEVEL_TRACE, false,
-					"Fallo en la ejecucion del select del servidor");
+					"Fallo en la ejecucion del select del servidor %d", errno);
 			break;
 		} else if (select_ret > 0) {
 			if (FD_ISSET(servidor, &copia)) {
@@ -231,12 +233,16 @@ void* correr_servidor_memoria(void* entrada) {
 			}
 			for (i = 0; i < list_size(lista_clientes); i++) {
 				cliente_t *cliente = list_get(lista_clientes, i);
-
+				int socket = cliente->cliente_valor;
 				if (cliente->cliente_valor
-						!= -1&& FD_ISSET(cliente->cliente_valor, &copia)) {
-					manejarCliente(cliente->cliente_valor, &i);
+						!= -1 && FD_ISSET(cliente->cliente_valor, &copia)) {
+					manejarCliente(cliente);
+					if(cliente_esta_desconectado(cliente)) {
+						FD_CLR(socket, &descriptores);
+					}
 				}
 			}
+			list_remove_and_destroy_by_condition(lista_clientes, &cliente_esta_desconectado, free);
 		}
 	}
 	destruir_clientes();
