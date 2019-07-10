@@ -100,7 +100,7 @@ int ejecutar_request(void *request, void *respuesta, bool should_sleep) {
 		sleep_acceso_memoria(should_sleep);
 		return resultado;
 	default:
-		return -1;
+		return init_error_msg(0, "Comando no soportado", respuesta);
 	}
 }
 

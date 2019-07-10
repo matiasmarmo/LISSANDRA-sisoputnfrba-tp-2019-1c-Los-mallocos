@@ -343,6 +343,8 @@ int manejar_request(uint8_t* buffer, uint8_t* respuesta) {
 		return manejar_describe(buffer, respuesta);
 	case DROP_REQUEST_ID:
 		return manejar_drop(buffer, respuesta);
+	default:
+		return init_error_msg(0, "Comando no soportado", (struct error_msg*)respuesta);
 	}
 	return 0;
 }
