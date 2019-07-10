@@ -24,33 +24,28 @@
 pthread_rwlock_t semaforo_dict_bloque = PTHREAD_RWLOCK_INITIALIZER;
 t_dictionary *diccionario_bloqueo_tablas;
 
+static __thread pthread_rwlock_t *lock_obtenido = NULL;
+
 int bloquear_tabla(char *nombre_tabla, char forma) {
-	pthread_rwlock_wrlock(&semaforo_dict_bloque);
+	pthread_rwlock_rdlock(&semaforo_dict_bloque);
 	if (!dictionary_has_key(diccionario_bloqueo_tablas, nombre_tabla)) {
 		pthread_rwlock_unlock(&semaforo_dict_bloque);
 		return -1;
 	}
-	pthread_rwlock_t *lock = dictionary_get(diccionario_bloqueo_tablas,
+	lock_obtenido = dictionary_get(diccionario_bloqueo_tablas,
 			nombre_tabla);
 	if (forma == 'w') {
-		pthread_rwlock_wrlock(lock);
+		pthread_rwlock_wrlock(lock_obtenido);
 	} else if (forma == 'r') {
-		pthread_rwlock_rdlock(lock);
+		pthread_rwlock_rdlock(lock_obtenido);
 	}
 	pthread_rwlock_unlock(&semaforo_dict_bloque);
 	return 0;
 }
 
 int desbloquear_tabla(char *nombre_tabla) {
-	pthread_rwlock_wrlock(&semaforo_dict_bloque);
-	if (!dictionary_has_key(diccionario_bloqueo_tablas, nombre_tabla)) {
-		pthread_rwlock_unlock(&semaforo_dict_bloque);
-		return -1;
-	}
-	pthread_rwlock_t *lock = dictionary_get(diccionario_bloqueo_tablas,
-			nombre_tabla);
-	pthread_rwlock_unlock(lock);
-	pthread_rwlock_unlock(&semaforo_dict_bloque);
+	pthread_rwlock_unlock(lock_obtenido);
+	lock_obtenido = NULL;
 	return 0;
 }
 
