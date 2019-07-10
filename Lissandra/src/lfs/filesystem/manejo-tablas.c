@@ -265,6 +265,7 @@ int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla) {
 		return -1;
 	}
 	t_config* metadata_config_tabla = lfs_config_create_from_file(buffer, file_metadata);
+	fclose(file_metadata);
 
 	if (metadata_config_tabla == NULL) {
 		return -1;
