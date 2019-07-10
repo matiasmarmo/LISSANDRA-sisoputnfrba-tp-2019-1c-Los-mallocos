@@ -109,6 +109,8 @@ int main() {
 	int rets[4];
 	inicializar_memoria();
 
+	pthread_mutex_lock(&memoria_main_mutex);
+
 	lissandra_thread_t servidor, inotify;
 	lissandra_thread_periodic_t thread_gossip, thread_journal;
 	rets[0] = l_thread_create(&servidor, &correr_servidor_memoria, NULL);
@@ -126,7 +128,6 @@ int main() {
 		}
 	}
 
-	pthread_mutex_lock(&memoria_main_mutex);
 	pthread_cond_wait(&memoria_main_cond, &memoria_main_mutex);
 	pthread_mutex_unlock(&memoria_main_mutex);
 

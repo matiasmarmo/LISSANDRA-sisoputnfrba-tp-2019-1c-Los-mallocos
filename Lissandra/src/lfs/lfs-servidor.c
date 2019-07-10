@@ -168,7 +168,8 @@ void correr_servidor(void* entrada) {
 	int servidor = create_socket_server(puerto, 10);
 
 	if (servidor < 0) {
-		lfs_log_to_level(LOG_LEVEL_TRACE, false, "Fallo al crear el servidor");
+		lfs_log_to_level(LOG_LEVEL_TRACE, true, "Fallo al crear el servidor");
+		finalizar_lfs();
 		pthread_exit(NULL);
 	}
 

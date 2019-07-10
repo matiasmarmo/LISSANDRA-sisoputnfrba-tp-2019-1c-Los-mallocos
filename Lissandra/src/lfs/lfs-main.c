@@ -98,6 +98,8 @@ int main() {
 	lissandra_thread_t servidor, inotify;
 	lissandra_thread_periodic_t dumper;
 
+	pthread_mutex_lock(&lfs_main_mutex);
+
 	rets[0] = l_thread_create(&servidor, &correr_servidor, NULL);
 	rets[1] = inicializar_lfs_inotify(&inotify);
 	rets[2] = instanciar_hilo_dumper(&dumper);
@@ -114,7 +116,6 @@ int main() {
 
 	lfs_log_to_level(LOG_LEVEL_INFO, false, "Todos los módulos inicializados.");
 
-	pthread_mutex_lock(&lfs_main_mutex);
 	pthread_cond_wait(&lfs_main_cond, &lfs_main_mutex);
 	pthread_mutex_unlock(&lfs_main_mutex);
 

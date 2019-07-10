@@ -74,6 +74,9 @@ void finalizar_thread_si_se_creo(lissandra_thread_t *l_thread, int create_ret) {
 int main() {
 	inicializar_kernel();
 	int rets[6];
+
+	pthread_mutex_lock(&kernel_main_mutex);
+
 	lissandra_thread_t planificador, consola, inotify;
 	lissandra_thread_periodic_t metadata_updater, memorias_updater,
 			metricas_logger;
@@ -103,7 +106,6 @@ int main() {
 	kernel_log_to_level(LOG_LEVEL_INFO, false,
 			"Todos los módulos inicializados.");
 
-	pthread_mutex_lock(&kernel_main_mutex);
 	pthread_cond_wait(&kernel_main_cond, &kernel_main_mutex);
 	pthread_mutex_unlock(&kernel_main_mutex);
 

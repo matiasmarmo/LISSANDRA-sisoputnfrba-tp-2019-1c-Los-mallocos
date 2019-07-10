@@ -260,9 +260,11 @@ int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla) {
 	obtener_path_tabla(nombre_tabla, buffer);
 	strcat(buffer, nombre_tabla);
 	strcat(buffer, "-metadata.bin");
-	bloquear_tabla(nombre_tabla, 'r');
-	t_config* metadata_config_tabla = config_create(buffer);
-	desbloquear_tabla(nombre_tabla);
+	FILE *file_metadata = abrir_archivo_para_lectura(buffer);
+	if(file_metadata == NULL) {
+		return -1;
+	}
+	t_config* metadata_config_tabla = lfs_config_create_from_file(buffer, file_metadata);
 
 	if (metadata_config_tabla == NULL) {
 		return -1;
