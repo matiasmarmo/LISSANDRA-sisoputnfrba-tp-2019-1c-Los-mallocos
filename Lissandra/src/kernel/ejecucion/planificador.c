@@ -134,7 +134,7 @@ int alojar_siguiente_script(lissandra_thread_t **runner_thread) {
 char *leer_fuente_script(char *path) {
 	FILE *archivo = fopen(path, "r");
 	if (archivo == NULL) {
-		kernel_log_to_level(LOG_LEVEL_ERROR, false, "No se pudo abrir el archivo %s", path);
+		kernel_log_to_level(LOG_LEVEL_ERROR, true, "No se pudo abrir el archivo %s, verifique su existencia", path);
 		return NULL;
 	}
 	fseek(archivo, 0, SEEK_END);
