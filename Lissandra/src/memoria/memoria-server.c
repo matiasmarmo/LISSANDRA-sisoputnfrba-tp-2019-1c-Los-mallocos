@@ -110,7 +110,7 @@ void manejarCliente(int cliente, int* posicion) {
 	uint8_t buffer[tamanio_buffers], respuesta[tamanio_buffers];
 	memset(buffer, 0, tamanio_buffers);
 	memset(respuesta, 0, tamanio_buffers);
-	if ((res = recv_msg(cliente, buffer, tamanio_buffers) < 0)) {
+	if ((res = recv_msg(cliente, buffer, tamanio_buffers)) < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo al recibir el mensaje del cliente");
 		if (res == SOCKET_ERROR || res == CONN_CLOSED) {
@@ -129,7 +129,7 @@ void manejarCliente(int cliente, int* posicion) {
 	}
 
 	destroy(buffer);
-	if ((res = send_msg(cliente, respuesta) < 0)) { // intento reconectarme
+	if ((res = send_msg(cliente, respuesta)) < 0) { // intento reconectarme
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
 				"Fallo al enviar el mensaje al cliente");
 		if (res == SOCKET_ERROR || res == CONN_CLOSED) {

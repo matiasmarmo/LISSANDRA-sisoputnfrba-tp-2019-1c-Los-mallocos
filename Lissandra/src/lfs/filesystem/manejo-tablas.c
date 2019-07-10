@@ -260,9 +260,7 @@ int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla) {
 	obtener_path_tabla(nombre_tabla, buffer);
 	strcat(buffer, nombre_tabla);
 	strcat(buffer, "-metadata.bin");
-	lfs_log_to_level(LOG_LEVEL_TRACE, false, "Bloqueando semaforo obtener metadata tablas\n");
 	bloquear_tabla(nombre_tabla, 'r');
-	lfs_log_to_level(LOG_LEVEL_TRACE, false, "Bloqueado semaforo obtener metadata tablas\n");
 	t_config* metadata_config_tabla = config_create(buffer);
 	desbloquear_tabla(nombre_tabla);
 

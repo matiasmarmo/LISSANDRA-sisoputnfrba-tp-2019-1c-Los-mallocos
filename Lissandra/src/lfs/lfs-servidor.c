@@ -131,7 +131,6 @@ void crear_hilo_cliente(t_list *lista_clientes, int servidor) {
 }
 
 bool termino_cliente(void *elemento) {
-	lfs_log_to_level(LOG_LEVEL_INFO, false, "Un cliente se ha desconectado del LFS.");
 	lissandra_thread_t *l_thread = (lissandra_thread_t*) elemento;
 	return (bool) l_thread_finalizo(l_thread);
 }
@@ -150,7 +149,6 @@ void manejar_consola(char* linea, void* request) {
 		finalizar_lfs();
 		return;
 	}
-	lfs_log_to_level(LOG_LEVEL_INFO, false, "Se ha realizado un request por la consola del LFS.");
 
 	res = manejar_request(request, respuesta);
 	if(res != -1){
