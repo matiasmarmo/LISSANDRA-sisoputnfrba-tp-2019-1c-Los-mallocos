@@ -102,14 +102,20 @@ int agregar_nuevo_script(bool es_request_unitario, char *str) {
 
 void despachar_script_detenido(SCB *script) {
 	switch (script->estado) {
-	case INT_FIN_QUANTUM:
 	case ERROR_MISC:
+	case INT_FIN_QUANTUM:
+		if(!script->es_request_unitario) {
+			kernel_log_to_level(LOG_LEVEL_INFO, true, "Script %s desalojado por fin de quantum", script->name);
+		}
 		queue_push(cola_ready, script);
 		break;
-	case SCRIPT_FINALIZADO:
 	case ERROR_SCRIPT:
 		if(!script->es_request_unitario) {
-			kernel_log_to_level(LOG_LEVEL_INFO, false, "Finalizando %s", script->name);
+			kernel_log_to_level(LOG_LEVEL_INFO, true, "Error en el script %s", script->name);
+		}
+	case SCRIPT_FINALIZADO:
+		if(!script->es_request_unitario) {
+			kernel_log_to_level(LOG_LEVEL_INFO, true, "Finalizando %s", script->name);
 		}
 		script_exec_a_finalizado(script);
 		break;
@@ -128,6 +134,9 @@ int alojar_siguiente_script(lissandra_thread_t **runner_thread) {
 		return -1;
 	}
 	l_thread_create(*runner_thread, &ejecutar_script, primer_script_ready);
+	if(!primer_script_ready->es_request_unitario) {
+		kernel_log_to_level(LOG_LEVEL_INFO, true, "Script %s elejido para ejecutar", primer_script_ready->name);
+	}
 	return 0;
 }
 
