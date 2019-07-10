@@ -159,7 +159,7 @@ int ejecutarCreate(char* msg,char* buffer, int tamanioBuffer){
 	if(!isConstant(compactacion)){ return CONSTANTE_INVALIDA; }
 
 	uint64_t maximo2 = strtoumax(compactacion,NULL,10);
-	if(maximo2 > UINT16_MAX){ return CONSTANTE_INVALIDA; }
+	if(maximo2 > UINT32_MAX){ return CONSTANTE_INVALIDA; }
 	uint32_t nuevaCompactacion = strtoumax(compactacion,NULL,10);
 
 	struct create_request mensaje;
