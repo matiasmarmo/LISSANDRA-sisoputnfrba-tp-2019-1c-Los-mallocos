@@ -123,6 +123,8 @@ void ejecutar_request(char **request, SCB *scb) {
 		// la ejecución del proceso y la linea no llegará
 		// a este punto.
 		break;
+	case CREATE_REQUEST_ID:
+		cargar_tabla_desde_create_request(*((struct create_request*)buffer_request));
 	default:
 		if ((ret = enviar_request_a_memoria(buffer_request, buffer_respuesta,
 				tamanio_buffers, scb->es_request_unitario)) < 0) {

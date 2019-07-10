@@ -55,6 +55,16 @@ int cargar_tabla(metadata_tabla_t *nueva_tabla) {
 	return 0;
 }
 
+int cargar_tabla_desde_create_request(struct create_request req) {
+	metadata_tabla_t *metadata = construir_tabla(req.tabla, req.consistencia);
+	if(metadata == NULL) {
+		kernel_log_to_level(LOG_LEVEL_ERROR, false, "No se pudo cargar la tabla %s en las estructuras internas", req.tabla);
+		return -1;
+	}
+	cargar_tabla(metadata);
+	return 0;
+}
+
 int cargar_tablas(struct global_describe_response response) {
 	char **tablas_recibidas;
 	if (pthread_rwlock_wrlock(&tablas_rwlock) != 0) {
