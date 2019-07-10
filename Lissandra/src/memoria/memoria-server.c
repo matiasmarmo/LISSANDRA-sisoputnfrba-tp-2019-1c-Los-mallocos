@@ -178,8 +178,9 @@ void* correr_servidor_memoria(void* entrada) {
 	sprintf(puerto, "%d", get_puerto_escucha_mem());
 	int servidor = create_socket_server(puerto, 10);
 	if (servidor < 0) {
-		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+		memoria_log_to_level(LOG_LEVEL_TRACE, true,
 				"Fallo al crear el servidor");
+		finalizar_memoria();
 		pthread_exit(NULL);
 	}
 
