@@ -290,7 +290,9 @@ int iterar_directorio_tabla(char *tabla,
 int borrar_tabla(char *tabla) {
 
 	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
-		if (string_ends_with((char*) path, ".bin")
+		if ((string_ends_with((char*) path, ".bin") ||
+				string_ends_with((char*) path, ".tmp") ||
+				string_ends_with((char*) path, ".tmpc"))
 				&& !string_ends_with((char*) path, "metadata.bin")) {
 			FILE *archivo = abrir_archivo_para_lectoescritura((char*) path);
 			if (archivo == NULL) {
