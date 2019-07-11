@@ -193,6 +193,7 @@ int iterar_bloque(char *path_bloque, char *registro_truncado,
 	int resultado;
 	registro_t registro;
 	// Si había un registro truncado, lo restauramos
+	memset(string_registro, 0, get_tamanio_string_registro());
 	strcpy(string_registro, registro_truncado);
 	memset(registro_truncado, 0, get_tamanio_string_registro());
 	if (archivo_bloque == NULL) {
@@ -307,7 +308,7 @@ int leer_archivo_de_datos(char *path, registro_t **resultado) {
 
 	int _cargar_registro(registro_t registro) {
 		registro_t *puntero_realocado;
-		if (registros_cargados >= tamanio_actual) {
+		if ((registros_cargados * sizeof(registro_t)) >= tamanio_actual) {
 			tamanio_actual *= 2;
 			puntero_realocado = realloc(*resultado, tamanio_actual);
 			if (puntero_realocado == NULL) {
@@ -440,6 +441,7 @@ char *array_de_registros_a_string(registro_t *registros, int cantidad) {
 	char buffer[get_tamanio_string_registro()];
 	int tamanio_actual = 10 * get_tamanio_string_registro();
 	char *resultado = malloc(tamanio_actual);
+	int cantidad_cargados = 0;
 	int registro_siguiente = 0;
 	if (resultado == NULL) {
 		return NULL;
@@ -448,7 +450,7 @@ char *array_de_registros_a_string(registro_t *registros, int cantidad) {
 	memset(resultado, 0, tamanio_actual);
 	for (int i = 0; i < cantidad; i++) {
 		registro_a_string(registros[registro_siguiente++], buffer);
-		if (strlen(resultado) + strlen(buffer) + 1 > tamanio_actual) {
+		if ((cantidad_cargados + 1) * get_tamanio_string_registro() >= tamanio_actual) {
 			tamanio_actual *= 2;
 			char *realocado = realloc(resultado, tamanio_actual);
 			if (realocado == NULL) {
@@ -459,6 +461,7 @@ char *array_de_registros_a_string(registro_t *registros, int cantidad) {
 		}
 		strcat(resultado, buffer);
 		strcat(resultado, "\n");
+		cantidad_cargados++;
 	}
 
 	return resultado;

@@ -156,7 +156,7 @@ int global_describe_response_to_string(void* mensaje, char* buffer,
 		int tamanio_maximo) {
 	struct global_describe_response *response =
 			(struct global_describe_response*) mensaje;
-	char temporal[TAMANIO_MAX_STRING];
+	char temporal[3000];
 	char consistencia_string[TAMANIO_MAX_INT_STRING] = { 0 };
 	char n_particiones_string[TAMANIO_MAX_INT_STRING] = { 0 };
 	char t_compactacion_string[TAMANIO_MAX_INT_STRING] = { 0 };
