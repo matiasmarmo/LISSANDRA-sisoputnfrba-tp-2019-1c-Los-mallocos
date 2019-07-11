@@ -401,7 +401,7 @@ int agregar_memoria_a_sc(uint16_t id_memoria, int es_request_unitario) {
 		int id_memoria_ya_asociada =
 				((memoria_t*) list_get(criterio_sc, 0))->id_memoria;
 		if (id_memoria_ya_asociada != id_memoria) {
-			kernel_log_to_level(LOG_LEVEL_WARNING, es_request_unitario,
+			kernel_log_to_level(LOG_LEVEL_WARNING, 1,
 					"No se agregó la memoria %d al criterio SC, la memoria %d ya está asociada a el",
 					id_memoria, id_memoria_ya_asociada);
 		}
