@@ -26,20 +26,13 @@ MEMORY_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(MEMORY_S))
 LSF_S = $(shell find src/lfs/ -type f -name "*.c" -printf "%f ")
 LSF_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(LSF_S))
 
-TEST_S = $(shell find test/ -name "*.c" -type f -printf "%f ")
-TEST_O = $(patsubst %.c,$(BUILD_DIR)/%.o,$(TEST_S))
-KERNEL_TEST_O = $(filter-out %-consola.o %main.o,$(KERNEL_O))
-MEMORY_TEST_O = $(filter-out %-consola.o %main.o,$(MEMORY_O))
-LSF_TEST_O = $(filter-out %-consola.o %main.o,$(LSF_O))
-
 -include $(COMMON_O:.o=.d)
 -include $(KERNEL_O:.o=.d)
 -include $(MEMORY_O:.o=.d)
 -include $(LSF_O:.o=.d)
--include $(TEST_O:.o=.d)
 
 .PHONY: all
-all: kernel memoria lfs test
+all: kernel memoria lfs
 
 kernel: $(COMMON_O) $(KERNEL_O)
 	$(CC) $(CFLAGS) $^ -o $(BUILD_DIR)/$@.out $(CLIBS)
@@ -49,9 +42,6 @@ memoria: $(COMMON_O) $(MEMORY_O)
 
 lfs: $(COMMON_O) $(LSF_O)
 	$(CC) $(CFLAGS) $^ -o $(BUILD_DIR)/$@.out $(CLIBS)
-
-test: $(TEST_O) $(COMMON_O) $(KERNEL_TEST_O) $(MEMORY_TEST_O) $(LSF_TEST_O)
-	$(CC) $(CFLAGS) $^ -o $(BUILD_DIR)/$@.out $(CLIBS) -lcunit
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(BUILD_DIR)
