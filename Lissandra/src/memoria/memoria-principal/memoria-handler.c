@@ -265,3 +265,7 @@ void destruccion_segmento(segmento* segmento) {
 	destruccion_todos_los_registros_de_un_segmento(segmento);
 	free(segmento);
 }
+
+void iterar_tabla_de_segmentos(void (*f)(void*)) {
+	list_iterate(TABLA_DE_SEGMENTOS, f);
+}
