@@ -762,12 +762,12 @@ int obtener_datos_de_tmpcs(char *tabla, registro_t **resultado) {
 	int cantidad_actual_registros = 0;
 	int hubo_error = 0;
 	*resultado = malloc(tamanio_actual);
-	if (resultado == NULL) {
+	if (*resultado == NULL) {
 		return -1;
 	}
 
 	int _concatenar_registros_al_resultado(registro_t *registros, int cantidad) {
-		while (cantidad_actual_registros + cantidad > tamanio_actual) {
+		while ((cantidad_actual_registros + cantidad) * sizeof(registro_t) >= tamanio_actual) {
 			tamanio_actual *= 2;
 			registro_t *realocado = realloc(*resultado, tamanio_actual);
 			if (realocado == NULL) {
@@ -776,7 +776,7 @@ int obtener_datos_de_tmpcs(char *tabla, registro_t **resultado) {
 			}
 			*resultado = realocado;
 		}
-		memcpy(*resultado + cantidad_actual_registros, registros,
+		memcpy((*resultado) + cantidad_actual_registros, registros,
 				cantidad * sizeof(registro_t));
 		cantidad_actual_registros += cantidad;
 		return 0;

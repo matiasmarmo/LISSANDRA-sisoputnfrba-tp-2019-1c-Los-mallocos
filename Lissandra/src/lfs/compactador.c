@@ -71,9 +71,9 @@ int agregar_registro_a_particion(registro_t **registros, int *cant_actual,
 		}
 	}
 	if (*cant_actual >= *maximo) {
-		*maximo = *maximo == 0 ? 10 : *maximo * 2;
+		*maximo = *maximo == 0 ? 10 : (*maximo) * 2;
 		registro_t *nuevos_registros = realloc(*registros,
-				*maximo * sizeof(registro_t));
+				(*maximo) * sizeof(registro_t));
 		if (nuevos_registros == NULL) {
 			return -1;
 		}
