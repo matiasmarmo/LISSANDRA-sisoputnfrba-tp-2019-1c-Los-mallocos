@@ -22,6 +22,9 @@ pthread_rwlock_t tablas_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 t_list *tablas;
 
 metadata_tabla_t *construir_tabla(char *nombre, uint8_t consistencia) {
+	if(nombre == NULL) {
+		return NULL;
+	}
 	metadata_tabla_t *tabla = malloc(sizeof(metadata_tabla_t));
 	if (tabla == NULL) {
 		return NULL;

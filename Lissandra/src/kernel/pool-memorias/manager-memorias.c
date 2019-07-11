@@ -174,11 +174,15 @@ int enviar_y_recibir_respuesta(void *mensaje, memoria_t *memoria,
 	struct journal_request journal_req;
 	init_journal_request(&journal_req);
 	while (get_msg_id(respuesta) == MEMORY_FULL_ID) {
+		kernel_log_to_level(LOG_LEVEL_INFO, 1, "Memoria %d llena, forzando journal", memoria->id_memoria);
 		destroy(respuesta);
 		if(enviar_a_memoria(&journal_req, memoria) < 0) {
 			return -1;
 		}
-		usleep(100000);
+		if(recibir_mensaje_de_memoria(memoria, respuesta, tamanio_respuesta) < 0) {
+			return -1;
+		}
+		destroy(respuesta);
 		if (enviar_a_memoria(mensaje, memoria) < 0) {
 			return -1;
 		}
@@ -544,8 +548,8 @@ int realizar_describe(struct global_describe_response *response) {
 		destroy(&request);
 		return -1;
 	}
-	destroy(&request);
 	pthread_mutex_unlock(&memoria->mutex);
+	destroy(&request);
 	if(get_msg_id(buffer_local) == ERROR_MSG_ID) {
 		mostrar_async(buffer_local);
 		destroy(buffer_local);

@@ -84,6 +84,7 @@ segmento* obtener_segmento_a_partir_de_registro(registro_tabla_pagina* registro_
 }
 
 int LRU(){
+
 	bool _criterio(void *elemento1, void *elemento2) {
 		uint64_t tiempo1_sec = ((registro_tabla_pagina*)elemento1)->timestamp_accedido.tv_sec;
 		uint64_t tiempo1_usec = ((registro_tabla_pagina*)elemento1)->timestamp_accedido.tv_usec;
@@ -92,6 +93,7 @@ int LRU(){
 		return (tiempo1_sec < tiempo2_sec ||
 				(tiempo1_sec == tiempo2_sec && tiempo1_usec <= tiempo2_usec));
 	}
+
 	segmento* segmento_temporal;
 	int cantidad_segmentos = list_size(TABLA_DE_SEGMENTOS);
 	registro_tabla_pagina* registro_temporal[cantidad_segmentos*2];
@@ -109,6 +111,13 @@ int LRU(){
 	}
 	memoria_log_to_level(LOG_LEVEL_TRACE,false,
 				"LRU: La pagina quitada tenia la key \"%d\" y el value \"%s\".",*(registro_LRU->puntero_a_pagina),(char*)(registro_LRU->puntero_a_pagina+10));
+
+	bool _es_registro_LRU(void *elemento) {
+		return ((registro_tabla_pagina*) elemento)->numero_pagina == registro_LRU->numero_pagina;
+	}
+
+	segmento_temporal = obtener_segmento_a_partir_de_registro(registro_LRU);
+	list_remove_by_condition(segmento_temporal->registro_base, &_es_registro_LRU);
 	destruir_registro_de_pagina(registro_LRU);
 	return LRU_OK;
 }

@@ -784,7 +784,7 @@ int obtener_datos_de_tmpcs(char *tabla, registro_t **resultado) {
 
 	int _leer_archivo(const char* path, const struct stat* stat, int flag) {
 		if (string_ends_with((char*) path, ".tmpc")) {
-			registro_t *nuevos_registros;
+			registro_t *nuevos_registros = NULL;
 			int cantidad = leer_archivo_de_datos((char*) path,
 					&nuevos_registros);
 			if (cantidad < 0) {
