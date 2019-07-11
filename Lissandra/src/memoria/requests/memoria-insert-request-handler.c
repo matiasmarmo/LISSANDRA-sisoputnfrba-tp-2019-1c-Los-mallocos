@@ -7,6 +7,7 @@
 #include <commons/collections/list.h>
 #include <commons/log.h>
 #include <string.h>
+#include <time.h>
 #include <sys/time.h>
 #include <commons/string.h>
 
@@ -31,6 +32,9 @@ int _insert_pagina_no_en_memoria(struct insert_request mensaje, void* respuesta_
 
 int _manejar_insert(struct insert_request mensaje, void* respuesta_insert) {
 	string_to_upper(mensaje.tabla);
+	if(mensaje.timestamp == 0) {
+		mensaje.timestamp = time(NULL);
+	}
 	if(strlen(mensaje.valor)>get_tamanio_value()){
 		struct error_msg resp;
 		int aux = init_error_msg(resp.error_code,"El tamaño del value supera el tamaño maximo permitido",&resp);
@@ -79,9 +83,8 @@ int _manejar_insert_no_existe_segmento_en_tabla(struct insert_request mensaje, v
 					"Se pudo hacer el LRU --> la pagina quitada se encontraba en la posicion de memoria: %d", encontrar_pagina_vacia());
 			lugar_pagina_vacia = encontrar_pagina_vacia();
 		}
-	} else {
-		_manejar_insert_crear_segmento_nuevo(mensaje, respuesta_insert, lugar_pagina_vacia);
 	}
+	_manejar_insert_crear_segmento_nuevo(mensaje, respuesta_insert, lugar_pagina_vacia);
 	return 0;
 }
 
@@ -127,7 +130,7 @@ int _insert_pagina_en_memoria(struct insert_request mensaje, void* respuesta_ins
 	*((uint16_t*) (reg_pagina->puntero_a_pagina)) = mensaje.key;
 	*((uint64_t*) (reg_pagina->puntero_a_pagina + 2)) = mensaje.timestamp;
 	memset(reg_pagina->puntero_a_pagina + 10, 0,
-			get_tamanio_maximo_pagina());
+			get_tamanio_value());
 	memcpy((char*) (reg_pagina->puntero_a_pagina + 10), mensaje.valor,
 			strlen(mensaje.valor));
 	struct timeval timestamp_accedido;
@@ -174,18 +177,17 @@ int _insert_pagina_no_en_memoria(struct insert_request mensaje, void* respuesta_
 					"Se pudo hacer el LRU --> la pagina quitada se encontraba en la posicion de memoria: %d", encontrar_pagina_vacia());
 			lugar_pagina_vacia = encontrar_pagina_vacia();
 		}
-	} else {
-		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
-				segmento_buscado, flag_modificado,timestamp_accedido);
-		crear_pagina_nueva(lugar_pagina_vacia, mensaje.key,
-				mensaje.timestamp, mensaje.valor);
-		struct insert_response respuesta;
-		if(init_insert_response(0, mensaje.tabla, mensaje.key, mensaje.valor, mensaje.timestamp, &respuesta) < 0) {
-			memoria_log_to_level(LOG_LEVEL_TRACE, false,
-					"Falló la respuesta del SELECT, error en init_select_response()");
-			return ERROR;
-		}
-		memcpy(respuesta_insert, &respuesta,sizeof(struct insert_request));
 	}
+	crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
+			segmento_buscado, flag_modificado,timestamp_accedido);
+	crear_pagina_nueva(lugar_pagina_vacia, mensaje.key,
+			mensaje.timestamp, mensaje.valor);
+	struct insert_response respuesta;
+	if(init_insert_response(0, mensaje.tabla, mensaje.key, mensaje.valor, mensaje.timestamp, &respuesta) < 0) {
+		memoria_log_to_level(LOG_LEVEL_TRACE, false,
+				"Falló la respuesta del SELECT, error en init_select_response()");
+		return ERROR;
+	}
+	memcpy(respuesta_insert, &respuesta,sizeof(struct insert_request));
 	return 0;
 }
