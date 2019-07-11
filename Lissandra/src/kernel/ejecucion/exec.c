@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
 #include <commons/string.h>
 #include <commons/log.h>
 
@@ -102,6 +103,10 @@ void ejecutar_request(char **request, SCB *scb) {
 	}
 	if(!scb->es_request_unitario) {
 		kernel_log_to_level(LOG_LEVEL_INFO, false, "Ejecutando: [%s]:[%s]", scb->name, *request);
+	}
+	if(get_msg_id(buffer_request) == INSERT_REQUEST_ID && 
+		((struct insert_request*) buffer_request)->timestamp == 0) {
+		((struct insert_request*) buffer_request)->timestamp = time(NULL);
 	}
 	switch (get_msg_id(buffer_request)) {
 	case ADD_REQUEST_ID:
