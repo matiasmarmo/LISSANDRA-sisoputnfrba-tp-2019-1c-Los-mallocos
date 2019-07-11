@@ -123,8 +123,7 @@ int main() {
 	finalizar_thread(&inotify);
 	finalizar_thread(&(dumper.l_thread));
 	finalizar_hilos_compactadores();
-	dumpear(NULL);
-	compactar_todas_las_tablas();
+	
 	lfs_log_to_level(LOG_LEVEL_INFO, false, "Finalizando LFS.");
 	liberar_recursos_lfs();
 	return 0;
