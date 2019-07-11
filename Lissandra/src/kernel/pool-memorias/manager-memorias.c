@@ -166,10 +166,6 @@ int enviar_y_recibir_respuesta(void *mensaje, memoria_t *memoria,
 	if (recibir_mensaje_de_memoria(memoria, respuesta, tamanio_respuesta) < 0) {
 		return -1;
 	}
-	if (get_msg_id(respuesta) == MEMORY_FULL_ID) {
-		kernel_log_to_level(LOG_LEVEL_INFO, false,
-				"Memoria numero %d llena, reintentando", memoria->id_memoria);
-	}
 	// El journal request no hace falta destruirlo porque no tiene memoria dinámica
 	struct journal_request journal_req;
 	init_journal_request(&journal_req);
@@ -183,6 +179,7 @@ int enviar_y_recibir_respuesta(void *mensaje, memoria_t *memoria,
 			return -1;
 		}
 		destroy(respuesta);
+		usleep(10000);
 		if (enviar_a_memoria(mensaje, memoria) < 0) {
 			return -1;
 		}

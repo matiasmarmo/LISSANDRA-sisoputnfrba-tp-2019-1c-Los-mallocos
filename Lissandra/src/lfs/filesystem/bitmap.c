@@ -28,7 +28,7 @@ int crear_bitmap(int cantidad_bloques) {
 	FILE *archivo_bitmap = abrir_archivo_para_lectoescritura(bitmap_path);
 	if (archivo_bitmap == NULL) {
 		lfs_log_to_level(LOG_LEVEL_TRACE, false,
-				"No se puse abrir el archivo bitmap");
+				"No se pudo abrir el archivo bitmap");
 		return -1;
 	}
 
@@ -63,7 +63,6 @@ t_bitarray* leer_bitmap(FILE *archivo, char *buffer) {
 
 	if (fread(buffer, cantidad_bytes_bitmap, 1, archivo) != 1) {
 		lfs_log_to_level(LOG_LEVEL_TRACE, false, "No se pudo leer el bitmap");
-		fclose(archivo);
 		return NULL;
 	}
 

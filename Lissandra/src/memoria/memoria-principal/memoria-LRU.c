@@ -70,7 +70,8 @@ registro_tabla_pagina* ultimo_accedido_global(registro_tabla_pagina* registros[]
 segmento* obtener_segmento_a_partir_de_registro(registro_tabla_pagina* registro_LRU){
 	bool _criterio(void* element){
 		return ((registro_tabla_pagina*)element)->timestamp_accedido.tv_sec == registro_LRU->timestamp_accedido.tv_sec &&
-			((registro_tabla_pagina*)element)->timestamp_accedido.tv_usec == registro_LRU->timestamp_accedido.tv_usec;
+			((registro_tabla_pagina*)element)->timestamp_accedido.tv_usec == registro_LRU->timestamp_accedido.tv_usec &&
+			((registro_tabla_pagina*) element)->numero_pagina == registro_LRU->numero_pagina;
 	}
 	int cantidad_segmentos = list_size(TABLA_DE_SEGMENTOS);
 	segmento* segmento_temporal;
