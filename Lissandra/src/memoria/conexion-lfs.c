@@ -74,8 +74,7 @@ int enviar_mensaje_lfs(void *request, void *respuesta, bool should_sleep) {
     }
     if(socket_lfs == -1 && _conectar_lfs() < 0) {
         pthread_mutex_unlock(&mutex_conexion_lfs);
-        init_error_msg(0, "Error de conexion entre la memoria y el lfs", respuesta);
-        return 0;
+        return init_error_msg(0, "Conexión entre la memoria y el lfs perdida", respuesta);
     }
     if(send_msg(socket_lfs, request) < 0) {
     	memoria_log_to_level(LOG_LEVEL_ERROR, true,
@@ -83,9 +82,10 @@ int enviar_mensaje_lfs(void *request, void *respuesta, bool should_sleep) {
         socket_lfs = -1;
         if(reconectar_lfs() < 0) {
             pthread_mutex_unlock(&mutex_conexion_lfs);
-            init_error_msg(0, "Error de conexion entre la memoria y el lfs", respuesta);
-            return 0;
+            return init_error_msg(0, "Conexión entre la memoria y el lfs perdida", respuesta);
         }
+        pthread_mutex_unlock(&mutex_conexion_lfs);
+        return init_error_msg(0, "Conexión entre la memoria y el lfs perdida y reestablecida", respuesta);
     }
     if(recv_msg(socket_lfs, respuesta, get_max_msg_size()) < 0) {
     	memoria_log_to_level(LOG_LEVEL_ERROR, true,
@@ -93,9 +93,10 @@ int enviar_mensaje_lfs(void *request, void *respuesta, bool should_sleep) {
         socket_lfs = -1;
         if(reconectar_lfs() < 0) {
             pthread_mutex_unlock(&mutex_conexion_lfs);
-            init_error_msg(0, "Error de conexion entre la memoria y el lfs", respuesta);
-            return 0;
+            return init_error_msg(0, "Conexión entre la memoria y el lfs perdida", respuesta);
         }
+        pthread_mutex_unlock(&mutex_conexion_lfs);
+        return init_error_msg(0, "Conexión entre la memoria y el lfs perdida y reestablecida", respuesta);
     }
     pthread_mutex_unlock(&mutex_conexion_lfs);
     if(should_sleep) {

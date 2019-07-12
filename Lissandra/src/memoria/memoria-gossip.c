@@ -61,6 +61,13 @@ int agregar_seeds() {
 		char *puerto = *puertos_iterator;
 		seed_t *nuevo_seed = malloc(sizeof(seed_t));
 		// Por ahora suponemos que el malloc no falla
+		if(nuevo_seed == NULL) {
+			memoria_log_to_level(LOG_LEVEL_ERROR, 1, "Error al relevar seeds");
+			liberar_lista_strings(ips_seeds);
+			liberar_lista_strings(puertos_seeds);
+			list_clean_and_destroy_elements(lista_seeds, free);
+			return -1;
+		}
 		strcpy(nuevo_seed->ip, ip);
 		strcpy(nuevo_seed->puerto, puerto);
 		nuevo_seed->socket = -1;
@@ -77,7 +84,11 @@ int inicializacion_tabla_gossip(){
 	}
 	TABLA_DE_GOSSIP = list_create();
 	lista_seeds = list_create();
-	agregar_seeds();
+	if(agregar_seeds() < 0) {
+		list_destroy(lista_seeds);
+		list_destroy(TABLA_DE_GOSSIP);
+		return -1;
+	}
 	pthread_mutex_unlock(&mutex_tabla_gossip);
 	agregar_esta_memoria_a_tabla_de_gossip();
 	return 0;
@@ -135,7 +146,7 @@ int agregar_memoria_a_tabla_gossip(uint32_t ip, uint16_t puerto, uint8_t numero)
 }
 
 int agregar_esta_memoria_a_tabla_de_gossip(){
-	char ip[16];
+	char ip[16] = { 0 };
 	uint32_t ip_uint32;
 	if(get_ip_propia(ip, 16) < 0) {
 		memoria_log_to_level(LOG_LEVEL_TRACE, false,
