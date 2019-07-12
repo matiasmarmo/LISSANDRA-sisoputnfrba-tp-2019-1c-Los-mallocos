@@ -353,15 +353,17 @@ int send_exit_request( int);
 
 struct gossip {
 	uint8_t id;
-	
+	uint32_t ip_sender;
+	uint16_t puerto_sender;
+	uint16_t numero_mem_sender;
 };
 
 int decode_gossip(void*, void*, int);
 int encode_gossip(void*, uint8_t*, int);
-int init_gossip( struct gossip*);
+int init_gossip(uint32_t ip_sender, uint16_t puerto_sender, uint16_t numero_mem_sender, struct gossip*);
 void destroy_gossip(void*);
-int pack_gossip( uint8_t *, int);
-int send_gossip( int);
+int pack_gossip(uint32_t ip_sender, uint16_t puerto_sender, uint16_t numero_mem_sender, uint8_t *, int);
+int send_gossip(uint32_t ip_sender, uint16_t puerto_sender, uint16_t numero_mem_sender, int);
 
 #define GOSSIP_RESPONSE_ID 21
 #define GOSSIP_RESPONSE_SIZE sizeof(struct gossip_response)

@@ -11,6 +11,7 @@ typedef struct memoria_gossip {
 
 int inicializacion_tabla_gossip();
 void destruccion_tabla_gossip();
+int agregar_memoria_a_tabla_gossip(uint32_t, uint16_t, uint8_t);
 int agregar_esta_memoria_a_tabla_de_gossip();
 int obtener_respuesta_gossip(void *);
 void *realizar_gossip_threaded(void *entrada);

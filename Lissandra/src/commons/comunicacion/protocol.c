@@ -3011,7 +3011,9 @@ int send_exit_request( int socket_fd) {
 int encoded_gossip_size(void* buffer) {
 	
 	int encoded_size = 1;
-	
+		encoded_size += sizeof(uint32_t);
+	encoded_size += sizeof(uint16_t);
+	encoded_size += sizeof(uint16_t);
 	if(encoded_size > MAX_ENCODED_SIZE) {
 		return MESSAGE_TOO_BIG;
 	}
@@ -3029,7 +3031,16 @@ int decode_gossip (void *recv_data, void* decoded_data, int max_decoded_size) {
 	struct gossip msg;
 	msg.id = byte_data[current++];
 	
+	msg.ip_sender = *((uint32_t*) (byte_data + current));
+	current += sizeof(uint32_t);
+	msg.puerto_sender = *((uint16_t*) (byte_data + current));
+	current += sizeof(uint16_t);
+	msg.numero_mem_sender = *((uint16_t*) (byte_data + current));
+	current += sizeof(uint16_t);
 	
+	msg.ip_sender = ntohl(msg.ip_sender);
+	msg.puerto_sender = ntohs(msg.puerto_sender);
+	msg.numero_mem_sender = ntohs(msg.numero_mem_sender);
 	memcpy(decoded_data, &msg, sizeof(struct gossip));
 	return 0;
 }
@@ -3047,17 +3058,33 @@ int encode_gossip(void* msg_buffer, uint8_t* buff, int max_size) {
 	}
 
 	
+	msg.ip_sender = htonl(msg.ip_sender);
+	msg.puerto_sender = htons(msg.puerto_sender);
+	msg.numero_mem_sender = htons(msg.numero_mem_sender);
 
 	int current = 0;
 	buff[current++] = msg.id;
 	
+	*((uint32_t*)(buff + current)) = msg.ip_sender;
+	current += sizeof(uint32_t);
+
+	*((uint16_t*)(buff + current)) = msg.puerto_sender;
+	current += sizeof(uint16_t);
+
+	*((uint16_t*)(buff + current)) = msg.numero_mem_sender;
+	current += sizeof(uint16_t);
 	
+	msg.ip_sender = ntohl(msg.ip_sender);
+	msg.puerto_sender = ntohs(msg.puerto_sender);
+	msg.numero_mem_sender = ntohs(msg.numero_mem_sender);
 	return encoded_size;
 }
 
-int init_gossip( struct gossip* msg) {
+int init_gossip(uint32_t ip_sender, uint16_t puerto_sender, uint16_t numero_mem_sender, struct gossip* msg) {
 	msg->id = GOSSIP_ID;
-	
+		msg->ip_sender = ip_sender;
+	msg->puerto_sender = puerto_sender;
+	msg->numero_mem_sender = numero_mem_sender;
 	return 0;
 }
 
@@ -3066,11 +3093,11 @@ void destroy_gossip(void* buffer) {
 	
 }
 
-int pack_gossip( uint8_t *buff, int max_size) {
+int pack_gossip(uint32_t ip_sender, uint16_t puerto_sender, uint16_t numero_mem_sender, uint8_t *buff, int max_size) {
 	uint8_t local_buffer[max_size - 2];
 	struct gossip msg;
 	int error, encoded_size;
-	if((error = init_gossip( &msg)) < 0) {
+	if((error = init_gossip(ip_sender, puerto_sender, numero_mem_sender, &msg)) < 0) {
 		return error;
 	}
 	if((encoded_size = encode_gossip(&msg, local_buffer, max_size - 2)) < 0) {
@@ -3081,7 +3108,7 @@ int pack_gossip( uint8_t *buff, int max_size) {
 	return pack_msg(encoded_size, local_buffer, buff);
 }
 
-int send_gossip( int socket_fd) {
+int send_gossip(uint32_t ip_sender, uint16_t puerto_sender, uint16_t numero_mem_sender, int socket_fd) {
 
 	int bytes_to_send, ret;
 	int current_buffer_size = sizeof(struct gossip);
@@ -3090,7 +3117,7 @@ int send_gossip( int socket_fd) {
 		return ALLOC_ERROR;
 	}
 
-	while((bytes_to_send = pack_gossip( local_buffer, current_buffer_size)) == BUFFER_TOO_SMALL) {
+	while((bytes_to_send = pack_gossip(ip_sender, puerto_sender, numero_mem_sender, local_buffer, current_buffer_size)) == BUFFER_TOO_SMALL) {
 		current_buffer_size *= 2;
 		local_buffer = realloc(local_buffer, current_buffer_size);
 		if(local_buffer == NULL) {

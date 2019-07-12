@@ -29,6 +29,7 @@ typedef struct seed {
 pthread_mutex_t mutex_tabla_gossip = PTHREAD_MUTEX_INITIALIZER;
 t_list* TABLA_DE_GOSSIP;
 t_list* lista_seeds;
+uint32_t ip_propia;
 
 int agregar_esta_memoria_a_tabla_de_gossip();
 
@@ -142,6 +143,7 @@ int agregar_esta_memoria_a_tabla_de_gossip(){
 		return -1;
 	}
 	ipv4_a_uint32(ip, &ip_uint32);
+	ip_propia = ip_uint32;
 	return agregar_memoria_a_tabla_gossip(
 		ip_uint32, get_puerto_escucha_mem(), get_numero_memoria());
 }
@@ -196,7 +198,7 @@ int consultar_memorias_a_seed(seed_t *seed) {
 		seed->socket = socket_nuevo;
 	}
 	socket_set_blocking(seed->socket);
-	if(send_gossip(seed->socket) < 0) {
+	if(send_gossip(ip_propia, get_puerto_escucha_mem(), get_numero_memoria(), seed->socket) < 0) {
 		// Se perdio la conexion
 		close(seed->socket);
 		seed->socket = -1;

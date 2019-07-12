@@ -235,7 +235,7 @@ int obtener_memorias_del_pool(memoria_t *memoria_fuente) {
 	int tamanio_buffer = get_max_msg_size();
 	uint8_t buffer_local[tamanio_buffer];
 	struct gossip mensaje;
-	init_gossip(&mensaje);
+	init_gossip(0, 0, 0, &mensaje);
 	if (pthread_mutex_lock(&memoria_fuente->mutex) != 0) {
 		return -1;
 	}
@@ -397,6 +397,7 @@ int verificar_memoria_conectada(int id_memoria) {
 	memoria_t *memoria;
 	pthread_rwlock_rdlock(&memorias_rwlock);
 	if((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
+		kernel_log_to_level(LOG_LEVEL_INFO, 1, "Memoria %d desconocida", id_memoria);
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}
@@ -404,6 +405,8 @@ int verificar_memoria_conectada(int id_memoria) {
 	pthread_rwlock_unlock(&memorias_rwlock);
 	if(!memoria->conectada && (conectar_memoria(memoria) < 0)) {
 		pthread_mutex_unlock(&memoria->mutex);
+		kernel_log_to_level(LOG_LEVEL_ERROR, 1, 
+			"Memoria %d desconectada, no se la agregó al criterio", id_memoria);
 		return -1;
 	}
 	memoria->conectada = true;
@@ -481,8 +484,6 @@ int agregar_memoria_a_criterio(uint16_t id_memoria, uint8_t criterio,
 	int resultado;
 
 	if(verificar_memoria_conectada(id_memoria) != 0) {
-		kernel_log_to_level(LOG_LEVEL_ERROR, 1, 
-			"Memoria %d desconectada, no se la agregó al criterio", id_memoria);
 		return -1;
 	}
 	switch (criterio) {
