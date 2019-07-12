@@ -440,22 +440,18 @@ int agregar_memoria_a_sc(uint16_t id_memoria, int es_request_unitario) {
 int agregar_memoria_a_shc(uint16_t id_memoria, int es_request_unitario) {
 	int error;
 	memoria_t *memoria;
-	kernel_log_to_level(LOG_LEVEL_INFO, 1, "Bloquando rwlock agregar a shc");
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return FALLO_BLOQUEO_SEMAFORO;
 	}
-	kernel_log_to_level(LOG_LEVEL_INFO, 1, "Bloquado rwlock agregar a shc");
 	if (buscar_memoria(criterio_shc, id_memoria) != NULL) {
 		// La memoria ya se encuentra en SHC
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return 0;
 	}
-	kernel_log_to_level(LOG_LEVEL_INFO, 1, "Realizando journal shc");
 	if (realizar_journal_a_memorias_de_shc() < 0) {
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}
-	kernel_log_to_level(LOG_LEVEL_INFO, 1, "Realizado journal shc");
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return MEMORIA_DESCONOCIDA;
@@ -489,13 +485,11 @@ int agregar_memoria_a_criterio(uint16_t id_memoria, uint8_t criterio,
 			"Memoria %d desconectada, no se la agregó al criterio", id_memoria);
 		return -1;
 	}
-	kernel_log_to_level(LOG_LEVEL_INFO, 1, "Switch");
 	switch (criterio) {
 	case SC:
 		resultado = agregar_memoria_a_sc(id_memoria, es_request_unitario);
 		break;
 	case SHC:
-		kernel_log_to_level(LOG_LEVEL_INFO, 1, "Agregando a shc");
 		resultado = agregar_memoria_a_shc(id_memoria, es_request_unitario);
 		break;
 	case EC:

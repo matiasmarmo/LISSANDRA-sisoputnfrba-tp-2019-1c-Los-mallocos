@@ -158,7 +158,8 @@ void *ejecutar_script(void *entrada) {
 	int quantum = get_quantum();
 	int counter = 0;
 	char **requests = string_split(scb->source, "\n");
-	while (counter < quantum && requests[scb->request_pointer] != NULL) {
+	while (counter < quantum && requests[scb->request_pointer] != NULL 
+			&& !l_thread_debe_finalizar(self)) {
 		ejecutar_request(&requests[scb->request_pointer], scb);
 		if (scb->estado != RUNNING) {
 			break;
@@ -166,7 +167,7 @@ void *ejecutar_script(void *entrada) {
 		counter++;
 		scb->request_pointer++;
 	}
-	if (requests[scb->request_pointer] == NULL) {
+	if (requests[scb->request_pointer] == NULL || l_thread_debe_finalizar(self)) {
 		scb->estado = SCRIPT_FINALIZADO;
 	} else if (counter == quantum) {
 		scb->estado = INT_FIN_QUANTUM;
