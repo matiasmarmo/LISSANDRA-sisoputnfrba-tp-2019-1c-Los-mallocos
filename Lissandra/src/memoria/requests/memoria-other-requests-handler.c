@@ -32,7 +32,9 @@ int _manejar_describe(struct describe_request mensaje, void *respuesta, bool sho
 }
 
 int _manejar_gossip(struct gossip mensaje, void *respuesta) {
-    agregar_memoria_a_tabla_gossip(mensaje.ip_sender, mensaje.puerto_sender, mensaje.numero_mem_sender);
+	if (mensaje.ip_sender != 0){
+		agregar_memoria_a_tabla_gossip(mensaje.ip_sender, mensaje.puerto_sender, mensaje.numero_mem_sender);
+	}
 	return obtener_respuesta_gossip(respuesta);
 }
 
