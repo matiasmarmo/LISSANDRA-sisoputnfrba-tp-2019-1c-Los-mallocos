@@ -156,7 +156,7 @@ int global_describe_response_to_string(void* mensaje, char* buffer,
 		int tamanio_maximo) {
 	struct global_describe_response *response =
 			(struct global_describe_response*) mensaje;
-	char temporal[3000];
+	char temporal[TAMANIO_MAX_STRING];
 	char consistencia_string[TAMANIO_MAX_INT_STRING] = { 0 };
 	char n_particiones_string[TAMANIO_MAX_INT_STRING] = { 0 };
 	char t_compactacion_string[TAMANIO_MAX_INT_STRING] = { 0 };
@@ -164,6 +164,10 @@ int global_describe_response_to_string(void* mensaje, char* buffer,
 
 	if (response->fallo) {
 		strcpy(temporal, "\nFallo DESCRIBE\n");
+		for (int i = 0; i < response->consistencias_len; i++) {
+			free(tablas_string_lista[i]);
+		}
+		free(tablas_string_lista);
 	} else {
 		strcpy(temporal, "\nResultado DESCRIBE\n");
 		for (int i = 0; i < response->consistencias_len; i++) {
@@ -307,7 +311,7 @@ int error_msg_a_string(void *mensaje, char *buffer, int tamanio_maximo) {
 }
 
 int memory_full_a_string(void *mensaje, char *buffer, int tamanio_maximo) {
-	if(tamanio_maximo < 14) {
+	if (tamanio_maximo < 14) {
 		return -1;
 	}
 	strcpy(buffer, "Memoria llena");

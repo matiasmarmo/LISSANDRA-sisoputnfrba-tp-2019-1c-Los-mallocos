@@ -387,7 +387,6 @@ int dar_metadata_tablas(t_list* nombre_tablas, t_list* metadatas) {
 	int hubo_error = 0;
 	DIR *directorio;
 	struct dirent *directorio_datos;
-
 	char directorio_path[TAMANIO_PATH];
 	char* punto_montaje = get_punto_montaje();
 	sprintf(directorio_path, "%sTables/", punto_montaje);
@@ -426,13 +425,9 @@ int dar_metadata_tablas(t_list* nombre_tablas, t_list* metadatas) {
 
 	closedir(directorio);
 
-	void _destruir(void *elemento) {
-		free(elemento);
-	}
-
 	if (hubo_error) {
-		list_clean_and_destroy_elements(nombre_tablas, &_destruir);
-		list_clean_and_destroy_elements(metadatas, &_destruir);
+		list_clean_and_destroy_elements(nombre_tablas, free);
+		list_clean_and_destroy_elements(metadatas, free);
 		return -1;
 	}
 

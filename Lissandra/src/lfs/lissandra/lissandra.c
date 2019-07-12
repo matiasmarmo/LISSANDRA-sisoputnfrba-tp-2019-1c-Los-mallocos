@@ -141,13 +141,8 @@ int manejar_global_describe(void* global_describe_response) {
 		return -1;
 	}
 
-	void destruir_elemento(void *elemento) {
-		free(elemento);
-	}
-
-	list_destroy_and_destroy_elements(tablas, &destruir_elemento);
-	list_destroy_and_destroy_elements(metadatas, &destruir_elemento);
-
+	list_destroy_and_destroy_elements(tablas, free);
+	list_destroy_and_destroy_elements(metadatas, free);
 	return 0;
 }
 
