@@ -222,7 +222,7 @@ int get_ip_propia(char *resultado, int len_resultado) {
 		if (ifa->ifa_addr->sa_family == AF_INET) {
 			sa = (struct sockaddr_in *) ifa->ifa_addr;
 			addr = inet_ntoa(sa->sin_addr);
-			if(!string_starts_with(addr, "127")) {
+			if(string_starts_with(addr, "192")) {
 				strcpy(resultado, addr);
 			}
 		}
