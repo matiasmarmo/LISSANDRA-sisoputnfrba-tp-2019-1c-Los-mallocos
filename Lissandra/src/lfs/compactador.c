@@ -34,8 +34,7 @@ int finalizar_hilos_compactadores() {
 	if (pthread_mutex_lock(&hilos_compactadores_mutex) != 0) {
 		return -1;
 	}
-	dictionary_iterator(hilos_compactadores,
-			&destruir_hilo_compactador);
+	dictionary_iterator(hilos_compactadores, &destruir_hilo_compactador);
 	pthread_mutex_unlock(&hilos_compactadores_mutex);
 	return 0;
 }
@@ -93,7 +92,8 @@ void compactar_particion(char *nombre_tabla, int nro_particion,
 			nro_particion, &datos_particion);
 	int tamanio_buffer_particion = cantidad_registros_particion;
 	if (cantidad_registros_particion < 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al compactar particion.");
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al compactar particion.");
 		return;
 	}
 	for (int i = 0; i < cantidad; i++) {
@@ -104,15 +104,20 @@ void compactar_particion(char *nombre_tabla, int nro_particion,
 			if (ret < 0) {
 				liberar_array_registros(datos_particion,
 						cantidad_registros_particion);
-				lfs_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al compactar particion.");
+				lfs_log_to_level(LOG_LEVEL_WARNING, false,
+						"Fallo al compactar particion.");
 				return;
 			}
 		}
 	}
 	if (pisar_particion(nombre_tabla, nro_particion, datos_particion,
 			cantidad_registros_particion) < 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al compactar particion.");
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al compactar particion.");
 	}
+	lfs_log_to_level(LOG_LEVEL_INFO, 1,
+			"Se compacto la Particion %d de la Tabla %s", nro_particion,
+			nombre_tabla);
 	liberar_array_registros(datos_particion, cantidad_registros_particion);
 }
 
@@ -122,7 +127,8 @@ int compactar(char *nombre_tabla) {
 
 	if (!metadata_cargada) {
 		if (obtener_metadata_tabla(nombre_tabla, &metadata) < 0) {
-			lfs_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al compactar tabla.");
+			lfs_log_to_level(LOG_LEVEL_WARNING, false,
+					"Fallo al compactar tabla.");
 			return -1;
 		}
 		metadata_cargada = 1;
@@ -161,30 +167,35 @@ int instanciar_hilo_compactador(char *tabla, int t_compactaciones) {
 	lissandra_thread_periodic_t *lp_thread;
 	char *entrada_thread;
 	if (pthread_mutex_lock(&hilos_compactadores_mutex) != 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al instanciar hilo del compactador.");
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al instanciar hilo del compactador.");
 		return -1;
 	}
 	if (dictionary_has_key(hilos_compactadores, tabla)) {
 		pthread_mutex_unlock(&hilos_compactadores_mutex);
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al instanciar hilo del compactador.");
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al instanciar hilo del compactador.");
 		return -1;
 	}
 	entrada_thread = strdup(tabla);
 	if (entrada_thread == NULL) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al instanciar hilo del compactador.");
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al instanciar hilo del compactador.");
 		pthread_mutex_unlock(&hilos_compactadores_mutex);
 		return -1;
 	}
 	lp_thread = malloc(sizeof(lissandra_thread_periodic_t));
 	if (lp_thread == NULL) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al instanciar hilo del compactador.");
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al instanciar hilo del compactador.");
 		pthread_mutex_unlock(&hilos_compactadores_mutex);
 		free(entrada_thread);
 		return -1;
 	}
 	if (l_thread_periodic_create_fixed(lp_thread, &thread_compactacion,
 			t_compactaciones, entrada_thread) < 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al instanciar hilo del compactador.");
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al instanciar hilo del compactador.");
 		pthread_mutex_unlock(&hilos_compactadores_mutex);
 		free(lp_thread);
 		free(entrada_thread);
@@ -200,7 +211,8 @@ int finalizar_hilo_compactador(char *tabla) {
 		return -1;
 	}
 	if (!dictionary_has_key(hilos_compactadores, tabla)) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false, "Fallo al finalizar hilo del compactador.");
+		lfs_log_to_level(LOG_LEVEL_WARNING, false,
+				"Fallo al finalizar hilo del compactador.");
 		pthread_mutex_unlock(&hilos_compactadores_mutex);
 		return -1;
 	}

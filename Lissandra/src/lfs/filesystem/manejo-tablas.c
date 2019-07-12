@@ -32,8 +32,7 @@ int bloquear_tabla(char *nombre_tabla, char forma) {
 		pthread_rwlock_unlock(&semaforo_dict_bloque);
 		return -1;
 	}
-	lock_obtenido = dictionary_get(diccionario_bloqueo_tablas,
-			nombre_tabla);
+	lock_obtenido = dictionary_get(diccionario_bloqueo_tablas, nombre_tabla);
 	if (forma == 'w') {
 		pthread_rwlock_wrlock(lock_obtenido);
 	} else if (forma == 'r') {
@@ -68,8 +67,9 @@ int crear_semaforo_tabla(char *nombre_tabla) {
 
 int destruir_semaforo_tabla(char *nombre_tabla) {
 	pthread_rwlock_wrlock(&semaforo_dict_bloque);
-	pthread_rwlock_t *lock = dictionary_remove(diccionario_bloqueo_tablas, nombre_tabla);
-	if(lock != NULL) {
+	pthread_rwlock_t *lock = dictionary_remove(diccionario_bloqueo_tablas,
+			nombre_tabla);
+	if (lock != NULL) {
 		pthread_rwlock_wrlock(lock);
 		pthread_rwlock_unlock(lock);
 		pthread_rwlock_destroy(lock);
@@ -208,27 +208,32 @@ int crear_particiones(int n_particiones, char* nombre_tabla) {
 int crear_tabla(char* nombre_tabla, metadata_t metadata) {
 
 	if (crear_directorio_tabla(nombre_tabla) == -1) {
-		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear la tabla %s", nombre_tabla);
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear la tabla %s",
+				nombre_tabla);
 		return -1;
 	}
 	if (crear_metadata_tabla(metadata, nombre_tabla) == -1) {
-		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear la metadata de la tabla %s", nombre_tabla);
+		lfs_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al crear la metadata de la tabla %s", nombre_tabla);
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
 	if (crear_particiones(metadata.n_particiones, nombre_tabla) == -1) {
-		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear las particiones de la tabla %s", nombre_tabla);
+		lfs_log_to_level(LOG_LEVEL_ERROR, false,
+				"Error al crear las particiones de la tabla %s", nombre_tabla);
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
-	if(crear_semaforo_tabla(nombre_tabla) < 0) {
-		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear la tabla %s", nombre_tabla);
+	if (crear_semaforo_tabla(nombre_tabla) < 0) {
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear la tabla %s",
+				nombre_tabla);
 		borrar_tabla(nombre_tabla);
 		return -1;
 	}
 	if (instanciar_hilo_compactador(nombre_tabla, metadata.t_compactaciones)
 			< 0) {
-		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear la tabla %s", nombre_tabla);
+		lfs_log_to_level(LOG_LEVEL_ERROR, false, "Error al crear la tabla %s",
+				nombre_tabla);
 		destruir_semaforo_tabla(nombre_tabla);
 		borrar_tabla(nombre_tabla);
 		return -1;
@@ -256,10 +261,11 @@ int obtener_metadata_tabla(char* nombre_tabla, metadata_t* metadata_tabla) {
 	strcat(buffer, nombre_tabla);
 	strcat(buffer, "-metadata.bin");
 	FILE *file_metadata = abrir_archivo_para_lectura(buffer);
-	if(file_metadata == NULL) {
+	if (file_metadata == NULL) {
 		return -1;
 	}
-	t_config* metadata_config_tabla = lfs_config_create_from_file(buffer, file_metadata);
+	t_config* metadata_config_tabla = lfs_config_create_from_file(buffer,
+			file_metadata);
 	fclose(file_metadata);
 
 	if (metadata_config_tabla == NULL) {
@@ -290,9 +296,9 @@ int iterar_directorio_tabla(char *tabla,
 int borrar_tabla(char *tabla) {
 
 	int _borrar_archivo(const char *path, const struct stat *stat, int flag) {
-		if ((string_ends_with((char*) path, ".bin") ||
-				string_ends_with((char*) path, ".tmp") ||
-				string_ends_with((char*) path, ".tmpc"))
+		if ((string_ends_with((char*) path, ".bin")
+				|| string_ends_with((char*) path, ".tmp")
+				|| string_ends_with((char*) path, ".tmpc"))
 				&& !string_ends_with((char*) path, "metadata.bin")) {
 			FILE *archivo = abrir_archivo_para_lectoescritura((char*) path);
 			if (archivo == NULL) {
@@ -314,8 +320,9 @@ int borrar_tabla(char *tabla) {
 	}
 
 	pthread_rwlock_wrlock(&semaforo_dict_bloque);
-	pthread_rwlock_t *lock = dictionary_remove(diccionario_bloqueo_tablas, tabla);
-	if(lock != NULL) {
+	pthread_rwlock_t *lock = dictionary_remove(diccionario_bloqueo_tablas,
+			tabla);
+	if (lock != NULL) {
 		pthread_rwlock_wrlock(lock);
 		pthread_rwlock_unlock(lock);
 		pthread_rwlock_destroy(lock);
@@ -364,6 +371,9 @@ void borrar_todos_los_tmpc(char *tabla) {
 	}
 
 	iterar_directorio_tabla(tabla, &_borrar_archivo);
+	lfs_log_to_level(LOG_LEVEL_WARNING, false,
+			"Se elemina el archivo tmpc de la tabla %s debido a la compactacion",
+			tabla);
 }
 
 void convertir_todos_tmp_a_tmpc(char* tabla) {
