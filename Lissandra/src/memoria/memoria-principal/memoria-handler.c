@@ -194,26 +194,31 @@ int obtener_pagina_para_journal(segmento* segmento,
 			*((uint16_t*) puntero_a_pagina),
 			(char*) (puntero_a_pagina + 10),
 			*((uint64_t*) (puntero_a_pagina + 2)), &request);
-	uint16_t key = *((uint16_t*) puntero_a_pagina);
 	uint8_t buffer[get_max_msg_size()];
-	if (enviar_mensaje_lfs(&request, buffer, false) < 0) {
-		memoria_log_to_level(LOG_LEVEL_ERROR, false,
-				"Fallo la comunicacion con file system, key %d perdida", key);
-		destroy(&request);
+	enviar_mensaje_lfs(&request, buffer, false);
+	destroy(&request);
+	if(get_msg_id(buffer) == ERROR_MSG_ID) {
+		destroy(buffer);
 		return -1;
 	}
-	destroy(&request);
 	// Acá se puede verificar si falló el insert y loguear
 	// (si no existe la tabla, por ejemplo)
 	destroy(buffer);
 	return 0;
 }
-void imprimir_toda_memoria();
+
 int realizar_journal() {
 	segmento* segmento_temporal;
-	int contador=0;
+	int contador = 0;
+
 	void _liberar_pagina(void *elemento) {
 		destruir_registro_de_pagina((registro_tabla_pagina*) elemento);
+	}
+
+	void _liberar_segmento(void *elemento) {
+		segmento *seg = (segmento*) elemento;
+		list_destroy(seg->registro_base);
+		free(seg);
 	}
 
 	for(int i = 0; i < list_size(TABLA_DE_SEGMENTOS); i++) {
@@ -226,16 +231,15 @@ int realizar_journal() {
 				continue;
 			}
 			if(obtener_pagina_para_journal(segmento_temporal, pagina_actual) < 0) {
-				// Acá había un return -1, pero lo cambio por un continue
-				// porque es peligroso dejar las cosas hechas por la mitad,
-				// obtener_pagina_para_journal loguea el error y listo
-				continue;
+				memoria_log_to_level(LOG_LEVEL_WARNING, 1, "Error de comunicación, journal pospuesto");
+				return -1;
 			}
 			contador++;
 		}
-		list_destroy_and_destroy_elements(segmento_temporal->registro_base, &_liberar_pagina);
+		list_clean_and_destroy_elements(segmento_temporal->registro_base, &_liberar_pagina);
 	}
-	list_clean_and_destroy_elements(TABLA_DE_SEGMENTOS, free);
+
+	list_clean_and_destroy_elements(TABLA_DE_SEGMENTOS, &_liberar_segmento);
 	memoria_log_to_level(LOG_LEVEL_TRACE, false,
 					"Se realizó el journal correctamente. Cantidad paginas enviadas: %d",contador);
 	return 0;

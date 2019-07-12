@@ -573,7 +573,8 @@ int realizar_describe(struct global_describe_response *response) {
 	pthread_mutex_unlock(&memoria->mutex);
 	destroy(&request);
 	if(get_msg_id(buffer_local) == ERROR_MSG_ID) {
-		mostrar_async(buffer_local);
+		kernel_log_to_level(LOG_LEVEL_WARNING, false, 
+			"La memoria informó un error cuando se le pidieron las tablas");
 		destroy(buffer_local);
 		return -1;
 	}

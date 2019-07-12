@@ -60,16 +60,11 @@ int desconectar_lfs() {
 }
 
 int reconectar_lfs() {
-    // Intentamos reconectar 2 veces
-    for(int i = 0; i < 2; i++) {
-        if(_conectar_lfs() >= 0) {
-            memoria_log_to_level(LOG_LEVEL_INFO, true, "Reconectado con el file system");
-            return 0;
-        }
+    if(_conectar_lfs() >= 0) {
+        memoria_log_to_level(LOG_LEVEL_INFO, true, "Reconectado con el file system");
+        return 0;
     }
-    // No se pudo reconectar
     memoria_log_to_level(LOG_LEVEL_ERROR, true, "No se pudo reconectar con el file system, finalizando memoria");
-    finalizar_memoria();
     return -1;
 }
 
@@ -77,20 +72,29 @@ int enviar_mensaje_lfs(void *request, void *respuesta, bool should_sleep) {
     if(pthread_mutex_lock(&mutex_conexion_lfs) != 0) {
         return -1;
     }
+    if(socket_lfs == -1 && _conectar_lfs() < 0) {
+        pthread_mutex_unlock(&mutex_conexion_lfs);
+        init_error_msg(0, "Error de conexion entre la memoria y el lfs", respuesta);
+        return 0;
+    }
     if(send_msg(socket_lfs, request) < 0) {
     	memoria_log_to_level(LOG_LEVEL_ERROR, true,
     		"Se perdio la conexion con el file system, intentando reconectar");
+        socket_lfs = -1;
         if(reconectar_lfs() < 0) {
             pthread_mutex_unlock(&mutex_conexion_lfs);
-            return -1;
+            init_error_msg(0, "Error de conexion entre la memoria y el lfs", respuesta);
+            return 0;
         }
     }
     if(recv_msg(socket_lfs, respuesta, get_max_msg_size()) < 0) {
     	memoria_log_to_level(LOG_LEVEL_ERROR, true,
     		"Se perdio la conexion con el file system, intentando reconectar");
+        socket_lfs = -1;
         if(reconectar_lfs() < 0) {
             pthread_mutex_unlock(&mutex_conexion_lfs);
-            return -1;
+            init_error_msg(0, "Error de conexion entre la memoria y el lfs", respuesta);
+            return 0;
         }
     }
     pthread_mutex_unlock(&mutex_conexion_lfs);

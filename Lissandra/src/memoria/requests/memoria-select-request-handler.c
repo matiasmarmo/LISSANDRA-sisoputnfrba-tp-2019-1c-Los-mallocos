@@ -98,9 +98,7 @@ int _manejar_select_segmento_no_encontrado(struct select_request mensaje, void* 
 		}
 	}
 	/*----PEDIDO AL FS----*/
-	if(enviar_mensaje_lfs(&mensaje, &respuesta_lfs, should_sleep) < 0) {
-		return ERROR;
-	}
+	enviar_mensaje_lfs(&mensaje, &respuesta_lfs, should_sleep);
 	if(get_msg_id(&respuesta_lfs) != ERROR_MSG_ID){
 		struct select_response resp = *((struct select_response*) respuesta_lfs);
 		crear_segmento_nuevo(resp.tabla);
@@ -176,9 +174,7 @@ int _manejar_select_pagina_no_en_memoria(struct select_request mensaje, void* re
 		}
 	}
 	/*----PEDIDO AL FS----*/
-	if(enviar_mensaje_lfs(&mensaje, &respuesta_lfs, should_sleep) < 0) {
-		return ERROR;
-	}
+	enviar_mensaje_lfs(&mensaje, &respuesta_lfs, should_sleep);
 	if(get_msg_id(&respuesta_lfs) != ERROR_MSG_ID){
 		struct select_response resp = *((struct select_response*) respuesta_lfs);
 		crear_registro_nuevo_en_tabla_de_paginas(lugar_pagina_vacia,
