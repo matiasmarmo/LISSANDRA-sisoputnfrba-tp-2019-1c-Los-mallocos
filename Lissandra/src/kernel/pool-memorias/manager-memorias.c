@@ -19,6 +19,8 @@
 #include "metadata-tablas.h"
 #include "manager-memorias.h"
 
+#define CRITERIO_ANY 4
+
 pthread_rwlock_t memorias_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 t_list *pool_memorias;
@@ -391,6 +393,24 @@ int realizar_journal_a_todos_los_criterios() {
 	return resultado;
 }
 
+int verificar_memoria_conectada(int id_memoria) {
+	memoria_t *memoria;
+	pthread_rwlock_rdlock(&memorias_rwlock);
+	if((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
+		pthread_rwlock_unlock(&memorias_rwlock);
+		return -1;
+	}
+	pthread_mutex_lock(&memoria->mutex);
+	pthread_rwlock_unlock(&memorias_rwlock);
+	if(!memoria->conectada && (conectar_memoria(memoria) < 0)) {
+		pthread_mutex_unlock(&memoria->mutex);
+		return -1;
+	}
+	memoria->conectada = true;
+	pthread_mutex_unlock(&memoria->mutex);
+	return 0;
+}
+
 int agregar_memoria_a_sc(uint16_t id_memoria, int es_request_unitario) {
 	int error;
 	memoria_t *memoria;
@@ -420,18 +440,22 @@ int agregar_memoria_a_sc(uint16_t id_memoria, int es_request_unitario) {
 int agregar_memoria_a_shc(uint16_t id_memoria, int es_request_unitario) {
 	int error;
 	memoria_t *memoria;
+	kernel_log_to_level(LOG_LEVEL_INFO, 1, "Bloquando rwlock agregar a shc");
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {
 		return FALLO_BLOQUEO_SEMAFORO;
 	}
+	kernel_log_to_level(LOG_LEVEL_INFO, 1, "Bloquado rwlock agregar a shc");
 	if (buscar_memoria(criterio_shc, id_memoria) != NULL) {
 		// La memoria ya se encuentra en SHC
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return 0;
 	}
+	kernel_log_to_level(LOG_LEVEL_INFO, 1, "Realizando journal shc");
 	if (realizar_journal_a_memorias_de_shc() < 0) {
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return -1;
 	}
+	kernel_log_to_level(LOG_LEVEL_INFO, 1, "Realizado journal shc");
 	if ((memoria = buscar_memoria_en_pool(id_memoria)) == NULL) {
 		pthread_rwlock_unlock(&memorias_rwlock);
 		return MEMORIA_DESCONOCIDA;
@@ -459,11 +483,19 @@ int agregar_memoria_a_ec(uint16_t id_memoria, int es_request_unitario) {
 int agregar_memoria_a_criterio(uint16_t id_memoria, uint8_t criterio,
 		int es_request_unitario) {
 	int resultado;
+
+	if(verificar_memoria_conectada(id_memoria) != 0) {
+		kernel_log_to_level(LOG_LEVEL_ERROR, 1, 
+			"Memoria %d desconectada, no se la agregó al criterio", id_memoria);
+		return -1;
+	}
+	kernel_log_to_level(LOG_LEVEL_INFO, 1, "Switch");
 	switch (criterio) {
 	case SC:
 		resultado = agregar_memoria_a_sc(id_memoria, es_request_unitario);
 		break;
 	case SHC:
+		kernel_log_to_level(LOG_LEVEL_INFO, 1, "Agregando a shc");
 		resultado = agregar_memoria_a_shc(id_memoria, es_request_unitario);
 		break;
 	case EC:
@@ -488,10 +520,18 @@ memoria_t *memoria_conectada_random(t_list *lista_memorias) {
 
 	bool _esta_conectada(void *elemento) {
 		memoria_t *memoria = (memoria_t*) elemento;
+		bool resultado;
 		if (pthread_mutex_lock(&memoria->mutex) != 0) {
 			return false;
 		}
-		bool resultado = ((memoria_t*) elemento)->conectada;
+		if(memoria->conectada) {
+			resultado = true;
+		} else {
+			resultado = conectar_memoria(memoria) < 0 ? false : true;
+		}
+		if(resultado == true) {
+			memoria->conectada = true;
+		}
 		pthread_mutex_unlock(&memoria->mutex);
 		return resultado;
 	}
@@ -499,15 +539,6 @@ memoria_t *memoria_conectada_random(t_list *lista_memorias) {
 	t_list *memorias_conectadas = list_filter(lista_memorias, &_esta_conectada);
 	memoria_t *memoria_resultado = memoria_random(memorias_conectadas);
 	list_destroy(memorias_conectadas);
-	if (memoria_resultado != NULL) {
-		return memoria_resultado;
-	}
-	// No hay ninguna memoria conectada, elegimos una al azar y la conectamos
-	memoria_resultado = memoria_random(lista_memorias);
-	if (memoria_resultado != NULL && conectar_memoria(memoria_resultado) < 0) {
-		// No se pudo conectar la memoria elegida
-		memoria_resultado = NULL;
-	}
 	return memoria_resultado;
 }
 
@@ -574,7 +605,7 @@ void registrar_metrica(memoria_t *memoria, void *mensaje, criterio_t criterio,
 }
 
 int enviar_request(memoria_t *memoria, void *mensaje, void *respuesta,
-		int tamanio_respuesta, criterio_t criterio) {
+		int tamanio_respuesta, int criterio) {
 	if (tamanio_respuesta < get_max_msg_size()) {
 		return -1;
 	}
@@ -588,7 +619,7 @@ int enviar_request(memoria_t *memoria, void *mensaje, void *respuesta,
 		return -1;
 	}
 	clock_t fin = clock();
-	if (inicio != -1 && fin != -1) {
+	if (inicio != -1 && fin != -1 && criterio != -1) {
 		uint32_t latency_usec = ((fin - inicio) * 1000000) / CLOCKS_PER_SEC;
 		registrar_metrica(memoria, mensaje, criterio, latency_usec);
 	}
@@ -645,7 +676,21 @@ int enviar_request_a_ec(void *mensaje, void *respuesta, int tamanio_respuesta,
 			CRITERIO_EC);
 }
 
-int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key,
+int enviar_request_a_cualquier_criterio(void *mensaje, void *respuesta, 
+	int tamanio_respuesta, int es_request_unitario) {
+	pthread_rwlock_rdlock(&memorias_rwlock);
+	memoria_t *memoria = memoria_conectada_random(pool_memorias);
+	if(memoria == NULL) {
+		kernel_log_to_level(LOG_LEVEL_ERROR, true, "ERROR: ninguna memoria concetada");
+		pthread_rwlock_unlock(&memorias_rwlock);
+		return -1;
+	}
+	int resultado = enviar_request(memoria, mensaje, respuesta, tamanio_respuesta, -1);
+	pthread_rwlock_unlock(&memorias_rwlock);
+	return resultado;
+}
+
+int obtener_criterio_y_key(void *mensaje, int *criterio, uint16_t *key,
 		int es_request_unitario) {
 	struct select_request *select_request;
 	struct insert_request *insert_request;
@@ -677,7 +722,7 @@ int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key,
 			*criterio = obtener_consistencia_tabla(describe_request->tabla);
 		} else {
 			// Indicamos que no hay error
-			*criterio = 0;
+			*criterio = CRITERIO_ANY;
 		}
 		break;
 	case DROP_REQUEST_ID:
@@ -699,7 +744,7 @@ int obtener_criterio_y_key(void *mensaje, criterio_t *criterio, uint16_t *key,
 int enviar_request_a_memoria(void *mensaje, void *respuesta,
 		int tamanio_respuesta, bool es_request_unitario) {
 	int resultado = 0;
-	criterio_t criterio;
+	int criterio;
 	uint16_t key;
 
 	if (obtener_criterio_y_key(mensaje, &criterio, &key, es_request_unitario)
@@ -730,6 +775,10 @@ int enviar_request_a_memoria(void *mensaje, void *respuesta,
 	case CRITERIO_EC:
 		resultado = enviar_request_a_ec(mensaje, respuesta, tamanio_respuesta,
 				es_request_unitario);
+		break;
+	case CRITERIO_ANY:
+		resultado = enviar_request_a_cualquier_criterio(
+			mensaje, respuesta, tamanio_respuesta, es_request_unitario);
 		break;
 	default:
 		resultado = -1;
