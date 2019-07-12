@@ -33,6 +33,10 @@ int get_socket(const struct addrinfo* addr, int flag) {
 	if (socket_fd == -1) {
 		return -1;
 	}
+	if(setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int)) < 0) {
+		close(socket_fd);
+		return -1;
+	}
 	if (flag == FLAG_NON_BLOCK && (fcntl(socket_fd, F_SETFL, O_NONBLOCK) < 0)) {
 		close(socket_fd);
 		return -1;
@@ -224,10 +228,12 @@ int get_ip_propia(char *resultado, int len_resultado) {
 			addr = inet_ntoa(sa->sin_addr);
 			if(string_starts_with(addr, "192")) {
 				strcpy(resultado, addr);
+				freeifaddrs(id);
+				return 0;
 			}
 		}
 	}
 
 	freeifaddrs(id);
-	return 0;
+	return -1;
 }
