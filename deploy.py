@@ -17,7 +17,7 @@ configs = {
     "prueba_base": {
         "lfs.conf": {
             "PUERTO_ESCUCHA": 5003,
-            "PUNTO_MONTAJE": "/home/utnso/lfs-base/",
+            "PUNTO_MONTAJE": "/home/ppaglilla/Projects/tp-2019-1c-Los-mallocos/Lissandra",
             "RETARDO": 0,
             "TAMANIO_VALUE": 60,
             "TIEMPO_DUMP": 20000
@@ -67,7 +67,7 @@ configs = {
     "prueba_kernel": {
         "lfs.conf": {
             "PUERTO_ESCUCHA": 5003,
-            "PUNTO_MONTAJE": "/home/utnso/lfs-prueba-kernel/",
+            "PUNTO_MONTAJE": "/home/ppaglilla/Projects/tp-2019-1c-Los-mallocos/Lissandra",
             "RETARDO": 0,
             "TAMANIO_VALUE": 60,
             "TIEMPO_DUMP": 60000
@@ -128,7 +128,7 @@ configs = {
             "IP_MEMORIA": IP_MEMORIA_3,
             "PUERTO_MEMORIA": 8003,
             "NUMERO_MEMORIA": 3,
-            "QUANTUM": 3,
+            "QUANTUM": 1,
             "MULTIPROCESAMIENTO": 1,
             "METADATA_REFRESH": 15000,
             "MEMORIAS_REFRESH": 5000,
@@ -143,7 +143,7 @@ configs = {
     "prueba_lfs": {
         "lfs.conf": {
             "PUERTO_ESCUCHA": 5003,
-            "PUNTO_MONTAJE": "/home/utnso/lfs-compactacion/",
+            "PUNTO_MONTAJE": "/home/ppaglilla/Projects/tp-2019-1c-Los-mallocos/Lissandra",
             "RETARDO": 0,
             "TAMANIO_VALUE": 60,
             "TIEMPO_DUMP": 5000
@@ -206,7 +206,7 @@ configs = {
     "prueba_memoria": {
         "lfs.conf": {
             "PUERTO_ESCUCHA": 5003,
-            "PUNTO_MONTAJE": "/home/utnso/lfs-prueba-memoria/",
+            "PUNTO_MONTAJE": "/home/ppaglilla/Projects/tp-2019-1c-Los-mallocos/Lissandra",
             "RETARDO": 0,
             "TAMANIO_VALUE": 60,
             "TIEMPO_DUMP": 3000
@@ -243,7 +243,7 @@ configs = {
     "prueba_stress": {
         "lfs.conf": {
             "PUERTO_ESCUCHA": 5003,
-            "PUNTO_MONTAJE": "/home/utnso/lfs-stress/",
+            "PUNTO_MONTAJE": "/home/ppaglilla/Projects/tp-2019-1c-Los-mallocos/Lissandra",
             "RETARDO": 0,
             "TAMANIO_VALUE": 60,
             "TIEMPO_DUMP": 20000
@@ -275,7 +275,7 @@ configs = {
             "MEMORY_NUMBER": 2
         },
         "memoria3.conf": {
-            "PUERTO_ESCUCHA": 8001,
+            "PUERTO_ESCUCHA": 8003,
             "IP_FS": IP_FS,
             "PUERTO_FS": 5003,
             "IP_SEEDS": [IP_MEMORIA_4, IP_MEMORIA_2],
