@@ -746,6 +746,9 @@ int bajar_a_archivo_temporal(char* tabla, registro_t* registros,
 		return -1;
 	}
 
+	lfs_log_to_level(LOG_LEVEL_INFO, 0, 
+		"Creado el archivo temporal %d de la tabla %s", numero, tabla);
+
 	obtener_path_temporal(numero, tabla, path_tmp);
 
 	if ((escribir_en_archivo_de_datos(path_tmp, registros, cantidad_registros))

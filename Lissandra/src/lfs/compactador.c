@@ -92,8 +92,8 @@ void compactar_particion(char *nombre_tabla, int nro_particion,
 			nro_particion, &datos_particion);
 	int tamanio_buffer_particion = cantidad_registros_particion;
 	if (cantidad_registros_particion < 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false,
-				"Fallo al compactar particion.");
+		return;
+	} else if(cantidad_registros_particion == 0) {
 		return;
 	}
 	for (int i = 0; i < cantidad; i++) {
@@ -104,20 +104,12 @@ void compactar_particion(char *nombre_tabla, int nro_particion,
 			if (ret < 0) {
 				liberar_array_registros(datos_particion,
 						cantidad_registros_particion);
-				lfs_log_to_level(LOG_LEVEL_WARNING, false,
-						"Fallo al compactar particion.");
 				return;
 			}
 		}
 	}
-	if (pisar_particion(nombre_tabla, nro_particion, datos_particion,
-			cantidad_registros_particion) < 0) {
-		lfs_log_to_level(LOG_LEVEL_WARNING, false,
-				"Fallo al compactar particion.");
-	}
-	lfs_log_to_level(LOG_LEVEL_INFO, 1,
-			"Se compacto la Particion %d de la Tabla %s", nro_particion,
-			nombre_tabla);
+	pisar_particion(nombre_tabla, nro_particion, datos_particion,
+		cantidad_registros_particion);
 	liberar_array_registros(datos_particion, cantidad_registros_particion);
 }
 
@@ -153,6 +145,8 @@ int compactar(char *nombre_tabla) {
 	free(datos_tmpc);
 	borrar_todos_los_tmpc(nombre_tabla);
 	desbloquear_tabla(nombre_tabla);
+	lfs_log_to_level(LOG_LEVEL_INFO, 1,
+			"Se compacto la tabla %s", nombre_tabla);
 	return 0;
 }
 

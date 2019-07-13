@@ -105,7 +105,9 @@ void despachar_script_detenido(SCB *script) {
 	case ERROR_MISC:
 	case INT_FIN_QUANTUM:
 		if(!script->es_request_unitario) {
-			kernel_log_to_level(LOG_LEVEL_INFO, true, "Script %s desalojado por fin de quantum", script->name);
+			kernel_log_to_level(LOG_LEVEL_INFO, true, 
+				"Script %s desalojado por fin de quantum. Siguiente linea: %d.", 
+				script->name, script->request_pointer);
 		}
 		queue_push(cola_ready, script);
 		break;
@@ -124,7 +126,7 @@ void despachar_script_detenido(SCB *script) {
 	}
 }
 
-int alojar_siguiente_script(lissandra_thread_t **runner_thread) {
+int alojar_siguiente_script(lissandra_thread_t **runner_thread, int numero_runner_thread) {
 	SCB *primer_script_ready = queue_pop(cola_ready);
 	if (primer_script_ready == NULL) {
 		return -1;
@@ -135,7 +137,9 @@ int alojar_siguiente_script(lissandra_thread_t **runner_thread) {
 	}
 	l_thread_create(*runner_thread, &ejecutar_script, primer_script_ready);
 	if(!primer_script_ready->es_request_unitario) {
-		kernel_log_to_level(LOG_LEVEL_INFO, true, "Script %s elejido para ejecutar", primer_script_ready->name);
+		kernel_log_to_level(LOG_LEVEL_INFO, true, 
+			"Script %s elejido para ejecutar en procesador %d", 
+			primer_script_ready->name, numero_runner_thread);
 	}
 	return 0;
 }
@@ -207,7 +211,7 @@ void admitir_nuevos_scripts() {
 	pthread_mutex_unlock(&cola_new_mutex);
 }
 
-void replanificar(lissandra_thread_t **runner_thread) {
+void replanificar(lissandra_thread_t **runner_thread, int numero_runner_thread) {
 	if(*runner_thread != NULL) {
 		l_thread_join(*runner_thread, NULL);
 		despachar_script_detenido((SCB*) (*runner_thread)->entrada);
@@ -216,7 +220,7 @@ void replanificar(lissandra_thread_t **runner_thread) {
 	}
 
 	admitir_nuevos_scripts();
-	alojar_siguiente_script(runner_thread);
+	alojar_siguiente_script(runner_thread, numero_runner_thread);
 }
 
 void *correr_planificador(void *entrada) {
@@ -229,7 +233,7 @@ void *correr_planificador(void *entrada) {
 			// Iteramos los hilos y si uno está desocupado o finalizó,
 			// replanificamos
 			if (runner_threads[i] == NULL || l_thread_finalizo(runner_threads[i])) {
-				replanificar(&runner_threads[i]);
+				replanificar(&runner_threads[i], i);
 			}
 		}
 		usleep(200000);

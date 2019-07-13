@@ -372,7 +372,7 @@ void borrar_todos_los_tmpc(char *tabla) {
 
 	iterar_directorio_tabla(tabla, &_borrar_archivo);
 	lfs_log_to_level(LOG_LEVEL_WARNING, false,
-			"Se elemina el archivo tmpc de la tabla %s debido a la compactacion",
+			"Se elemina archivo tmpc de la tabla %s debido a la compactacion",
 			tabla);
 }
 

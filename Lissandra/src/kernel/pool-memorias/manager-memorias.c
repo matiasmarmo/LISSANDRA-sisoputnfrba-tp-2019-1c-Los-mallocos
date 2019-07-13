@@ -225,6 +225,7 @@ void agregar_nuevas_memorias(void *buffer) {
 			// la misma ya se encuentra en el pool,
 			// no la agregamos al pool y continuamos con el resto.
 			list_add(pool_memorias, nueva_memoria);
+			kernel_log_to_level(LOG_LEVEL_INFO, 1, "Memoria %d conocida", nueva_memoria->id_memoria);
 		} else {
 			destruir_memoria(nueva_memoria);
 		}
@@ -320,6 +321,7 @@ int inicializar_memorias() {
 	}
 	inicializar_listas();
 	list_add(pool_memorias, memoria_principal);
+	kernel_log_to_level(LOG_LEVEL_INFO, 1, "La memoria %d es la memoria principal", memoria_principal->id_memoria);
 	if (obtener_memorias_del_pool(memoria_principal) < 0) {
 		// destruir_listas() va a destruir la memoria principal,
 		// la cual se encuentra dentros, por lo que no necesitamos
@@ -680,6 +682,8 @@ int enviar_request_a_shc(void *mensaje, uint16_t key, void *respuesta,
 	}
 	uint16_t hash = hash_key(key);
 	memoria_t *memoria = list_get(criterio_shc, hash % list_size(criterio_shc));
+	kernel_log_to_level(LOG_LEVEL_INFO, false, 
+		"SHC: enviando request con key %d a memoria %d", key, memoria->id_memoria);
 	return enviar_request(memoria, mensaje, respuesta, tamanio_respuesta,
 			CRITERIO_SHC);
 }
@@ -692,6 +696,8 @@ int enviar_request_a_ec(void *mensaje, void *respuesta, int tamanio_respuesta,
 		return -1;
 	}
 	memoria_t *memoria = memoria_random(criterio_ec);
+	kernel_log_to_level(LOG_LEVEL_INFO, false, 
+		"EC: enviando request a memoria %d", memoria->id_memoria);
 	return enviar_request(memoria, mensaje, respuesta, tamanio_respuesta,
 			CRITERIO_EC);
 }
@@ -718,6 +724,7 @@ int obtener_criterio_y_key(void *mensaje, int *criterio, uint16_t *key,
 	struct describe_request *describe_request;
 	struct drop_request *drop_request;
 	char *nombre_tabla = "";
+	char *criterio_string;
 	switch (get_msg_id(mensaje)) {
 	case SELECT_REQUEST_ID:
 		select_request = (struct select_request*) mensaje;
@@ -758,6 +765,18 @@ int obtener_criterio_y_key(void *mensaje, int *criterio, uint16_t *key,
 				"Tabla desconocida: %s. Request fallido.", nombre_tabla);
 		return TABLA_DESCONOCIDA;
 	}
+	switch(*criterio) {
+		case SC:
+			criterio_string = "SC";
+			break;
+		case SHC:
+			criterio_string = "SHC";
+			break;
+		case EC:
+			criterio_string = "EC";
+			break;
+	}
+	kernel_log_to_level(LOG_LEVEL_INFO, false, "Enviando request a criterio %s", criterio_string);
 	return 0;
 }
 

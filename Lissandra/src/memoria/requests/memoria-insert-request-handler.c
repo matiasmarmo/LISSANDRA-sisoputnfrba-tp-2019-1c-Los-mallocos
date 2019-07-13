@@ -74,8 +74,9 @@ int _manejar_insert_no_existe_segmento_en_tabla(struct insert_request mensaje, v
 				return ERROR;
 			}
 			memcpy(respuesta_insert, &memoria_full, sizeof(struct memory_full));
-			memoria_log_to_level(LOG_LEVEL_TRACE, false,
-					"No se pudo hacer el LRU, se devolvio memory full");
+			memoria_log_to_level(LOG_LEVEL_INFO, false,
+					"Memoria full al intentar insertar la key %d en la tabla %s",
+					mensaje.key, mensaje.tabla);
 			return 0;
 		}
 		else{
@@ -168,8 +169,9 @@ int _insert_pagina_no_en_memoria(struct insert_request mensaje, void* respuesta_
 				return ERROR;
 			}
 			memcpy(respuesta_insert, &memoria_full, sizeof(struct memory_full));
-			memoria_log_to_level(LOG_LEVEL_TRACE, false,
-					"No se pudo hacer el LRU, se devolvio memory full");
+			memoria_log_to_level(LOG_LEVEL_INFO, false,
+					"Memoria full al intentar insertar la key %d en la tabla %s",
+					mensaje.key, mensaje.tabla);
 			return 0;
 		}
 		else{

@@ -52,8 +52,6 @@ void manejar_datos_no_dumpeador(char *tabla, void *valor) {
 }
 
 void bajar_a_archivo_tmp(char *tabla, void *valor) {
-	lfs_log_to_level(LOG_LEVEL_INFO, 1,
-			"Se crea el archivo temporal de la tabla %s", tabla);
 	_iteracion_dump(tabla, valor, datos_no_dumpeados);
 }
 
@@ -65,6 +63,7 @@ void *dumpear(void *entrada) {
 	t_dictionary *diccionario = obtener_datos_para_dumpear();
 	dictionary_iterator(diccionario, &bajar_a_archivo_tmp);
 	dictionary_destroy(diccionario);
+	lfs_log_to_level(LOG_LEVEL_INFO, 1, "Dump realizado");
 	return NULL;
 }
 

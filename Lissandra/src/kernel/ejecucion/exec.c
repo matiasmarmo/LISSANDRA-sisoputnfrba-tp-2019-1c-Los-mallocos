@@ -139,12 +139,15 @@ void ejecutar_request(char **request, SCB *scb) {
 		}
 	}
 	destroy(buffer_request);
-	if(get_msg_id(buffer_respuesta) == ERROR_MSG_ID 
-			&& get_msg_id(buffer_request) == CREATE_REQUEST_ID
-			&& !scb->es_request_unitario) {
-		kernel_log_to_level(LOG_LEVEL_ERROR, true, 
-			"Script %s finalizando: %s", scb->name, ((struct error_msg*) buffer_respuesta)->description);
-		scb->estado = ERROR_SCRIPT;
+	if(get_msg_id(buffer_respuesta) == ERROR_MSG_ID && !scb->es_request_unitario) {
+		kernel_log_to_level(LOG_LEVEL_WARNING, scb->es_request_unitario,
+			"[%s]:[%s] -> Error: %s", scb->name, *request, 
+			((struct error_msg*) buffer_respuesta)->description);
+		if(get_msg_id(buffer_request) == CREATE_REQUEST_ID) {
+			kernel_log_to_level(LOG_LEVEL_ERROR, scb->es_request_unitario,
+				"Script %s finalizando: %s", scb->name, ((struct error_msg*) buffer_respuesta)->description);
+			scb->estado = ERROR_SCRIPT;		
+		}
 	}
 	if(ret == 0) {
 		if(scb->es_request_unitario) {
