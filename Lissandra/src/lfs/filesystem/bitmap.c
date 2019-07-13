@@ -120,6 +120,8 @@ int pedir_bloque_bitmap() {
 				"No se pudo guardar en el bitmap");
 		return -1;
 	}
+	lfs_log_to_level(LOG_LEVEL_INFO, 1, "Se otorgo el bloque %d",
+			bloque_elegido);
 	return bloque_elegido;
 }
 
@@ -155,6 +157,7 @@ int liberar_bloque_bitmap(int indice) {
 				"No se pudo guardar en el bitmap");
 		return -1;
 	}
+	lfs_log_to_level(LOG_LEVEL_INFO, 1, "Se libero el bloque %d", indice);
 
 	return 0;
 }
