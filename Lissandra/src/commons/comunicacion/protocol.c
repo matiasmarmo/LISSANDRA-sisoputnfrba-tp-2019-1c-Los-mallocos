@@ -3720,6 +3720,105 @@ int send_error_msg(uint8_t error_code, char* description, int socket_fd) {
 	return ret;
 }
 
+int encoded_keep_alive_size(void* buffer) {
+	
+	int encoded_size = 1;
+	
+	if(encoded_size > MAX_ENCODED_SIZE) {
+		return MESSAGE_TOO_BIG;
+	}
+	return encoded_size;
+}
+
+int decode_keep_alive (void *recv_data, void* decoded_data, int max_decoded_size) {
+    
+	if(max_decoded_size < sizeof(struct keep_alive)) {
+		return BUFFER_TOO_SMALL;
+	}
+
+	uint8_t* byte_data = (uint8_t*) recv_data;
+	int current = 0;
+	struct keep_alive msg;
+	msg.id = byte_data[current++];
+	
+	
+	memcpy(decoded_data, &msg, sizeof(struct keep_alive));
+	return 0;
+}
+
+int encode_keep_alive(void* msg_buffer, uint8_t* buff, int max_size) {
+	
+	int encoded_size = 0;
+	struct keep_alive msg = *((struct keep_alive*) msg_buffer);
+
+	if((encoded_size = encoded_keep_alive_size(&msg)) < 0) {
+		return encoded_size;
+	}
+	if(encoded_size > max_size) {
+		return BUFFER_TOO_SMALL;
+	}
+
+	
+
+	int current = 0;
+	buff[current++] = msg.id;
+	
+	
+	return encoded_size;
+}
+
+int init_keep_alive( struct keep_alive* msg) {
+	msg->id = KEEP_ALIVE_ID;
+	
+	return 0;
+}
+
+void destroy_keep_alive(void* buffer) {
+	
+	
+}
+
+int pack_keep_alive( uint8_t *buff, int max_size) {
+	uint8_t local_buffer[max_size - 2];
+	struct keep_alive msg;
+	int error, encoded_size;
+	if((error = init_keep_alive( &msg)) < 0) {
+		return error;
+	}
+	if((encoded_size = encode_keep_alive(&msg, local_buffer, max_size - 2)) < 0) {
+		destroy_keep_alive(&msg);
+		return encoded_size;
+	}
+	destroy_keep_alive(&msg);
+	return pack_msg(encoded_size, local_buffer, buff);
+}
+
+int send_keep_alive( int socket_fd) {
+
+	int bytes_to_send, ret;
+	int current_buffer_size = sizeof(struct keep_alive);
+	uint8_t* local_buffer = malloc(current_buffer_size);
+	if(local_buffer == NULL) {
+		return ALLOC_ERROR;
+	}
+
+	while((bytes_to_send = pack_keep_alive( local_buffer, current_buffer_size)) == BUFFER_TOO_SMALL) {
+		current_buffer_size *= 2;
+		local_buffer = realloc(local_buffer, current_buffer_size);
+		if(local_buffer == NULL) {
+			return ALLOC_ERROR;
+		}
+	}
+
+	if(bytes_to_send < 0) {
+		return bytes_to_send;
+	}
+
+	ret = _send_full_msg(socket_fd, local_buffer, bytes_to_send);
+	free(local_buffer);
+	return ret;
+}
+
 typedef int (*decoder_t)(void*, void*, int);
 typedef void (*destroyer_t)(void*);
 typedef int (*encoder_t)(void*, uint8_t*, int);
@@ -3861,6 +3960,11 @@ int decode(void *data, void *buff, int max_size) {
 			decoder = &decode_error_msg;
 			body_size = sizeof(struct error_msg);
 			break;
+	
+		case KEEP_ALIVE_ID:
+			decoder = &decode_keep_alive;
+			body_size = sizeof(struct keep_alive);
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -3981,6 +4085,10 @@ int destroy(void* buffer) {
 		case ERROR_MSG_ID:
 			destroyer = &destroy_error_msg;
 			break;
+	
+		case KEEP_ALIVE_ID:
+			destroyer = &destroy_keep_alive;
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -4096,6 +4204,10 @@ int bytes_needed_to_pack(void* buffer) {
 		case ERROR_MSG_ID:
 			size_getter = &encoded_error_msg_size;
 			break;
+	
+		case KEEP_ALIVE_ID:
+			size_getter = &encoded_keep_alive_size;
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -4209,6 +4321,10 @@ int send_msg(int socket_fd, void* buffer) {
 	
 		case ERROR_MSG_ID:
 			encoder = &encode_error_msg;
+			break;
+	
+		case KEEP_ALIVE_ID:
+			encoder = &encode_keep_alive;
 			break;
 		default:
 			return UNKNOWN_ID;
@@ -4329,6 +4445,10 @@ int struct_size_from_id(uint8_t msg_id) {
 		case ERROR_MSG_ID:
 			size = sizeof(struct error_msg);
 			break;
+	
+		case KEEP_ALIVE_ID:
+			size = sizeof(struct keep_alive);
+			break;
 		default:
 			return UNKNOWN_ID;
 	}
@@ -4401,7 +4521,7 @@ int _send_full_msg(int socket_fd, uint8_t* buffer, int bytes_to_send) {
 }
 
 int get_max_msg_size() {
-	int sizes[25] = { sizeof(struct select_request),
+	int sizes[26] = { sizeof(struct select_request),
 					sizeof(struct select_response),
 					sizeof(struct insert_request),
 					sizeof(struct insert_response),
@@ -4425,9 +4545,10 @@ int get_max_msg_size() {
 					sizeof(struct gossip_response),
 					sizeof(struct memory_full),
 					sizeof(struct lfs_handshake),
-					sizeof(struct error_msg) };
+					sizeof(struct error_msg),
+					sizeof(struct keep_alive) };
 	int max = -1;
-	for(int i = 0; i < 25; i++) {
+	for(int i = 0; i < 26; i++) {
 		if(sizes[i] > max) {
 			max = sizes[i];
 		}

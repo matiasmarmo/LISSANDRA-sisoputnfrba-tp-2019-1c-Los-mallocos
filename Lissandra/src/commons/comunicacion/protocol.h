@@ -434,6 +434,21 @@ void destroy_error_msg(void*);
 int pack_error_msg(uint8_t error_code, char* description, uint8_t *, int);
 int send_error_msg(uint8_t error_code, char* description, int);
 
+#define KEEP_ALIVE_ID 25
+#define KEEP_ALIVE_SIZE sizeof(struct keep_alive)
+
+struct keep_alive {
+	uint8_t id;
+	
+};
+
+int decode_keep_alive(void*, void*, int);
+int encode_keep_alive(void*, uint8_t*, int);
+int init_keep_alive( struct keep_alive*);
+void destroy_keep_alive(void*);
+int pack_keep_alive( uint8_t *, int);
+int send_keep_alive( int);
+
 int decode(void*, void*, int);
 int destroy(void*);
 int bytes_needed_to_pack(void*);

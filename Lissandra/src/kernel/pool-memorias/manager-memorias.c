@@ -283,6 +283,30 @@ void *actualizar_memorias_threaded(void *entrada) {
 	return NULL;
 }
 
+void *keep_alive_threaded(void *entrada) {
+	memoria_t *memoria;
+	int tamanio = get_max_msg_size();
+	struct keep_alive req;
+	uint8_t res[tamanio];
+	memset(res, 0, tamanio);
+	init_keep_alive(&req);
+	pthread_rwlock_rdlock(&memorias_rwlock);
+	for(int i = 0; i < list_size(pool_memorias); i++) {
+		memoria = (memoria_t*) list_get(pool_memorias, i);
+		pthread_mutex_lock(&memoria->mutex);
+		pthread_rwlock_unlock(&memorias_rwlock);
+		if(!memoria->conectada && (conectar_memoria(memoria) >= 0)) {
+			kernel_log_to_level(LOG_LEVEL_INFO, true, "Memoria %d reconectada", memoria->id_memoria);
+		} else {
+			enviar_y_recibir_respuesta(&req, memoria, res, tamanio);
+		}
+		pthread_mutex_unlock(&memoria->mutex);
+		pthread_rwlock_rdlock(&memorias_rwlock);
+	}
+	pthread_rwlock_unlock(&memorias_rwlock);
+	return NULL;
+}
+
 int inicializar_memorias() {
 	int error;
 	if ((error = pthread_rwlock_wrlock(&memorias_rwlock)) != 0) {

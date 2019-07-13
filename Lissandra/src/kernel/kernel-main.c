@@ -73,13 +73,13 @@ void finalizar_thread_si_se_creo(lissandra_thread_t *l_thread, int create_ret) {
 
 int main() {
 	inicializar_kernel();
-	int rets[6];
+	int rets[7];
 
 	pthread_mutex_lock(&kernel_main_mutex);
 
 	lissandra_thread_t planificador, consola, inotify;
 	lissandra_thread_periodic_t metadata_updater, memorias_updater,
-			metricas_logger;
+			metricas_logger, keep_alive;
 	rets[0] = l_thread_create(&planificador, &correr_planificador, NULL);
 	rets[1] = l_thread_create(&consola, &correr_consola, NULL);
 	rets[2] = inicializar_kernel_inotify(&inotify);
@@ -89,6 +89,8 @@ int main() {
 			&actualizar_memorias_threaded, &get_refresh_memorias, NULL);
 	rets[5] = l_thread_periodic_create(&metricas_logger, &log_metricas_threaded,
 			&intervalo_log_metricas, NULL);
+	rets[6] = l_thread_periodic_create_fixed(&keep_alive, &keep_alive_threaded, 
+			1000, NULL);
 
 	for (int i = 0; i < 6; i++) {
 		if (rets[i] != 0) {
@@ -98,6 +100,7 @@ int main() {
 			finalizar_thread_si_se_creo(&metadata_updater.l_thread, rets[3]);
 			finalizar_thread_si_se_creo(&memorias_updater.l_thread, rets[4]);
 			finalizar_thread_si_se_creo(&metricas_logger.l_thread, rets[5]);
+			finalizar_thread_si_se_creo(&keep_alive.l_thread, rets[6]);
 			liberar_recursos_kernel();
 			exit(EXIT_FAILURE);
 		}
@@ -115,6 +118,7 @@ int main() {
 	finalizar_thread(&metadata_updater.l_thread);
 	finalizar_thread(&memorias_updater.l_thread);
 	finalizar_thread(&metricas_logger.l_thread);
+	finalizar_thread(&keep_alive.l_thread);
 	kernel_log_to_level(LOG_LEVEL_INFO, false, "Finalizando.");
 	liberar_recursos_kernel();
 	return 0;
