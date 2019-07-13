@@ -99,6 +99,8 @@ int ejecutar_request(void *request, void *respuesta, bool should_sleep) {
 		desbloquear_memoria();
 		sleep_acceso_memoria(should_sleep);
 		return resultado;
+	case KEEP_ALIVE_ID:
+		return init_keep_alive(respuesta);
 	default:
 		return init_error_msg(0, "Comando no soportado", respuesta);
 	}
